@@ -1,0 +1,85 @@
+.automations {
+  padding: 28px 24px;
+  max-width: 900px;
+}
+
+.automations__header {
+  margin-bottom: 24px;
+}
+
+.automations__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.automations__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.automations__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.automations__item {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.automations__item-info {
+  flex: 1;
+}
+
+.automations__item-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.automations__item-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.automations__trigger {
+  display: inline-block;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.automations__status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.automations__status--active {
+  background: #1a3a2a;
+  color: #4ade80;
+}
+
+.automations__status--inactive {
+  background: #3a1a1a;
+  color: #f87171;
+}
+
+.automations__empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 60px 0;
+  font-size: 14px;
+}

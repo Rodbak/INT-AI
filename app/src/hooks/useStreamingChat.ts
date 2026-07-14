@@ -2,6 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendMessage } from '../lib/api';
 import type { Message } from '../types';
 
+interface SendMessageResult {
+  message: Message;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    cost: number;
+  };
+}
+
 export function useStreamingChat(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [sending, setSending] = useState(false);
@@ -9,8 +19,9 @@ export function useStreamingChat(conversationId: string | null) {
   const abortRef = useRef<AbortController | null>(null);
 
   const send = useCallback(
-    async (text: string, model?: string) => {
+    async (text: string, model?: string): Promise<SendMessageResult | void> => {
       if (!conversationId || !text.trim()) return;
+
       setSending(true);
       setError(null);
 
@@ -36,7 +47,7 @@ export function useStreamingChat(conversationId: string | null) {
       abortRef.current = controller;
 
       try {
-        await sendMessage(
+        const result = await sendMessage(
           conversationId,
           text.trim(),
           model,
@@ -47,6 +58,22 @@ export function useStreamingChat(conversationId: string | null) {
           },
           controller.signal,
         );
+
+        // Update assistant message with final text and usage data
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  text: result.message.text || m.text,
+                  tokens: result.message.tokens,
+                  cost: result.message.cost,
+                }
+              : m,
+          ),
+        );
+
+        return result;
       } catch (err: any) {
         const message = err?.error || err?.message || 'Something went wrong.';
         setError(message);

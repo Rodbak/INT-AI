@@ -46,51 +46,121 @@ export interface Specialist {
   name: string;
   role: string;
   model: string;
-  status: 'online' | 'busy' | 'offline';
+  active: boolean;
   description: string;
+  capabilities: string[];
 }
 
 export interface AITeam {
   id: string;
   name: string;
   description: string;
-  members: string[];
+  members: Array<{ id: string; specialist: { id: string; name: string; role: string } }>;
+  workspace: { id: string; name: string };
+  creator: { id: string; email: string; name: string };
   status: 'active' | 'idle';
 }
 
 export interface Automation {
   id: string;
   name: string;
-  trigger: string;
+  triggerType: string;
   action: string;
   enabled: boolean;
+  workspace: { id: string; name: string };
+  creator: { id: string; email: string; name: string };
+  active: boolean;
+  triggerConfig: Record<string, any>;
+  steps: any[];
 }
 
 export interface KnowledgeDoc {
   id: string;
   title: string;
+  filename: string;
   type: 'pdf' | 'doc' | 'sheet' | 'text';
-  size: string;
+  size: number;
+  createdAt: string;
   updatedAt: string;
+  workspace: { id: string; name: string };
+  uploader: { id: string; email: string; name: string };
+  url: string;
+  mimeType: string;
 }
 
 export interface PromptTemplate {
   id: string;
   title: string;
   description: string;
+  content: string;
   category: string;
   tags: string[];
+  workspace: { id: string; name: string };
+  creator: { id: string; email: string; name: string };
 }
 
 export interface Connection {
   id: string;
   name: string;
-  type: 'api' | 'oauth' | 'database' | 'webhook';
+  provider: string;
   status: 'connected' | 'disconnected' | 'error';
+  workspace: { id: string; name: string };
+  expiresAt?: string;
 }
 
 export interface UsageMetric {
   date: string;
   tokens: number;
   cost: number;
+}
+
+export interface UsageSummary {
+  totalTokensIn: number;
+  totalTokensOut: number;
+  totalCost: number;
+  conversationCount: number;
+  period: { from?: string; to?: string };
+}
+
+export interface UsageBreakdownItem {
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  cost: number;
+  count: number;
+}
+
+export interface BillingPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  interval: string;
+  features: string[];
+  active: boolean;
+}
+
+export interface Invoice {
+  id: string;
+  userId: string;
+  planId: string;
+  amount: number;
+  status: 'paid' | 'pending' | 'failed';
+  periodStart: string;
+  periodEnd: string;
+  createdAt: string;
+  plan: { id: string; name: string; price: number; interval: string };
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalConversations: number;
+  totalMessages: number;
+  totalCost: number;
+  activeSpecialists: number;
+  totalTeams: number;
+  totalDocuments: number;
+  totalConnections: number;
+  recentActivity: Record<string, number>;
+  modelDistribution: Array<{ model: string; count: number }>;
 }

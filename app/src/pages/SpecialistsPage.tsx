@@ -28,7 +28,9 @@ export default function SpecialistsPage() {
             <div key={s.id} className="specialists__card">
               <div className="specialists__card-header">
                 <div className="specialists__avatar">{s.name[0]}</div>
-                <span className={`specialists__status specialists__status--${s.status}`}>{s.status}</span>
+                <span className={`specialists__status specialists__status--${s.active ? 'active' : 'inactive'}`}>
+                  {s.active ? 'active' : 'inactive'}
+                </span>
               </div>
               <div className="specialists__name">{s.name}</div>
               <div className="specialists__role">{s.role}</div>

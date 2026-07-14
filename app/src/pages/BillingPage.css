@@ -1,0 +1,146 @@
+.billing {
+  padding: 28px 24px;
+  max-width: 1000px;
+}
+
+.billing__header {
+  margin-bottom: 24px;
+}
+
+.billing__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.billing__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.billing__section {
+  margin-bottom: 32px;
+}
+
+.billing__section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.billing__plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.billing__plan {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.billing__plan-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.billing__plan-price {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.billing__plan-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+.billing__plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.billing__plan-feature {
+  font-size: 13px;
+  padding: 4px 0;
+  color: var(--text-dim);
+}
+
+.billing__plan-feature::before {
+  content: "✓ ";
+  color: #4ade80;
+}
+
+.billing__badge {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.billing__upgrade {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.billing__invoices {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.billing__invoice-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.billing__invoice-row:last-child {
+  border-bottom: none;
+}
+
+.billing__invoice-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.billing__invoice-status--paid {
+  background: #1a3a2a;
+  color: #4ade80;
+}
+
+.billing__invoice-status--pending {
+  background: #3a3a1a;
+  color: #facc15;
+}
+
+.billing__invoice-status--failed {
+  background: #3a1a1a;
+  color: #f87171;
+}
+
+.billing__empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 60px 0;
+  font-size: 14px;
+}

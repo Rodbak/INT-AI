@@ -42,12 +42,83 @@ const SPECIALISTS = [
   },
 ];
 
+const MODELS = [
+  {
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4",
+    provider: "anthropic",
+    description: "Most powerful model for complex reasoning and creative tasks",
+    contextWindow: 200000,
+    inputPricePerMillion: 15.0,
+    outputPricePerMillion: 75.0,
+    capabilities: ["text", "vision", "tool_use", "reasoning"],
+    active: true,
+  },
+  {
+    id: "gpt-4o",
+    name: "GPT-4o",
+    provider: "openai",
+    description: "Versatile flagship model with strong reasoning and vision",
+    contextWindow: 128000,
+    inputPricePerMillion: 5.0,
+    outputPricePerMillion: 15.0,
+    capabilities: ["text", "vision", "tool_use", "reasoning"],
+    active: true,
+  },
+  {
+    id: "gemini-2.0-flash",
+    name: "Gemini 2.0 Flash",
+    provider: "google",
+    description: "Fast, efficient model with strong multimodal capabilities",
+    contextWindow: 1000000,
+    inputPricePerMillion: 0.1,
+    outputPricePerMillion: 0.4,
+    capabilities: ["text", "vision", "tool_use", "reasoning"],
+    active: true,
+  },
+];
+
+const BILLING_PLANS = [
+  {
+    name: "Free",
+    description: "For individuals exploring AI-powered workflows",
+    price: 0,
+    interval: "month",
+    features: ["5 conversations/month", "Basic models", "1 workspace", "Email support"],
+    active: true,
+  },
+  {
+    name: "Pro",
+    description: "For power users who need unlimited access",
+    price: 29,
+    interval: "month",
+    features: ["Unlimited conversations", "All models", "5 workspaces", "Priority support", "Custom specialists"],
+    active: true,
+  },
+  {
+    name: "Enterprise",
+    description: "For teams with advanced security and control needs",
+    price: 99,
+    interval: "month",
+    features: ["Unlimited everything", "SSO/SAML", "Dedicated support", "Custom integrations", "Audit logs"],
+    active: true,
+  },
+];
+
 async function main() {
   for (const specialist of SPECIALISTS) {
     await prisma.specialist.upsert({
       where: { name: specialist.name },
       update: specialist,
       create: specialist,
+    });
+  }
+
+  for (const model of MODELS) {
+    await prisma.model.upsert({
+      where: { id: model.id },
+      update: model,
+      create: model,
     });
   }
 
@@ -61,8 +132,7 @@ async function main() {
       email,
       name: "INT AI Admin",
       passwordHash,
-      role: "USER",
-      emailVerified: new Date(),
+      role: "ADMIN",
     },
   });
 
@@ -91,10 +161,20 @@ async function main() {
     },
   });
 
+  for (const plan of BILLING_PLANS) {
+    await prisma.billingPlan.upsert({
+      where: { name: plan.name },
+      update: plan,
+      create: plan,
+    });
+  }
+
   console.log("Seed complete:", {
     specialists: SPECIALISTS.length,
+    models: MODELS.length,
     user: user.email,
     workspace: workspace.slug,
+    billingPlans: BILLING_PLANS.length,
   });
 }
 

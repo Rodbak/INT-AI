@@ -4,33 +4,35 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { connectDb, disconnectDb } from './db';
+import { connectRedis, disconnectRedis } from './utils/redis';
 import { authenticate } from './middleware/auth';
 import { errorHandler } from './middleware/error';
 import { logger } from './middleware/logger';
 import authRoutes from './routes/auth';
 import conversationRoutes from './routes/conversations';
 import chatRoutes from './routes/chat';
+import modelsRoutes from './routes/models';
+import specialistsRoutes from './routes/specialists';
+import teamsRoutes from './routes/teams';
+import automationsRoutes from './routes/automations';
+import promptsRoutes from './routes/prompts';
+import connectionsRoutes from './routes/connections';
+import knowledgeRoutes from './routes/knowledge';
+import usageRoutes from './routes/usage';
+import billingRoutes from './routes/billing';
+import adminRoutes from './routes/admin';
+import { initRateLimiters } from './middleware/rateLimit';
+import { env } from './env';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const requiredEnvVars = ['DATABASE_URL'];
-const missingEnv = requiredEnvVars.filter((v) => !process.env[v]);
-
-if (missingEnv.length > 0) {
-  logger.error({ missing: missingEnv }, 'Missing required environment variables');
-  process.exit(1);
-}
-
-const PORT = process.env.PORT || 3001;
-const NODE_ENV = process.env.NODE_ENV || 'development';
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',');
 
 const app = express();
 
 app.use(
   cors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+      const allowedOrigins = env.CORS_ORIGINS.split(',');
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -60,16 +62,30 @@ app.get('/ready', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/conversations', authenticate, conversationRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/models', modelsRoutes);
+app.use('/api/specialists', authenticate, specialistsRoutes);
+app.use('/api/teams', authenticate, teamsRoutes);
+app.use('/api/automations', authenticate, automationsRoutes);
+app.use('/api/prompts', authenticate, promptsRoutes);
+app.use('/api/connections', authenticate, connectionsRoutes);
+app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/usage', usageRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(errorHandler);
 
-const server = app.listen(PORT, () => {
-  logger.info({ port: PORT, env: NODE_ENV }, 'Server started');
+const server = app.listen(env.PORT, () => {
+  logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Server started');
+  connectRedis().then(() => {
+    initRateLimiters();
+  });
 });
 
 async function gracefulShutdown(signal: string) {
   logger.info({ signal }, 'Received shutdown signal');
   server.close(async () => {
+    await disconnectRedis();
     await disconnectDb();
     logger.info('Server closed');
     process.exit(0);

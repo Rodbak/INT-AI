@@ -1,0 +1,72 @@
+.ai-teams {
+  padding: 28px 24px;
+  max-width: 900px;
+}
+
+.ai-teams__header {
+  margin-bottom: 24px;
+}
+
+.ai-teams__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.ai-teams__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.ai-teams__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.ai-teams__card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.ai-teams__card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.ai-teams__card-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.ai-teams__card-meta {
+  font-size: 12px;
+  color: var(--text-label);
+}
+
+.ai-teams__members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ai-teams__member {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.ai-teams__empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 60px 0;
+  font-size: 14px;
+}

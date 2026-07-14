@@ -1,5 +1,21 @@
 import axios from 'axios';
-import type { User } from '../types';
+import type {
+  User,
+  Conversation,
+  Message,
+  ModelOption,
+  Specialist,
+  AITeam,
+  Automation,
+  KnowledgeDoc,
+  PromptTemplate,
+  Connection,
+  UsageSummary,
+  UsageBreakdownItem,
+  BillingPlan,
+  Invoice,
+  AdminStats,
+} from '../types';
 
 const API_BASE = '/api';
 
@@ -77,12 +93,12 @@ export async function refreshTokenRequest(refreshToken: string) {
 }
 
 export async function fetchConversations() {
-  const { data } = await api.get<{ conversations: import('../types').Conversation[] }>('/conversations');
+  const { data } = await api.get<{ conversations: Conversation[] }>('/conversations');
   return data.conversations;
 }
 
 export async function createConversation(title: string) {
-  const { data } = await api.post<{ conversation: import('../types').Conversation }>('/conversations', {
+  const { data } = await api.post<{ conversation: Conversation }>('/conversations', {
     title,
   });
   return data.conversation;
@@ -98,14 +114,14 @@ export async function sendMessage(
   model?: string,
   onChunk?: (chunk: string) => void,
   signal?: AbortSignal,
-): Promise<import('../types').Message> {
+): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
   const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
     },
-    body: JSON.stringify({ text, model }),
+    body: JSON.stringify({ text, model, stream: true }),
     signal,
   });
 
@@ -117,7 +133,52 @@ export async function sendMessage(
   const reader = response.body?.getReader();
   const decoder = new TextDecoder();
   let fullText = '';
-  let assistantMessage: import('../types').Message | null = null;
+  let usage: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } | undefined;
+
+  if (reader) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const payload = line.slice(6);
+          if (payload === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(payload);
+            if (parsed.type === 'text' && parsed.content) {
+              fullText += parsed.content;
+              onChunk?.(parsed.content);
+            } else if (parsed.type === 'usage' && parsed.usage) {
+              usage = parsed.usage;
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    message: {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      text: fullText,
+      timestamp: new Date().toISOString(),
+      model: model || 'auto',
+      tokens: usage?.totalTokens,
+      cost: usage?.cost,
+    },
+    usage,
+  };
+}
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let assistantMessage: Message | null = null;
 
   if (reader) {
     while (true) {
@@ -170,47 +231,184 @@ export async function uploadFile(file: File): Promise<{ id: string; url: string 
 }
 
 export async function fetchModels() {
-  const { data } = await api.get<{ models: import('../types').ModelOption[] }>('/models');
+  const { data } = await api.get<{ models: ModelOption[] }>('/models');
   return data.models;
 }
 
 export async function fetchSpecialists() {
-  const { data } = await api.get<{ specialists: import('../types').Specialist[] }>('/specialists');
+  const { data } = await api.get<{ specialists: Specialist[] }>('/specialists');
   return data.specialists;
 }
 
 export async function fetchTeams() {
-  const { data } = await api.get<{ teams: import('../types').AITeam[] }>('/teams');
+  const { data } = await api.get<{ teams: AITeam[] }>('/teams');
   return data.teams;
 }
 
+export async function createTeam(data: {
+  name: string;
+  description?: string;
+  workspaceId: string;
+  members?: Array<{ specialistId: string; order?: number }>;
+}) {
+  const response = await api.post('/teams', data);
+  return response.data;
+}
+
+export async function updateTeam(id: string, data: {
+  name?: string;
+  description?: string;
+  members?: Array<{ specialistId: string; order?: number }>;
+}) {
+  const response = await api.patch(`/teams/${id}`, data);
+  return response.data;
+}
+
+export async function deleteTeam(id: string) {
+  await api.delete(`/teams/${id}`);
+}
+
 export async function fetchAutomations() {
-  const { data } = await api.get<{ automations: import('../types').Automation[] }>('/automations');
+  const { data } = await api.get<{ automations: Automation[] }>('/automations');
   return data.automations;
 }
 
+export async function createAutomation(data: {
+  name: string;
+  description?: string;
+  triggerType: 'webhook' | 'schedule' | 'manual';
+  triggerConfig?: Record<string, any>;
+  steps?: any[];
+  workspaceId: string;
+}) {
+  const response = await api.post('/automations', data);
+  return response.data;
+}
+
+export async function updateAutomation(id: string, data: {
+  name?: string;
+  description?: string;
+  triggerType?: 'webhook' | 'schedule' | 'manual';
+  triggerConfig?: Record<string, any>;
+  steps?: any[];
+  active?: boolean;
+}) {
+  const response = await api.patch(`/automations/${id}`, data);
+  return response.data;
+}
+
+export async function deleteAutomation(id: string) {
+  await api.delete(`/automations/${id}`);
+}
+
+export async function executeAutomation(id: string) {
+  const response = await api.post(`/automations/${id}/execute`);
+  return response.data;
+}
+
 export async function fetchKnowledge() {
-  const { data } = await api.get<{ docs: import('../types').KnowledgeDoc[] }>('/knowledge');
+  const { data } = await api.get<{ docs: KnowledgeDoc[] }>('/knowledge');
   return data.docs;
 }
 
+export async function createDocument(data: {
+  title: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  workspaceId: string;
+}) {
+  const response = await api.post('/knowledge', data);
+  return response.data;
+}
+
+export async function deleteDocument(id: string) {
+  await api.delete(`/knowledge/${id}`);
+}
+
 export async function fetchPrompts() {
-  const { data } = await api.get<{ prompts: import('../types').PromptTemplate[] }>('/prompts');
+  const { data } = await api.get<{ prompts: PromptTemplate[] }>('/prompts');
   return data.prompts;
 }
 
+export async function createPrompt(data: {
+  title: string;
+  content: string;
+  tags?: string[];
+  workspaceId: string;
+}) {
+  const response = await api.post('/prompts', data);
+  return response.data;
+}
+
+export async function updatePrompt(id: string, data: {
+  title?: string;
+  content?: string;
+  tags?: string[];
+}) {
+  const response = await api.patch(`/prompts/${id}`, data);
+  return response.data;
+}
+
+export async function deletePrompt(id: string) {
+  await api.delete(`/prompts/${id}`);
+}
+
 export async function fetchConnections() {
-  const { data } = await api.get<{ connections: import('../types').Connection[] }>('/connections');
+  const { data } = await api.get<{ connections: Connection[] }>('/connections');
   return data.connections;
 }
 
-export async function fetchUsage() {
-  const { data } = await api.get<{ metrics: import('../types').UsageMetric[] }>('/usage');
-  return data.metrics;
+export async function createConnection(data: {
+  provider: 'google' | 'microsoft' | 'slack' | 'github';
+  name: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: string;
+  workspaceId: string;
+}) {
+  const response = await api.post('/connections', data);
+  return response.data;
+}
+
+export async function deleteConnection(id: string) {
+  await api.delete(`/connections/${id}`);
+}
+
+export async function fetchUsageSummary(from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const { data } = await api.get<UsageSummary>(`/usage/summary?${params.toString()}`);
+  return data;
+}
+
+export async function fetchUsageBreakdown(from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const { data } = await api.get<UsageBreakdownItem[]>(`/usage/breakdown?${params.toString()}`);
+  return data;
+}
+
+export async function fetchPlans() {
+  const { data } = await api.get<BillingPlan[]>('/billing/plans');
+  return data;
+}
+
+export async function fetchInvoices() {
+  const { data } = await api.get<{ invoices: Invoice[] }>('/billing/invoices');
+  return data.invoices;
+}
+
+export async function createCheckout(planId: string) {
+  const { data } = await api.post<{ checkoutUrl: string }>('/billing/checkout', { planId });
+  return data;
 }
 
 export async function fetchAdminStats() {
-  const { data } = await api.get<any>('/admin/stats');
+  const { data } = await api.get<AdminStats>('/admin/stats');
   return data;
 }
 

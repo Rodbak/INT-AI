@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible';
 import { pino } from 'pino';
+import { redis } from '../utils/redis';
 
 const logger = pino({ name: 'rateLimit' });
 
@@ -10,16 +11,26 @@ interface RateLimitConfig {
   blockDuration: number;
 }
 
-const getUserLimiter = (config: RateLimitConfig) => {
+const isRedisConnected = () => redis.status === 'ready';
+
+const getRedisLimiter = (config: RateLimitConfig) => {
+  if (isRedisConnected()) {
+    return new RateLimiterRedis({ storeClient: redis, ...config });
+  }
   return new RateLimiterMemory(config);
 };
 
-const getIpLimiter = (config: RateLimitConfig) => {
-  return new RateLimiterMemory(config);
-};
+const userConfig: RateLimitConfig = { points: 100, duration: 60, blockDuration: 60 };
+const ipConfig: RateLimitConfig = { points: 20, duration: 60, blockDuration: 60 };
 
-const userLimiter = getUserLimiter({ points: 100, duration: 60, blockDuration: 60 });
-const ipLimiter = getIpLimiter({ points: 20, duration: 60, blockDuration: 60 });
+let userLimiter = getRedisLimiter(userConfig);
+let ipLimiter = getRedisLimiter(ipConfig);
+
+export function initRateLimiters(): void {
+  userLimiter = getRedisLimiter(userConfig);
+  ipLimiter = getRedisLimiter(ipConfig);
+  logger.info({ redis: isRedisConnected() }, 'Rate limiters initialized');
+}
 
 export function rateLimit(req: Request, res: Response, next: NextFunction): void {
   const userId = req.user?.id;
