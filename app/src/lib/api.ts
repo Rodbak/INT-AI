@@ -15,7 +15,7 @@ import type {
   BillingPlan,
   Invoice,
   AdminStats,
-} from '../types';
+} from '../types/index';
 
 const API_BASE = '/api';
 

@@ -8,7 +8,7 @@ import {
   resultSummary,
   deliverables,
 } from '../data/workspace';
-import type { LiveMessage } from '../types';
+import type { LiveMessage } from '../types/index';
 import './Thread.css';
 
 interface ThreadProps {

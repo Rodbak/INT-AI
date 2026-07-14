@@ -1,17 +1,17 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import LoginPage from '../pages/LoginPage';
-import CurrentTaskPage from '../pages/CurrentTaskPage';
-import HistoryPage from '../pages/HistoryPage';
-import SpecialistsPage from '../pages/SpecialistsPage';
-import AITeamsPage from '../pages/AITeamsPage';
-import AutomationsPage from '../pages/AutomationsPage';
-import KnowledgePage from '../pages/KnowledgePage';
-import PromptsPage from '../pages/PromptsPage';
-import ConnectionsPage from '../pages/ConnectionsPage';
-import AdminDashboardPage from '../pages/AdminDashboardPage';
-import BillingPage from '../pages/BillingPage';
-import Layout from '../components/Layout';
-import ProtectedRoute from '../components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import CurrentTaskPage from './pages/CurrentTaskPage';
+import HistoryPage from './pages/HistoryPage';
+import SpecialistsPage from './pages/SpecialistsPage';
+import AITeamsPage from './pages/AITeamsPage';
+import AutomationsPage from './pages/AutomationsPage';
+import KnowledgePage from './pages/KnowledgePage';
+import PromptsPage from './pages/PromptsPage';
+import ConnectionsPage from './pages/ConnectionsPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import BillingPage from './pages/BillingPage';
+import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {

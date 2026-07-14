@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchPrompts } from '../../lib/api';
-import type { PromptTemplate } from '../../types';
+import { fetchPrompts } from '../lib/api';
+import type { PromptTemplate } from '../types/index';
 import './PromptsPage.css';
 
 function preview(content: string): string {
@@ -35,7 +35,7 @@ export default function PromptsPage() {
               <div className="prompts__card-title">{prompt.title}</div>
               <div className="prompts__card-content">{preview(prompt.content)}</div>
               <div className="prompts__tags">
-                {prompt.tags.map((tag) => (
+                {prompt.tags.map((tag: string) => (
                   <span key={tag} className="prompts__tag">{tag}</span>
                 ))}
               </div>

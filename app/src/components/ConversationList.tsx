@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { fetchConversations, deleteConversation } from '../../lib/api';
-import type { Conversation } from '../../types';
+import { deleteConversation } from '../lib/api';
+import type { Conversation } from '../types/index';
 import './ConversationList.css';
 
 interface Props {

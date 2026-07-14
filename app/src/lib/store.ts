@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User, Conversation, Message, ModelOption } from '../types';
+import type { User, Conversation } from '../types/index';
 
 interface AppState {
   user: User | null;
@@ -27,7 +27,7 @@ interface AppState {
   setStreaming: (streaming: boolean) => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>((set) => ({
   user: null,
   setUser: (user) => set({ user }),
   workspace: null,

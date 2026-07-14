@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import Thread from './components/Thread';
 import Composer from './components/Composer';
-import type { LiveMessage } from './types';
+import type { LiveMessage } from './types/index';
 import './App.css';
 
 function App() {

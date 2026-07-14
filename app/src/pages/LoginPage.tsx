@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authManager } from '../../lib/auth';
+import { authManager } from '../lib/auth';
 import './LoginPage.css';
 
 export default function LoginPage() {

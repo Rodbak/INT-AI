@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchConnections } from '../../lib/api';
-import type { Connection } from '../../types';
+import { fetchConnections } from '../lib/api';
+import type { Connection } from '../types/index';
 import './ConnectionsPage.css';
 
 const PROVIDER_ICONS: Record<string, string> = {

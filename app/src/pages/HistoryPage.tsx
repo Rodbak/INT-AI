@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchConversations } from '../../lib/api';
-import type { Conversation } from '../../types';
+import { fetchConversations } from '../lib/api';
+import type { Conversation } from '../types/index';
 import './HistoryPage.css';
 
 export default function HistoryPage() {
@@ -9,7 +9,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     fetchConversations()
-      .then((data) => setConversations(data))
+      .then((data: Conversation[]) => setConversations(data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

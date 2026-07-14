@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchAutomations } from '../../lib/api';
-import type { Automation } from '../../types';
+import { fetchAutomations } from '../lib/api';
+import type { Automation } from '../types/index';
 import './AutomationsPage.css';
 
 export default function AutomationsPage() {

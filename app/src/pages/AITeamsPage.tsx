@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchTeams } from '../../lib/api';
-import type { AITeam } from '../../types';
+import { fetchTeams } from '../lib/api';
+import type { AITeam } from '../types/index';
 import './AITeamsPage.css';
 
 export default function AITeamsPage() {
@@ -34,7 +34,7 @@ export default function AITeamsPage() {
                 {team.members.length} specialists · {team.workspace.name}
               </div>
               <div className="ai-teams__members">
-                {team.members.map((member) => (
+                {team.members.map((member: { id: string; specialist: { id: string; name: string; role: string } }) => (
                   <span key={member.id} className="ai-teams__member">
                     {member.specialist.name}
                   </span>

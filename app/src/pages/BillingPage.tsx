@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchPlans, fetchInvoices } from '../../lib/api';
-import type { BillingPlan, Invoice } from '../../types';
+import { fetchPlans, fetchInvoices } from '../lib/api';
+import type { BillingPlan, Invoice } from '../types/index';
 import './BillingPage.css';
 
 export default function BillingPage() {
@@ -44,7 +44,7 @@ export default function BillingPage() {
               </div>
               <div className="billing__plan-desc">{plan.description}</div>
               <ul className="billing__plan-features">
-                {plan.features.map((feature, index) => (
+                {plan.features.map((feature: string, index: number) => (
                   <li key={index} className="billing__plan-feature">
                     {feature}
                   </li>

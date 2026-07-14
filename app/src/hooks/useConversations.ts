@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchConversations, createConversation as apiCreate, deleteConversation as apiDelete } from '../lib/api';
-import type { Conversation } from '../types';
+import type { Conversation } from '../types/index';
 
 export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);

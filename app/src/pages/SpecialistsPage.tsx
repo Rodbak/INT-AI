@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchSpecialists } from '../../lib/api';
-import type { Specialist } from '../../types';
+import { fetchSpecialists } from '../lib/api';
+import type { Specialist } from '../types/index';
 import './SpecialistsPage.css';
 
 export default function SpecialistsPage() {

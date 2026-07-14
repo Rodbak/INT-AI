@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchAdminStats } from '../../lib/api';
-import type { AdminStats } from '../../types';
+import { fetchAdminStats } from '../lib/api';
+import type { AdminStats } from '../types/index';
 import './AdminDashboardPage.css';
 
 export default function AdminDashboardPage() {
@@ -16,10 +16,6 @@ export default function AdminDashboardPage() {
       )
       .finally(() => setLoading(false));
   }, []);
-
-  const recentActivityEntries = stats
-    ? Object.entries(stats.recentActivity).map(([date, cost]) => ({ date, cost }))
-    : [];
 
   return (
     <div className="admin-dashboard">
@@ -70,11 +66,11 @@ export default function AdminDashboardPage() {
 
           <div className="admin-dashboard__section">
             <h2 className="admin-dashboard__section-title">Recent Activity (last 7 days)</h2>
-            {recentActivityEntries.length === 0 ? (
+            {stats.recentActivity.length === 0 ? (
               <div className="admin-dashboard__empty">No recent activity</div>
             ) : (
               <div className="admin-dashboard__list">
-                {recentActivityEntries.slice(-7).map((activity) => (
+                {stats.recentActivity.map((activity) => (
                   <div key={activity.date} className="admin-dashboard__list-item">
                     <span>{activity.date}</span>
                     <span>${activity.cost.toFixed(2)}</span>

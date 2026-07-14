@@ -1,5 +1,5 @@
 import { login, logout, getCurrentUser, refreshTokenRequest } from './api';
-import type { User } from '../types';
+import type { User } from '../types/index';
 
 type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -20,7 +20,7 @@ class AuthManager {
 
   subscribe(listener: () => void) {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return (): void => { this.listeners.delete(listener); };
   }
 
   getState() {

@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useStreamingChat } from '../../hooks/useStreamingChat';
-import { useConversations } from '../../hooks/useConversations';
+import { useStreamingChat } from '../hooks/useStreamingChat';
+import { useConversations } from '../hooks/useConversations';
 import ConversationList from '../components/ConversationList';
 import ModelSelector from '../components/ModelSelector';
 import CostBadge from '../components/CostBadge';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import type { Message } from '../types/index';
 import './CurrentTaskPage.css';
 
 export default function CurrentTaskPage() {
@@ -72,7 +72,7 @@ export default function CurrentTaskPage() {
           </div>
         )}
 
-        {messages.map((m) => (
+        {messages.map((m: Message) => (
           <div key={m.id} className={`message message--${m.role}`}>
             <div className="message__bubble">
               {m.role === 'assistant' && !m.text && sending && (

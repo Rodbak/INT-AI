@@ -1,3 +1,10 @@
+export interface LiveMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  status?: 'pending' | 'done' | 'error';
+}
+
 export interface User {
   id: string;
   email: string;
@@ -51,6 +58,16 @@ export interface Specialist {
   capabilities: string[];
 }
 
+export interface SpecialistRef {
+  id: string;
+  name: string;
+}
+
+export interface TeamMember {
+  id: string;
+  specialist: SpecialistRef;
+}
+
 export interface AITeam {
   id: string;
   name: string;
@@ -60,6 +77,8 @@ export interface AITeam {
   creator: { id: string; email: string; name: string };
   status: 'active' | 'idle';
 }
+
+export type AutomationTrigger = 'webhook' | 'schedule' | 'manual';
 
 export interface Automation {
   id: string;
@@ -161,6 +180,6 @@ export interface AdminStats {
   totalTeams: number;
   totalDocuments: number;
   totalConnections: number;
-  recentActivity: Record<string, number>;
+  recentActivity: Array<{ date: string; cost: number }>;
   modelDistribution: Array<{ model: string; count: number }>;
 }

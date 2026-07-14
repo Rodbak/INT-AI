@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchKnowledge } from '../../lib/api';
-import type { KnowledgeDoc } from '../../types';
+import { fetchKnowledge } from '../lib/api';
+import type { KnowledgeDoc } from '../types/index';
 import './KnowledgePage.css';
 
 const TYPE_ICON: Record<KnowledgeDoc['type'], string> = {

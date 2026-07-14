@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { sendMessage } from '../lib/api';
-import type { Message } from '../types';
+import type { Message } from '../types/index';
 
 interface SendMessageResult {
   message: Message;

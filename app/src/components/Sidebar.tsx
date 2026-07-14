@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authManager } from '../../lib/auth';
-import { navGroups, defaultActiveNavId } from '../../data/workspace';
+import { authManager } from '../lib/auth';
+import { navGroups, defaultActiveNavId } from '../data/workspace';
 import './Sidebar.css';
 
 export default function Sidebar() {
@@ -56,10 +56,10 @@ export default function Sidebar() {
       </button>
 
       <nav className="sidebar__nav">
-        {navGroups.map((group) => (
+        {navGroups.map((group: { label: string; items: Array<{ id: string; label: string }> }) => (
           <div className="sidebar__group" key={group.label}>
             <div className="sidebar__group-label">{group.label}</div>
-            {group.items.map((item) => {
+            {group.items.map((item: { id: string; label: string }) => {
               const isActive = item.id === activeId;
               return (
                 <button
