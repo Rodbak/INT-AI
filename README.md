@@ -1,25 +1,116 @@
-# CODING AGENTS: READ THIS FIRST
+# INT AI
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+**INT AI** is an intelligent workspace that connects multiple AI providers (Anthropic, OpenAI, Google) with a unified interface for document-aware conversations, specialist routing, and team collaboration.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+## Architecture
 
-## What you should do — IMPORTANT
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Vercel    │────▶│  Express     │────▶│ PostgreSQL  │
+│  (Frontend) │     │  (Backend)   │     │   (Prisma)  │
+└─────────────┘     └──────┬───────┘     └─────────────┘
+                           │
+                    ┌──────▼───────┐
+                    │    Redis     │
+                    │  (Sessions,  │
+                    │   Rate Limit)│
+                    └──────────────┘
+                           │
+                    ┌──────▼───────┐
+                    │   AI APIs    │
+                    │ Anthropic /  │
+                    │ OpenAI /     │
+                    │  Google      │
+                    └──────────────┘
+```
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+The frontend is a React + Vite application served statically by the backend in production. The backend is an Express server with Prisma ORM, Redis caching, and provider-agnostic AI routing.
 
-**Read `project/INT AI Workspace.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+## Tech Stack
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+- **Frontend:** React 19, TypeScript, Vite, CSS Modules
+- **Backend:** Express 5, TypeScript, tsx
+- **Database:** PostgreSQL 15 via Prisma
+- **Cache:** Redis 7
+- **AI:** Anthropic Claude, OpenAI, Google Gemini
+- **Linting:** oxlint
+- **Containerization:** Docker, Docker Compose
 
-## About the design files
+## Quick Start
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+### Prerequisites
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+- Node.js 20+
+- PostgreSQL 15+
+- Redis 7+
+- Anthropic API key
 
-## Bundle contents
+### Installation
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `INT AI Operating System` project files (HTML prototypes, assets, components)
+```bash
+# Install dependencies
+npm install
+
+# Configure environment
+cp server/.env.example server/.env
+
+# Start databases
+docker compose up postgres redis -d
+
+# Run migrations and seed data
+npm run db:push --workspace=server
+npm run db:seed --workspace=server
+
+# Start development servers
+npm run dev
+```
+
+Open `http://localhost:5173` in your browser.
+
+## Project Structure
+
+```
+INT-AI/
+├── app/                    # React frontend
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── data/           # Workspace data models
+│   │   ├── types.ts        # Shared TypeScript types
+│   │   ├── App.tsx         # Root component
+│   │   └── main.tsx        # Entry point
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+├── server/                 # Express backend
+│   ├── src/
+│   │   ├── providers/      # AI provider clients (Anthropic, OpenAI, Google)
+│   │   ├── middleware/     # Auth, logging, rate limiting
+│   │   ├── env.ts          # Environment validation (Zod)
+│   │   ├── db.ts           # Database client
+│   │   └── types.ts        # Backend types
+│   ├── prisma/
+│   │   ├── schema.prisma   # Database schema
+│   │   └── seed.ts         # Database seeder
+│   ├── index.js            # Server entry point
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── tsconfig.build.json
+├── docker-compose.yml      # Full-stack Docker setup
+├── Dockerfile              # Multi-stage production image
+├── vercel.json             # Vercel frontend config
+└── package.json            # Root workspace config
+```
+
+## Contributing
+
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/my-change`
+3. Make your changes and ensure tests/lint pass.
+4. Submit a pull request.
+
+Please follow the existing code style and ensure all TypeScript checks pass before submitting.
+
+## License
+
+MIT — see the [LICENSE](LICENSE) file for details.

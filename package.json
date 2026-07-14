@@ -1,0 +1,20 @@
+{
+  "name": "int-ai",
+  "private": true,
+  "workspaces": [
+    "app",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=app\"",
+    "build": "npm run build --workspace=app && npm run build --workspace=server",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace=server",
+    "db:push": "npm run db:push --workspace=server",
+    "db:seed": "npm run db:seed --workspace=server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "~6.0.2"
+  }
+}

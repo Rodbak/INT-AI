@@ -1,0 +1,83 @@
+.conv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conv-list__new {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.conv-list__new:hover {
+  background: var(--bg-active);
+}
+
+.conv-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conv-list__item {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conv-list__item--active {
+  background: var(--bg-active);
+  color: var(--white);
+}
+
+.conv-list__item-title {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conv-list__item-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.conv-list__item-delete {
+  background: none;
+  border: none;
+  color: var(--text-label);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
+.conv-list__item-delete:hover {
+  color: #f87171;
+}
+
+.conv-list__empty {
+  font-size: 12px;
+  color: var(--text-label);
+  text-align: center;
+  padding: 16px;
+}
