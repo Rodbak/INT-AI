@@ -56,7 +56,7 @@ class AuthManager {
       this.setState({ status: 'authenticated', user: data.user, error: null });
       return data.user;
     } catch (err: any) {
-      const message = err?.error || 'Login failed';
+      const message = err?.message || 'Login failed';
       this.setState({ status: 'unauthenticated', error: message });
       throw new Error(message);
     }

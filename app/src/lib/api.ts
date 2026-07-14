@@ -19,6 +19,21 @@ import type {
 
 const API_BASE = '/api';
 
+function extractMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'error' in error) {
+    const nested = (error as Record<string, unknown>).error;
+    if (typeof nested === 'string') return nested;
+    if (nested && typeof nested === 'object' && 'message' in nested) {
+      const msg = (nested as Record<string, unknown>).message;
+      if (typeof msg === 'string') return msg;
+    }
+    return JSON.stringify(nested ?? error);
+  }
+  if (error instanceof Error) return error.message;
+  return 'Something went wrong';
+}
+
 const api = axios.create({
   baseURL: API_BASE,
   headers: {
@@ -63,7 +78,7 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
-    return Promise.reject(error.response?.data || { error: 'Network error' });
+    return Promise.reject(new Error(extractMessage(error)));
   },
 );
 

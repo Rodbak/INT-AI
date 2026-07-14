@@ -18,7 +18,7 @@ export default function LoginPage() {
       await authManager.login(email, password);
       navigate('/current-task');
     } catch (err: any) {
-      setError(err.message || 'Invalid credentials');
+      setError(err?.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }
