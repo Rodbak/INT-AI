@@ -1,0 +1,19 @@
+.assistant-message {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.assistant-message__avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--white);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.assistant-message__content {
+  flex: 1;
+  min-width: 0;
+}

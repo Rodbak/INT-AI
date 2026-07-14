@@ -1,0 +1,101 @@
+.composer {
+  padding: 14px 24px 22px 24px;
+  flex-shrink: 0;
+}
+
+.composer__inner {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.composer__box {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.composer__input {
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  padding: 0;
+  min-height: 20px;
+  max-height: 160px;
+}
+
+.composer__input::placeholder {
+  color: var(--text-dim);
+}
+
+.composer__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.composer__controls {
+  display: flex;
+  gap: 8px;
+}
+
+.composer__icon-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.composer__model-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.composer__send {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.composer__send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.composer__send-icon {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid var(--black);
+}

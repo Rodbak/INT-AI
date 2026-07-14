@@ -1,0 +1,48 @@
+.topbar {
+  height: 54px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.topbar__task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.topbar__team {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.topbar__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 5px 12px 5px 9px;
+}
+
+.topbar__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--white);
+  animation: pulse 1.8s infinite;
+}
+
+.topbar__status-label {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
