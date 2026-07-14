@@ -175,52 +175,6 @@ export async function sendMessage(
   };
 }
 
-  const reader = response.body?.getReader();
-  const decoder = new TextDecoder();
-  let fullText = '';
-  let assistantMessage: Message | null = null;
-
-  if (reader) {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const payload = line.slice(6);
-          if (payload === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(payload);
-            if (parsed.text) {
-              fullText += parsed.text;
-              onChunk?.(parsed.text);
-            }
-            if (parsed.message) {
-              assistantMessage = parsed.message;
-            }
-          } catch {
-            // ignore parse errors
-          }
-        }
-      }
-    }
-  }
-
-  if (assistantMessage) {
-    assistantMessage.text = fullText;
-    return assistantMessage;
-  }
-
-  return {
-    id: crypto.randomUUID(),
-    role: 'assistant',
-    text: fullText,
-    timestamp: new Date().toISOString(),
-    model: model || 'auto',
-  };
-}
-
 export async function uploadFile(file: File): Promise<{ id: string; url: string }> {
   const formData = new FormData();
   formData.append('file', file);
