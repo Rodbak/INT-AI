@@ -1,5 +1,4 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
 import CurrentTaskPage from './pages/CurrentTaskPage';
 import HistoryPage from './pages/HistoryPage';
 import ConversationPage from './pages/ConversationPage';
@@ -13,20 +12,11 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import BillingPage from './pages/BillingPage';
 import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout';
-import ProtectedRoute from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
-    path: '/login',
-    element: <LoginPage />,
-  },
-  {
     path: '/',
-    element: (
-      <ProtectedRoute>
-        <Layout />
-      </ProtectedRoute>
-    ),
+    element: <Layout />,
     children: [
       { index: true, element: <Navigate to="/current-task" replace /> },
       { path: 'current-task', element: <CurrentTaskPage /> },
