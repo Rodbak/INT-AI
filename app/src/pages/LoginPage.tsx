@@ -1,25 +1,21 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authManager } from '../lib/auth';
+import { useAuth } from '../hooks/useAuth';
 import './LoginPage.css';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { signInWithGoogle } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
     try {
-      await authManager.login(email, password);
-      navigate('/current-task');
+      await signInWithGoogle();
+      // On success Supabase redirects the browser to Google; this
+      // component unmounts before anything else needs to happen here.
     } catch (err: any) {
-      setError(err?.message || 'Invalid credentials');
-    } finally {
+      setError(err?.message || 'Sign-in failed');
       setLoading(false);
     }
   };
@@ -32,36 +28,16 @@ export default function LoginPage() {
           <h1 className="login__title">INT AI</h1>
           <p className="login__subtitle">Sign in to your workspace</p>
         </div>
-        <form className="login__form" onSubmit={handleSubmit}>
-          {error && <div className="login__error">{error}</div>}
-          <div className="login__field">
-            <label className="login__label" htmlFor="email">Email</label>
-            <input
-              id="email"
-              className="login__input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              required
-            />
-          </div>
-          <div className="login__field">
-            <label className="login__label" htmlFor="password">Password</label>
-            <input
-              id="password"
-              className="login__input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-          <button className="login__button" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
+        {error && <div className="login__error">{error}</div>}
+        <button
+          className="login__button login__button--google"
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+        >
+          <span className="login__google-icon" aria-hidden="true" />
+          {loading ? 'Redirecting…' : 'Continue with Google'}
+        </button>
       </div>
     </div>
   );

@@ -1,16 +1,4 @@
 services:
-  postgres:
-    image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-int_ai}
-    networks:
-      - int-ai-network
-    restart: unless-stopped
-
   redis:
     image: redis:7-alpine
     networks:
@@ -24,21 +12,18 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-int_ai}
+      DATABASE_URL: ${DATABASE_URL}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       REDIS_URL: redis://redis:6379
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-5-20250929}
-      JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: production
     depends_on:
-      - postgres
       - redis
     networks:
       - int-ai-network
     restart: unless-stopped
-
-volumes:
-  postgres_data:
 
 networks:
   int-ai-network:

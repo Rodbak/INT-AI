@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { authManager } from '../lib/auth';
 
 export function useAuth() {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'authenticated' | 'unauthenticated'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'authenticated' | 'unauthenticated'>(
+    authManager.getState().status,
+  );
   const [user, setUser] = useState(authManager.getState().user);
 
   useEffect(() => {
@@ -14,14 +16,13 @@ export function useAuth() {
     return unsub;
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const u = await authManager.login(email, password);
-    return u;
+  const signInWithGoogle = useCallback(async () => {
+    await authManager.signInWithGoogle();
   }, []);
 
   const logout = useCallback(async () => {
     await authManager.logout();
   }, []);
 
-  return { status, user, login, logout, isAuthenticated: status === 'authenticated' };
+  return { status, user, signInWithGoogle, logout, isAuthenticated: status === 'authenticated' };
 }

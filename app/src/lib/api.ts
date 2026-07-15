@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabaseClient';
 import type {
   User,
   Conversation,
@@ -42,8 +43,9 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token');
+  async (config) => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -56,55 +58,16 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken && !error.config._retry) {
-        error.config._retry = true;
-        try {
-          const { data } = await axios.post(`${API_BASE}/auth/refresh`, {
-            refreshToken,
-          });
-          localStorage.setItem('auth_token', data.accessToken);
-          localStorage.setItem('refresh_token', data.refreshToken);
-          error.config.headers.Authorization = `Bearer ${data.accessToken}`;
-          return api(error.config);
-        } catch {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
-        }
-      } else {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
-      }
+      await supabase.auth.signOut();
+      window.location.href = '/login';
     }
     return Promise.reject(new Error(extractMessage(error)));
   },
 );
 
-export async function login(email: string, password: string) {
-  const { data } = await api.post<{ user: User; accessToken: string; refreshToken: string }>(
-    '/auth/login',
-    { email, password },
-  );
-  return data;
-}
-
-export async function logout() {
-  await api.post('/auth/logout');
-}
-
 export async function getCurrentUser() {
   const { data } = await api.get<{ user: User }>('/auth/me');
   return data.user;
-}
-
-export async function refreshTokenRequest(refreshToken: string) {
-  const { data } = await api.post<{ accessToken: string; refreshToken: string }>(
-    '/auth/refresh',
-    { refreshToken },
-  );
-  return data;
 }
 
 export async function fetchConversations() {
@@ -130,11 +93,12 @@ export async function sendMessage(
   onChunk?: (chunk: string) => void,
   signal?: AbortSignal,
 ): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
+  const { data: sessionData } = await supabase.auth.getSession();
   const response = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+      Authorization: `Bearer ${sessionData.session?.access_token ?? ''}`,
     },
     body: JSON.stringify({ message: text, conversationId, model, stream: true }),
     signal,

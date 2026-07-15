@@ -11,8 +11,9 @@ From the repository root:
 ```bash
 npm install
 cp server/.env.example server/.env
-# edit server/.env: set DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET, and at least one AI provider key
-docker compose up postgres redis -d
+cp app/.env.example app/.env
+# fill in Supabase values in both .env files (see root DEPLOYMENT.md) and at least one AI provider key
+docker compose up redis -d
 npm run db:push --workspace=server
 npm run db:seed --workspace=server
 npm run dev
@@ -47,4 +48,7 @@ The server listens on `PORT` (default `3001`) and serves the app at `/`.
 
 ## Configuration
 
-The frontend reads `VITE_API_URL` at build time (the backend API base URL). All other configuration (`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, AI provider keys, `REDIS_URL`, etc.) lives in `server/.env` — see `server/.env.example` and the root [DEPLOYMENT.md](../DEPLOYMENT.md) for the full list.
+The frontend reads `VITE_API_URL` (backend base URL) and `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (for Google
+sign-in) at build time — see `app/.env.example`. All backend configuration (`DATABASE_URL`, `SUPABASE_JWT_SECRET`,
+AI provider keys, `REDIS_URL`, etc.) lives in `server/.env` — see `server/.env.example` and the root
+[DEPLOYMENT.md](../DEPLOYMENT.md) for the full list.

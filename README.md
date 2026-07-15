@@ -5,32 +5,35 @@
 ## Architecture
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Vercel    │────▶│  Express     │────▶│ PostgreSQL  │
-│  (Frontend) │     │  (Backend)   │     │   (Prisma)  │
-└─────────────┘     └──────┬───────┘     └─────────────┘
-                           │
-                    ┌──────▼───────┐
-                    │    Redis     │
-                    │  (Sessions,  │
-                    │   Rate Limit)│
-                    └──────────────┘
-                           │
-                    ┌──────▼───────┐
-                    │   AI APIs    │
-                    │ Anthropic /  │
-                    │ OpenAI /     │
-                    │  Google      │
-                    └──────────────┘
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│   Vercel    │────▶│  Express     │────▶│   Supabase   │
+│  (Frontend) │     │  (Backend)   │     │ (Postgres +  │
+└──────┬──────┘     └──────┬───────┘     │    Auth)     │
+       │                   │             └──────────────┘
+       │            ┌──────▼───────┐
+       │            │    Redis     │
+       │            │ (Rate Limit) │
+       │            └──────────────┘
+       │                   │
+       │            ┌──────▼───────┐
+       └───────────▶│   AI APIs    │
+    (auth only)      │ Anthropic /  │
+                     │ OpenAI /     │
+                     │  Google      │
+                     └──────────────┘
 ```
 
-The frontend is a React + Vite application served statically by the backend in production. The backend is an Express server with Prisma ORM, Redis caching, and provider-agnostic AI routing.
+The frontend is a React + Vite application served statically by the backend in production. Login/register goes
+straight from the frontend to Supabase Auth (Google sign-in); the Express backend verifies Supabase-issued
+tokens and owns everything else — Prisma ORM against the same Supabase Postgres database, Redis caching, and
+provider-agnostic AI routing.
 
 ## Tech Stack
 
 - **Frontend:** React 19, TypeScript, Vite, CSS Modules
 - **Backend:** Express 5, TypeScript, tsx
-- **Database:** PostgreSQL 15 via Prisma
+- **Auth:** Supabase Auth (Google OAuth)
+- **Database:** Supabase Postgres via Prisma
 - **Cache:** Redis 7
 - **AI:** Anthropic Claude, OpenAI, Google Gemini
 - **Linting:** oxlint
@@ -41,7 +44,8 @@ The frontend is a React + Vite application served statically by the backend in p
 ### Prerequisites
 
 - Node.js 20+
-- PostgreSQL 15+
+- A Supabase project (see [DEPLOYMENT.md](DEPLOYMENT.md#authentication-supabase) for one-time setup, including
+  enabling Google sign-in)
 - Redis 7+
 - Anthropic API key
 
@@ -51,13 +55,14 @@ The frontend is a React + Vite application served statically by the backend in p
 # Install dependencies
 npm install
 
-# Configure environment
+# Configure environment (fill in Supabase values per DEPLOYMENT.md)
 cp server/.env.example server/.env
+cp app/.env.example app/.env
 
-# Start databases
-docker compose up postgres redis -d
+# Start Redis
+docker compose up redis -d
 
-# Run migrations and seed data
+# Apply schema and seed reference data
 npm run db:push --workspace=server
 npm run db:seed --workspace=server
 
@@ -65,7 +70,8 @@ npm run db:seed --workspace=server
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5173` in your browser. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full Supabase setup
+(Google OAuth client, env vars) and granting yourself admin access.
 
 ## Project Structure
 

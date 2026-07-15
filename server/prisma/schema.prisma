@@ -7,16 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Mirrors a row in Supabase's auth.users, kept in sync by the
+/// handle_new_user trigger (see the supabase_auth_sync migration).
+/// Credentials and sessions live in Supabase Auth, not here.
 model User {
-  id            String    @id @default(uuid())
+  id            String    @id @db.Uuid
   email         String    @unique
-  passwordHash  String
   name          String?
   role          String    @default("user")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  sessions       Session[]
   conversations Conversation[]
   workspaces     WorkspaceUser[]
   teams          Team[]
@@ -26,24 +27,13 @@ model User {
   connections    Connection[]
   usageLogs      UsageLog[]
   invoices       Invoice[]
-}
 
-model Session {
-  id           String   @id @default(uuid())
-  userId       String
-  refreshToken String   @unique
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
+  @@map("profiles")
 }
 
 model Conversation {
   id        String    @id @default(uuid())
-  userId    String
+  userId    String    @db.Uuid
   title     String
   provider  String?
   model     String?
@@ -106,7 +96,7 @@ model Workspace {
 
 model WorkspaceUser {
   id         String   @id @default(uuid())
-  userId     String
+  userId     String   @db.Uuid
   workspaceId String
   role       String   @default("MEMBER")
   createdAt  DateTime @default(now())
@@ -137,7 +127,7 @@ model Team {
   name        String
   description String?
   workspaceId String
-  createdBy   String
+  createdBy   String    @db.Uuid
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -170,7 +160,7 @@ model Automation {
   triggerConfig Json
   steps       Json
   active      Boolean   @default(true)
-  createdBy   String
+  createdBy   String    @db.Uuid
   workspaceId String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -189,7 +179,7 @@ model Document {
   size        Int
   url         String
   workspaceId String
-  uploadedBy  String
+  uploadedBy  String    @db.Uuid
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -205,7 +195,7 @@ model Prompt {
   content     String
   tags        Json
   workspaceId String
-  createdBy   String
+  createdBy   String    @db.Uuid
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -224,7 +214,7 @@ model Connection {
   expiresAt    DateTime?
   status       String   @default("active")
   workspaceId  String
-  userId       String
+  userId       String   @db.Uuid
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -237,7 +227,7 @@ model Connection {
 
 model UsageLog {
   id             String    @id @default(uuid())
-  userId         String
+  userId         String    @db.Uuid
   conversationId String?
   provider       String?
   model          String?
@@ -268,7 +258,7 @@ model BillingPlan {
 
 model Invoice {
   id          String    @id @default(uuid())
-  userId      String
+  userId      String    @db.Uuid
   planId      String
   amount      Float
   status      String

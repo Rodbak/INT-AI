@@ -1,4 +1,6 @@
-import { login, logout, getCurrentUser, refreshTokenRequest } from './api';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient';
+import { getCurrentUser } from './api';
 import type { User } from '../types/index';
 
 type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
@@ -9,18 +11,29 @@ interface AuthState {
   error: string | null;
 }
 
-class AuthManager {
-  private state: AuthState = {
-    status: 'idle',
-    user: null,
-    error: null,
+function fallbackUser(supabaseUser: SupabaseUser): User {
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email ?? '',
+    name:
+      (supabaseUser.user_metadata?.full_name as string) ||
+      (supabaseUser.user_metadata?.name as string) ||
+      supabaseUser.email ||
+      '',
+    role: 'member',
   };
+}
 
+class AuthManager {
+  private state: AuthState = { status: 'idle', user: null, error: null };
   private listeners: Set<() => void> = new Set();
+  private initialized = false;
 
   subscribe(listener: () => void) {
     this.listeners.add(listener);
-    return (): void => { this.listeners.delete(listener); };
+    return (): void => {
+      this.listeners.delete(listener);
+    };
   }
 
   getState() {
@@ -32,63 +45,51 @@ class AuthManager {
     this.listeners.forEach((l) => l());
   }
 
-  async initialize() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      this.setState({ status: 'unauthenticated' });
-      return;
-    }
-    this.setState({ status: 'loading' });
+  private async resolveUser(supabaseUser: SupabaseUser): Promise<User> {
     try {
-      const user = await getCurrentUser();
-      this.setState({ status: 'authenticated', user, error: null });
+      return await getCurrentUser();
     } catch {
-      this.clearSession();
+      return fallbackUser(supabaseUser);
     }
   }
 
-  async login(email: string, password: string) {
+  async initialize() {
+    if (this.initialized) return;
+    this.initialized = true;
+    this.setState({ status: 'loading' });
+
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) {
+      const user = await this.resolveUser(data.session.user);
+      this.setState({ status: 'authenticated', user, error: null });
+    } else {
+      this.setState({ status: 'unauthenticated' });
+    }
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const user = await this.resolveUser(session.user);
+        this.setState({ status: 'authenticated', user, error: null });
+      } else {
+        this.setState({ status: 'unauthenticated', user: null });
+      }
+    });
+  }
+
+  async signInWithGoogle() {
     this.setState({ status: 'loading', error: null });
-    try {
-      const data = await login(email, password);
-      localStorage.setItem('auth_token', data.accessToken);
-      localStorage.setItem('refresh_token', data.refreshToken);
-      this.setState({ status: 'authenticated', user: data.user, error: null });
-      return data.user;
-    } catch (err: any) {
-      const message = err?.message || 'Login failed';
-      this.setState({ status: 'unauthenticated', error: message });
-      throw new Error(message);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/current-task` },
+    });
+    if (error) {
+      this.setState({ status: 'unauthenticated', error: error.message });
+      throw error;
     }
   }
 
   async logout() {
-    try {
-      await logout();
-    } catch {
-      // ignore network errors
-    }
-    this.clearSession();
-  }
-
-  async refresh() {
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (!refreshToken) {
-      this.clearSession();
-      return;
-    }
-    try {
-      const data = await refreshTokenRequest(refreshToken);
-      localStorage.setItem('auth_token', data.accessToken);
-      localStorage.setItem('refresh_token', data.refreshToken);
-    } catch {
-      this.clearSession();
-    }
-  }
-
-  private clearSession() {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
+    await supabase.auth.signOut();
     this.setState({ status: 'unauthenticated', user: null, error: null });
   }
 }

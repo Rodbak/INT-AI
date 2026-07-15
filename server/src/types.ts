@@ -18,24 +18,6 @@ export interface ApiError extends Error {
   statusCode?: number;
 }
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  sessionId?: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name?: string;
-}
-
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;

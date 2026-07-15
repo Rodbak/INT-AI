@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -122,20 +121,6 @@ async function main() {
     });
   }
 
-  const email = "admin@int-ai.local";
-  const passwordHash = await bcrypt.hash("changeme123", 10);
-
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: {
-      email,
-      name: "INT AI Admin",
-      passwordHash,
-      role: "admin",
-    },
-  });
-
   const workspace = await prisma.workspace.upsert({
     where: { slug: "default" },
     update: {},
@@ -143,21 +128,6 @@ async function main() {
       name: "Default Workspace",
       slug: "default",
       plan: "FREE",
-    },
-  });
-
-  await prisma.workspaceUser.upsert({
-    where: {
-      userId_workspaceId: {
-        userId: user.id,
-        workspaceId: workspace.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: user.id,
-      workspaceId: workspace.id,
-      role: "OWNER",
     },
   });
 
@@ -172,10 +142,14 @@ async function main() {
   console.log("Seed complete:", {
     specialists: SPECIALISTS.length,
     models: MODELS.length,
-    user: user.email,
     workspace: workspace.slug,
     billingPlans: BILLING_PLANS.length,
   });
+  console.log(
+    "Note: no demo user was seeded — sign in once via Google, then run " +
+      "`UPDATE profiles SET role = 'admin' WHERE email = '<your-email>';` " +
+      "to grant admin access, and join the default workspace via a WorkspaceUser row if needed.",
+  );
 }
 
 main()
