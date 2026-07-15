@@ -1,14 +1,22 @@
 import OpenAI from 'openai';
-import type { Provider, ProviderConfig, StreamChunk, ChatMessage, ModelCapability, ProviderName } from '../types';
+import type { Provider, ProviderConfig, StreamChunk, ChatMessage, ModelCapability, ProviderName } from '../types.js';
 
 export class OpenAIProvider implements Provider {
   name: ProviderName = 'openai';
-  private client: OpenAI;
+  private apiKey: string;
+  private client?: OpenAI;
   private config: ProviderConfig;
 
   constructor(apiKey: string, config: ProviderConfig) {
-    this.client = new OpenAI({ apiKey });
+    this.apiKey = apiKey;
     this.config = config;
+  }
+
+  private getClient(): OpenAI {
+    if (!this.client) {
+      this.client = new OpenAI({ apiKey: this.apiKey });
+    }
+    return this.client;
   }
 
   async *streamChat(
@@ -22,7 +30,7 @@ export class OpenAIProvider implements Provider {
     }));
 
     try {
-      const stream = this.client.chat.completions.create({
+      const stream = this.getClient().chat.completions.create({
         model: model || config.model,
         max_tokens: config.maxTokens || 4096,
         messages: openaiMessages,

@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -132,7 +132,7 @@ async function main() {
       email,
       name: "INT AI Admin",
       passwordHash,
-      role: "ADMIN",
+      role: "admin",
     },
   });
 

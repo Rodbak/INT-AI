@@ -52,6 +52,7 @@ model Conversation {
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages   Message[]
+  usageLogs  UsageLog[]
 
   @@index([userId, updatedAt])
 }
@@ -100,6 +101,7 @@ model Workspace {
   automations Automation[]
   documents   Document[]
   connections Connection[]
+  prompts     Prompt[]
 }
 
 model WorkspaceUser {
@@ -229,6 +231,7 @@ model Connection {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id])
 
+  @@unique([workspaceId, provider])
   @@index([workspaceId])
 }
 
@@ -243,15 +246,15 @@ model UsageLog {
   cost           Float
   createdAt      DateTime  @default(now())
 
-  user         User         @relation(fields: [userId], references: [id])
-  conversation Conversation @relation(fields: [conversationId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
 
   @@index([userId, createdAt])
 }
 
 model BillingPlan {
   id          String    @id @default(uuid())
-  name        String
+  name        String    @unique
   description String
   price       Float
   interval    String

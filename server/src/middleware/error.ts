@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { pino } from 'pino';
-import type { ApiError } from '../types';
+import type { ApiError } from '../types.js';
 
 const logger = pino({ name: 'error' });
 

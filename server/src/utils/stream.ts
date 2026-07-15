@@ -1,4 +1,4 @@
-import type { StreamChunk } from '../types';
+import type { StreamChunk } from '../types.js';
 
 export function createSSEResponse(res: any) {
   res.setHeader('Content-Type', 'text/event-stream');

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { pino } from 'pino';
-import type { AuthenticatedRequest } from '../types';
+import type { AuthenticatedRequest } from '../types.js';
 
 const logger = pino({ name: 'http' });
 

@@ -1,4 +1,4 @@
-import type { ProviderName, StreamChunk, ChatMessage, ModelCapability } from '../types';
+import type { ProviderName, StreamChunk, ChatMessage, ModelCapability } from '../types.js';
 
 export interface ProviderConfig {
   apiKey: string;

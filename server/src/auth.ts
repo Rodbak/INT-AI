@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { prisma } from './db';
-import type { AuthTokens, UserRole } from './types';
+import { prisma } from './db.js';
+import type { AuthTokens, UserRole } from './types.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'change-me-refresh-in-production';
@@ -97,7 +97,7 @@ export async function refreshSession(oldRefreshToken: string): Promise<AuthToken
   const accessToken = signAccessToken({
     id: session.user.id,
     email: session.user.email,
-    role: session.user.role,
+    role: session.user.role as UserRole,
   });
 
   const newRefreshToken = signRefreshToken({ id: session.user.id });

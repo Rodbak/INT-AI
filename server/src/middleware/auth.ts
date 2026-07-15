@@ -1,6 +1,6 @@
 import type { Response, NextFunction } from 'express';
-import type { AuthenticatedRequest } from '../types';
-import { verifyAccessToken } from '../auth';
+import type { AuthenticatedRequest } from '../types.js';
+import { verifyAccessToken } from '../auth.js';
 
 export function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;

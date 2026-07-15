@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { prisma } from '../db';
-import { authenticate, optionalAuth } from '../middleware/auth';
-import { rateLimit } from '../middleware/rateLimit';
-import { requestLogger } from '../middleware/logger';
-import { RoutingEngine } from '../routing/engine';
-import { calculateCost, countTokens, validateModelForProvider } from '../utils/cost';
-import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream';
-import type { AuthenticatedRequest, ChatRequest, StreamChunk, TaskType } from '../types';
+import { prisma } from '../db.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { rateLimit } from '../middleware/rateLimit.js';
+import { requestLogger } from '../middleware/logger.js';
+import { RoutingEngine } from '../routing/engine.js';
+import { calculateCost, countTokens, validateModelForProvider } from '../utils/cost.js';
+import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream.js';
+import type { AuthenticatedRequest, ChatRequest, StreamChunk, TaskType } from '../types.js';
 
 const router = Router();
 const routingEngine = new RoutingEngine();

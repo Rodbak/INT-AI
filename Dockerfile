@@ -21,4 +21,4 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/package-lock.json ./
 RUN npm ci --only=production --workspace=server
 EXPOSE 3001
-CMD ["node", "server/index.js"]
+CMD ["node", "server/dist/index.js"]

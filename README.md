@@ -73,9 +73,12 @@ Open `http://localhost:5173` in your browser.
 INT-AI/
 ├── app/                    # React frontend
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
+│   │   ├── components/     # Reusable UI components (Layout, Sidebar, Composer, Thread, ...)
+│   │   ├── pages/          # Route-level pages (Login, History, Specialists, Billing, ...)
+│   │   ├── hooks/          # useAuth, useConversations, useStreamingChat
+│   │   ├── lib/            # api.ts (axios client), auth.ts, store.ts (zustand)
 │   │   ├── data/           # Workspace data models
-│   │   ├── types.ts        # Shared TypeScript types
+│   │   ├── types/          # Shared TypeScript types
 │   │   ├── App.tsx         # Root component
 │   │   └── main.tsx        # Entry point
 │   ├── index.html
@@ -84,15 +87,17 @@ INT-AI/
 │   └── vite.config.ts
 ├── server/                 # Express backend
 │   ├── src/
+│   │   ├── routes/         # auth, conversations, chat, models, specialists, teams, ...
 │   │   ├── providers/      # AI provider clients (Anthropic, OpenAI, Google)
+│   │   ├── routing/        # Task-to-model routing logic
 │   │   ├── middleware/     # Auth, logging, rate limiting
+│   │   ├── utils/          # Cost tracking, Redis, streaming helpers
 │   │   ├── env.ts          # Environment validation (Zod)
 │   │   ├── db.ts           # Database client
-│   │   └── types.ts        # Backend types
+│   │   └── index.ts        # Server entry point (compiles to dist/index.js)
 │   ├── prisma/
 │   │   ├── schema.prisma   # Database schema
 │   │   └── seed.ts         # Database seeder
-│   ├── index.js            # Server entry point
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── tsconfig.build.json

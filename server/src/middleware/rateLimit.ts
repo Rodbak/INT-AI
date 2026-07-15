@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible';
 import { pino } from 'pino';
-import { redis } from '../utils/redis';
+import { redis } from '../utils/redis.js';
 
 const logger = pino({ name: 'rateLimit' });
 

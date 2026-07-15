@@ -1,4 +1,4 @@
-import type { TaskType } from '../types';
+import type { TaskType } from '../types.js';
 
 export function classifyRequest(message: string, conversationHistory: { role: string; content: string }[]): TaskType {
   const lower = message.toLowerCase();

@@ -1,7 +1,7 @@
-import { AnthropicProvider } from '../providers/anthropic';
-import { OpenAIProvider } from '../providers/openai';
-import { GoogleProvider } from '../providers/google';
-import type { ModelCapability, ProviderName, RouteDecision, TaskType } from '../types';
+import { AnthropicProvider } from '../providers/anthropic.js';
+import { OpenAIProvider } from '../providers/openai.js';
+import { GoogleProvider } from '../providers/google.js';
+import type { ModelCapability, ProviderName, RouteDecision, TaskType } from '../types.js';
 
 export interface RoutingPreferences {
   userId?: string;

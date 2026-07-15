@@ -1,14 +1,22 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { Provider, ProviderConfig, StreamChunk, ChatMessage, ModelCapability, ProviderName } from '../types';
+import type { Provider, ProviderConfig, StreamChunk, ChatMessage, ModelCapability, ProviderName } from '../types.js';
 
 export class GoogleProvider implements Provider {
   name: ProviderName = 'google';
-  private client: GoogleGenerativeAI;
+  private apiKey: string;
+  private client?: GoogleGenerativeAI;
   private config: ProviderConfig;
 
   constructor(apiKey: string, config: ProviderConfig) {
-    this.client = new GoogleGenerativeAI(apiKey);
+    this.apiKey = apiKey;
     this.config = config;
+  }
+
+  private getClient(): GoogleGenerativeAI {
+    if (!this.client) {
+      this.client = new GoogleGenerativeAI(this.apiKey);
+    }
+    return this.client;
   }
 
   async *streamChat(
@@ -17,7 +25,7 @@ export class GoogleProvider implements Provider {
     config: ProviderConfig,
   ): AsyncGenerator<StreamChunk, void, unknown> {
     const geminiModel = model || config.model;
-    const genModel = this.client.getGenerativeModel({ model: geminiModel });
+    const genModel = this.getClient().getGenerativeModel({ model: geminiModel });
 
     const history = messages.slice(0, -1).map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',

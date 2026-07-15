@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { prisma } from '../db';
+import { prisma } from '../db.js';
 import {
   hashPassword,
   verifyPassword,
@@ -9,8 +9,8 @@ import {
   refreshSession,
   revokeAllSessions,
   generateId,
-} from '../auth';
-import type { LoginRequest, RegisterRequest, AuthTokens, AuthenticatedRequest } from '../types';
+} from '../auth.js';
+import type { LoginRequest, RegisterRequest, AuthTokens, AuthenticatedRequest, UserRole } from '../types.js';
 
 const router = Router();
 
@@ -54,7 +54,7 @@ router.post('/register', async (req, res) => {
     });
 
     const { sessionId, refreshToken } = await createSession(user.id);
-    const accessToken = signAccessToken(user);
+    const accessToken = signAccessToken({ ...user, role: user.role as UserRole });
 
     res.status(201).json({
       user,
@@ -91,7 +91,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { sessionId, refreshToken } = await createSession(user.id);
-    const accessToken = signAccessToken(user);
+    const accessToken = signAccessToken({ ...user, role: user.role as UserRole });
 
     res.json({
       user: {

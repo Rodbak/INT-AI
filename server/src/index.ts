@@ -3,26 +3,26 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
-import { connectDb, disconnectDb } from './db';
-import { connectRedis, disconnectRedis } from './utils/redis';
-import { authenticate } from './middleware/auth';
-import { errorHandler } from './middleware/error';
-import { logger } from './middleware/logger';
-import authRoutes from './routes/auth';
-import conversationRoutes from './routes/conversations';
-import chatRoutes from './routes/chat';
-import modelsRoutes from './routes/models';
-import specialistsRoutes from './routes/specialists';
-import teamsRoutes from './routes/teams';
-import automationsRoutes from './routes/automations';
-import promptsRoutes from './routes/prompts';
-import connectionsRoutes from './routes/connections';
-import knowledgeRoutes from './routes/knowledge';
-import usageRoutes from './routes/usage';
-import billingRoutes from './routes/billing';
-import adminRoutes from './routes/admin';
-import { initRateLimiters } from './middleware/rateLimit';
-import { env } from './env';
+import { connectDb, disconnectDb } from './db.js';
+import { connectRedis, disconnectRedis } from './utils/redis.js';
+import { authenticate } from './middleware/auth.js';
+import { errorHandler } from './middleware/error.js';
+import { logger, requestLogger } from './middleware/logger.js';
+import authRoutes from './routes/auth.js';
+import conversationRoutes from './routes/conversations.js';
+import chatRoutes from './routes/chat.js';
+import modelsRoutes from './routes/models.js';
+import specialistsRoutes from './routes/specialists.js';
+import teamsRoutes from './routes/teams.js';
+import automationsRoutes from './routes/automations.js';
+import promptsRoutes from './routes/prompts.js';
+import connectionsRoutes from './routes/connections.js';
+import knowledgeRoutes from './routes/knowledge.js';
+import usageRoutes from './routes/usage.js';
+import billingRoutes from './routes/billing.js';
+import adminRoutes from './routes/admin.js';
+import { initRateLimiters } from './middleware/rateLimit.js';
+import { env } from './env.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,7 +43,7 @@ app.use(
 );
 app.use(express.json({ limit: '10mb' }));
 
-app.use(logger.requestLogger);
+app.use(requestLogger);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

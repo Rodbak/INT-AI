@@ -1,7 +1,7 @@
-import type { Provider, ProviderName } from '../types';
-import { AnthropicProvider } from './anthropic';
-import { OpenAIProvider } from './openai';
-import { GoogleProvider } from './google';
+import type { Provider, ProviderName } from '../types.js';
+import { AnthropicProvider } from './anthropic.js';
+import { OpenAIProvider } from './openai.js';
+import { GoogleProvider } from './google.js';
 
 const providers: Record<ProviderName, Provider> = {
   anthropic: new AnthropicProvider(

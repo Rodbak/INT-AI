@@ -1,14 +1,22 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Provider, ProviderConfig, StreamChunk, ChatMessage, ModelCapability, ProviderName } from '../types';
+import type { Provider, ProviderConfig, StreamChunk, ChatMessage, ModelCapability, ProviderName } from '../types.js';
 
 export class AnthropicProvider implements Provider {
   name: ProviderName = 'anthropic';
-  private client: Anthropic;
+  private apiKey: string;
+  private client?: Anthropic;
   private config: ProviderConfig;
 
   constructor(apiKey: string, config: ProviderConfig) {
-    this.client = new Anthropic({ apiKey });
+    this.apiKey = apiKey;
     this.config = config;
+  }
+
+  private getClient(): Anthropic {
+    if (!this.client) {
+      this.client = new Anthropic({ apiKey: this.apiKey });
+    }
+    return this.client;
   }
 
   async *streamChat(
@@ -22,7 +30,7 @@ export class AnthropicProvider implements Provider {
     }));
 
     try {
-      const stream = this.client.messages.stream({
+      const stream = this.getClient().messages.stream({
         model: model || config.model,
         max_tokens: config.maxTokens || 4096,
         messages: anthropicMessages,

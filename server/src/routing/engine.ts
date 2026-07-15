@@ -1,7 +1,7 @@
-import type { ChatMessage, ProviderName, RouteDecision, TaskType, UsageLog } from '../types';
-import { classifyRequest } from './classifier';
-import { ModelRegistry } from './registry';
-import { getProvider } from '../providers';
+import type { ChatMessage, ProviderName, RouteDecision, TaskType, UsageLog } from '../types.js';
+import { classifyRequest } from './classifier.js';
+import { ModelRegistry } from './registry.js';
+import { getProvider } from '../providers/index.js';
 import { pino } from 'pino';
 
 const logger = pino({ name: 'routing' });

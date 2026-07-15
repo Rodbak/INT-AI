@@ -66,7 +66,7 @@ Deploy the Express backend (`server/`) to Render, Railway, or a similar containe
 - `DATABASE_URL` — PostgreSQL connection string
 - `REDIS_URL` — Redis connection string
 - `ANTHROPIC_API_KEY` — Anthropic API key
-- `ANTHROPIC_MODEL` — Model name (default: `claude-opus-4-8`)
+- `ANTHROPIC_MODEL` — Model name (default: `claude-sonnet-4-5-20250929`)
 - `JWT_SECRET` — Secret for JWT signing
 - `NODE_ENV=production`
 - `PORT=3001`
@@ -85,7 +85,7 @@ In production, the server serves the built frontend from `app/dist`. Ensure the 
 | `DATABASE_URL` | Yes | — | PostgreSQL connection string |
 | `REDIS_URL` | Yes | — | Redis connection string |
 | `ANTHROPIC_API_KEY` | Yes | — | Anthropic API key |
-| `ANTHROPIC_MODEL` | No | `claude-opus-4-8` | Model identifier |
+| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-5-20250929` | Model identifier |
 | `JWT_SECRET` | Yes | — | JWT signing secret |
 | `PORT` | No | `3001` | Server port |
 | `NODE_ENV` | No | `development` | Node environment |
