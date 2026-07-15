@@ -7,6 +7,7 @@ import { requestLogger } from '../middleware/logger.js';
 import { RoutingEngine } from '../routing/engine.js';
 import { calculateCost, countTokens, validateModelForProvider } from '../utils/cost.js';
 import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream.js';
+import { retrieveRelevantChunks } from '../rag/retriever.js';
 import type { AuthenticatedRequest, ChatRequest, StreamChunk, TaskType } from '../types.js';
 
 const router = Router();
@@ -21,7 +22,7 @@ const chatSchema = z.object({
       content: z.string(),
     }),
   ).optional(),
-  provider: z.enum(['anthropic', 'openai', 'google']).optional(),
+  provider: z.enum(['anthropic', 'openai', 'google', 'openrouter']).optional(),
   model: z.string().optional(),
   stream: z.boolean().optional(),
 });
@@ -48,6 +49,29 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       return;
     }
 
+    let ragContext: string | undefined;
+    if (req.user?.id) {
+      try {
+        const workspaceIds = await prisma.workspaceUser.findMany({
+          where: { userId: req.user.id },
+          select: { workspaceId: true },
+        });
+
+        const allChunks = await Promise.all(
+          workspaceIds.map((w) => retrieveRelevantChunks(input.message, w.workspaceId, 2)),
+        );
+
+        const flattened = allChunks.flat().slice(0, 5);
+        if (flattened.length > 0) {
+          ragContext = flattened
+            .map((c) => `[${c.metadata.documentTitle || 'Document'}]: ${c.content}`)
+            .join('\n\n');
+        }
+      } catch {
+        // RAG is optional, continue without context
+      }
+    }
+
     const context = {
       message: input.message,
       history: messages.slice(0, -1),
@@ -55,6 +79,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       conversationId: input.conversationId,
       preferredProvider: input.provider,
       preferredModel: input.model,
+      ragContext,
     };
 
     const { chunks, decision } = await routingEngine.execute(context);
@@ -103,13 +128,13 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
         return;
       }
 
-      if (req.user?.id) {
+      if (req.user?.id && conversation) {
         const promptTokensCount = countTokens(messages.map((m) => m.content).join(' '));
         const completionTokensCount = countTokens(fullContent);
 
         prisma.message.create({
           data: {
-            conversationId: conversation?.id || '',
+            conversationId: conversation.id,
             role: 'user',
             content: input.message,
             provider: decision.provider,
@@ -120,7 +145,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
 
         prisma.message.create({
           data: {
-            conversationId: conversation?.id || '',
+            conversationId: conversation.id,
             role: 'assistant',
             content: fullContent,
             provider: decision.provider,

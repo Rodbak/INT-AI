@@ -30,32 +30,39 @@ export class AnthropicProvider implements Provider {
     }));
 
     try {
-      const stream = this.getClient().messages.stream({
-        model: model || config.model,
-        max_tokens: config.maxTokens || 4096,
-        messages: anthropicMessages,
-      });
-
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
       let promptTokens = 0;
       let completionTokens = 0;
 
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          yield { type: 'text', content: event.delta.text };
+      try {
+        const stream = this.getClient().messages.stream({
+          model: model || config.model,
+          max_tokens: config.maxTokens || 4096,
+          messages: anthropicMessages,
+          signal: controller.signal,
+        });
+
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            yield { type: 'text', content: event.delta.text };
+          }
+
+          if (event.type === 'message_start' && event.message.usage) {
+            promptTokens = event.message.usage.input_tokens || 0;
+          }
+
+          if (event.type === 'message_delta' && event.usage) {
+            completionTokens = event.usage.output_tokens || 0;
+          }
         }
 
-        if (event.type === 'message_start' && event.message.usage) {
-          promptTokens = event.message.usage.input_tokens || 0;
-        }
-
-        if (event.type === 'message_delta' && event.usage) {
-          completionTokens = event.usage.output_tokens || 0;
-        }
+        const finalMessage = await stream.finalMessage();
+        promptTokens = finalMessage.usage.input_tokens;
+        completionTokens = finalMessage.usage.output_tokens;
+      } finally {
+        clearTimeout(timeout);
       }
-
-      const finalMessage = await stream.finalMessage();
-      promptTokens = finalMessage.usage.input_tokens;
-      completionTokens = finalMessage.usage.output_tokens;
 
       yield {
         type: 'usage',

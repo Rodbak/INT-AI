@@ -1,21 +1,59 @@
 import { useState, useEffect } from 'react';
-import { fetchAdminStats } from '../lib/api';
+import { fetchAdminStats, fetchAdminUsers, updateAdminUser, deleteAdminUser } from '../lib/api';
 import type { AdminStats } from '../types/index';
 import './AdminDashboardPage.css';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
 
   useEffect(() => {
-    fetchAdminStats()
-      .then((data: AdminStats) => setStats(data))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load admin stats'),
-      )
-      .finally(() => setLoading(false));
-  }, []);
+    loadStats();
+    loadUsers();
+  }, [search, roleFilter]);
+
+  const loadStats = async () => {
+    try {
+      const data = await fetchAdminStats();
+      setStats(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load admin stats');
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const data = await fetchAdminUsers(1, 20, search, roleFilter);
+      setUsers(data.users);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, role: string) => {
+    try {
+      await updateAdminUser(userId, { role });
+      loadUsers();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    if (!confirm('Delete this user?')) return;
+    try {
+      await deleteAdminUser(userId);
+      loadUsers();
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <div className="admin-dashboard">
@@ -23,6 +61,7 @@ export default function AdminDashboardPage() {
         <h1 className="admin-dashboard__title">Admin Dashboard</h1>
         <p className="admin-dashboard__subtitle">Platform overview and analytics</p>
       </div>
+
       {loading ? (
         <div className="admin-dashboard__empty">Loading...</div>
       ) : error ? (
@@ -61,6 +100,62 @@ export default function AdminDashboardPage() {
             <div className="admin-dashboard__stat">
               <div className="admin-dashboard__stat-label">Total Connections</div>
               <div className="admin-dashboard__stat-value">{stats.totalConnections}</div>
+            </div>
+          </div>
+
+          <div className="admin-dashboard__section">
+            <h2 className="admin-dashboard__section-title">Users</h2>
+            <div className="admin-dashboard__filters">
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="admin-dashboard__search"
+              />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="admin-dashboard__select"
+              >
+                <option value="">All roles</option>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div className="admin-dashboard__table">
+              <div className="admin-dashboard__table-header">
+                <div>Email</div>
+                <div>Name</div>
+                <div>Role</div>
+                <div>Created</div>
+                <div>Actions</div>
+              </div>
+              {users.map((user) => (
+                <div key={user.id} className="admin-dashboard__table-row">
+                  <div>{user.email}</div>
+                  <div>{user.name || '-'</div>
+                  <div>
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div>{new Date(user.createdAt).toLocaleDateString()}</div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(user.id)}
+                      className="admin-dashboard__button--danger"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

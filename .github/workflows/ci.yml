@@ -12,15 +12,28 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm install
+      - run: npm audit --audit-level=high
+      - run: npx tsx scripts/validate-env.ts
       - run: npx tsc --noEmit
         working-directory: app
-      - run: npx tsc --noEmit
-        working-directory: server
+      - run: npm run lint --workspace=server
       - run: npm run lint
         working-directory: app
-      - run: npm run lint
-        working-directory: server
       - run: npm run build
         working-directory: app
       - run: npm run build
         working-directory: server
+
+  db-migrate:
+    runs-on: ubuntu-latest
+    if: ${{ env.DATABASE_URL != '' }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm install
+      - run: npm run db:push --workspace=server

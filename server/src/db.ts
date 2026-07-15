@@ -1,19 +1,27 @@
 import { PrismaClient } from '@prisma/client';
 import { pino } from 'pino';
+import { env } from './env.js';
 
 const logger = pino({ name: 'prisma' });
 
 export const prisma = new PrismaClient({
-  log: [
-    { level: 'query', emit: 'event' },
-    { level: 'error', emit: 'event' },
-    { level: 'warn', emit: 'event' },
-  ],
+  log: env.NODE_ENV === 'development'
+    ? [
+        { level: 'query', emit: 'event' },
+        { level: 'error', emit: 'event' },
+        { level: 'warn', emit: 'event' },
+      ]
+    : [
+        { level: 'error', emit: 'event' },
+        { level: 'warn', emit: 'event' },
+      ],
 });
 
-prisma.$on('query', (e: any) => {
-  logger.debug({ query: e.query, duration: `${e.duration}ms` }, 'prisma:query');
-});
+if (env.NODE_ENV === 'development') {
+  prisma.$on('query', (e: any) => {
+    logger.debug({ query: e.query, duration: `${e.duration}ms` }, 'prisma:query');
+  });
+}
 
 prisma.$on('error', (e: any) => {
   logger.error({ message: e.message }, 'prisma:error');
@@ -28,8 +36,9 @@ export async function connectDb() {
     await prisma.$connect();
     logger.info('Database connected');
   } catch (error) {
-    logger.error({ error }, 'Database connection failed');
-    process.exit(1);
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error({ error: message }, 'Database connection failed');
+    throw new Error(`Database connection failed: ${message}`);
   }
 }
 

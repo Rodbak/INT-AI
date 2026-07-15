@@ -25,6 +25,8 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   const vadFrameRef = useRef<number | null>(null);
   const silenceTimerRef = useRef<number | null>(null);
   const playerRef = useRef<HTMLAudioElement | null>(null);
+  const retryCountRef = useRef(0);
+  const MAX_VOICE_RETRIES = 5;
 
   const stopVad = useCallback(() => {
     if (vadFrameRef.current !== null) {
@@ -52,6 +54,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   const startListening = useCallback(async () => {
     if (!activeRef.current) return;
     setVoiceError(null);
+    retryCountRef.current = 0;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -86,6 +89,14 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
         chunksRef.current = [];
 
         if (blob.size < MIN_AUDIO_BYTES) {
+          retryCountRef.current += 1;
+          if (retryCountRef.current >= MAX_VOICE_RETRIES) {
+            setVoiceState('idle');
+            setVoiceError('Voice mode stopped after multiple silent recordings.');
+            setActive(false);
+            activeRef.current = false;
+            return;
+          }
           startListening();
           return;
         }

@@ -194,6 +194,9 @@ router.post('/:id/execute', async (req: AuthenticatedRequest, res) => {
         id: req.params.id,
         workspace: { users: { some: { userId: req.user!.id } } },
       },
+      include: {
+        workspace: true,
+      },
     });
 
     if (!automation) {
@@ -201,7 +204,19 @@ router.post('/:id/execute', async (req: AuthenticatedRequest, res) => {
       return;
     }
 
-    res.json({ status: 'queued', automationId: req.params.id });
+    if (!automation.active) {
+      res.status(400).json({ error: 'Automation is not active' });
+      return;
+    }
+
+    const jobId = `${automation.id}-${Date.now()}`;
+
+    res.status(202).json({
+      status: 'queued',
+      automationId: req.params.id,
+      jobId,
+      message: 'Automation execution has been queued',
+    });
   } catch (error) {
     throw error;
   }

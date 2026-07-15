@@ -171,7 +171,7 @@ export async function synthesizeSpeech(text: string, voice?: string): Promise<Bl
 export async function uploadFile(file: File): Promise<{ id: string; url: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  const { data } = await api.post('/upload', formData, {
+  const { data } = await api.post<{ id: string; url: string }>('/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;
@@ -323,6 +323,46 @@ export async function deleteConnection(id: string) {
   await api.delete(`/connections/${id}`);
 }
 
+export async function initiateOAuth(provider: string, workspaceId: string) {
+  const { data } = await api.get<{ authUrl: string; state: string }>(`/connections/oauth/authorize/${provider}`, {
+    params: { workspaceId },
+  });
+  return data;
+}
+
+export async function refreshConnection(provider: string, connectionId: string) {
+  const { data } = await api.post(`/connections/oauth/refresh/${provider}/${connectionId}`);
+  return data;
+}
+
+export async function fetchWorkspaces() {
+  const { data } = await api.get<{ workspaces: any[] }>('/workspaces');
+  return data.workspaces;
+}
+
+export async function createWorkspace(data: { name: string; slug: string; plan?: string }) {
+  const response = await api.post('/workspaces', data);
+  return response.data;
+}
+
+export async function updateWorkspace(id: string, data: { name?: string; plan?: string }) {
+  const response = await api.patch(`/workspaces/${id}`, data);
+  return response.data;
+}
+
+export async function deleteWorkspace(id: string) {
+  await api.delete(`/workspaces/${id}`);
+}
+
+export async function inviteWorkspaceMember(workspaceId: string, email: string, role: string) {
+  const response = await api.post(`/workspaces/${workspaceId}/members`, { email, role });
+  return response.data;
+}
+
+export async function removeWorkspaceMember(workspaceId: string, userId: string) {
+  await api.delete(`/workspaces/${workspaceId}/members/${userId}`);
+}
+
 export async function fetchUsageSummary(from?: string, to?: string) {
   const params = new URLSearchParams();
   if (from) params.set('from', from);
@@ -357,6 +397,44 @@ export async function createCheckout(planId: string) {
 export async function fetchAdminStats() {
   const { data } = await api.get<AdminStats>('/admin/stats');
   return data;
+}
+
+export async function fetchAdminUsers(page = 1, limit = 20, search = '', role = '') {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('limit', String(limit));
+  if (search) params.set('search', search);
+  if (role) params.set('role', role);
+  const { data } = await api.get<{ users: any[]; total: number; page: number; totalPages: number }>(`/admin/users?${params.toString()}`);
+  return data;
+}
+
+export async function updateAdminUser(id: string, data: { role?: string }) {
+  const response = await api.patch(`/admin/users/${id}`, data);
+  return response.data;
+}
+
+export async function deleteAdminUser(id: string) {
+  await api.delete(`/admin/users/${id}`);
+}
+
+export async function fetchAdminModels() {
+  const { data } = await api.get<any[]>('/admin/models');
+  return data;
+}
+
+export async function createAdminModel(data: any) {
+  const response = await api.post('/admin/models', data);
+  return response.data;
+}
+
+export async function updateAdminModel(id: string, data: any) {
+  const response = await api.patch(`/admin/models/${id}`, data);
+  return response.data;
+}
+
+export async function deleteAdminModel(id: string) {
+  await api.delete(`/admin/models/${id}`);
 }
 
 export async function fetchBilling() {

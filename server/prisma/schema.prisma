@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 /// Mirrors a row in Supabase's auth.users, kept in sync by the
@@ -27,6 +28,7 @@ model User {
   connections    Connection[]
   usageLogs      UsageLog[]
   invoices       Invoice[]
+  oauthStates    OAuthState[]
 
   @@map("profiles")
 }
@@ -92,6 +94,7 @@ model Workspace {
   documents   Document[]
   connections Connection[]
   prompts     Prompt[]
+  oauthStates OAuthState[]
 }
 
 model WorkspaceUser {
@@ -185,8 +188,22 @@ model Document {
 
   uploader   User      @relation(fields: [uploadedBy], references: [id])
   workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  chunks     DocumentChunk[]
 
   @@index([workspaceId])
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid())
+  documentId String
+  content    String
+  embedding  Unsupported("vector(1536)")?
+  metadata   Json
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
 }
 
 model Prompt {
@@ -225,6 +242,24 @@ model Connection {
   @@index([workspaceId])
 }
 
+model OAuthState {
+  id          String    @id @default(uuid())
+  state       String    @unique
+  provider    String
+  userId      String    @db.Uuid
+  workspaceId String
+  used        Boolean   @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([state])
+  @@index([userId])
+  @@index([workspaceId])
+}
+
 model UsageLog {
   id             String    @id @default(uuid())
   userId         String    @db.Uuid
@@ -256,18 +291,24 @@ model BillingPlan {
   invoices Invoice[]
 }
 
-model Invoice {
-  id          String    @id @default(uuid())
-  userId      String    @db.Uuid
-  planId      String
-  amount      Float
-  status      String
-  periodStart DateTime
-  periodEnd   DateTime
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+enum InvoiceStatus {
+  paid
+  pending
+  failed
+}
 
-  user User       @relation(fields: [userId], references: [id])
+model Invoice {
+  id             String         @id @default(uuid())
+  userId         String         @db.Uuid
+  planId         String
+  amount         Float
+  status         InvoiceStatus  @default(pending)
+  periodStart    DateTime
+  periodEnd      DateTime
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user User      @relation(fields: [userId], references: [id])
   plan BillingPlan @relation(fields: [planId], references: [id])
 
   @@index([userId])

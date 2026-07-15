@@ -13,10 +13,12 @@ export interface RoutingContext {
   conversationId?: string;
   preferredProvider?: ProviderName;
   preferredModel?: string;
+  ragContext?: string;
 }
 
 export class RoutingEngine {
   private registry: ModelRegistry;
+  private providerOrder: ProviderName[] = ['openrouter', 'anthropic', 'openai', 'google'];
 
   constructor() {
     this.registry = new ModelRegistry();
@@ -42,21 +44,64 @@ export class RoutingEngine {
     }
 
     const provider = getProvider(decision.provider);
-    const messages: ChatMessage[] = [
-      ...context.history,
-      { role: 'user', content: context.message },
-    ];
+    const messages: ChatMessage[] = context.ragContext
+      ? [
+          { role: 'system', content: `Use the following context to answer the user's question:\n\n${context.ragContext}` },
+          ...context.history,
+          { role: 'user', content: context.message },
+        ]
+      : [
+          ...context.history,
+          { role: 'user', content: context.message },
+        ];
 
     const startTime = Date.now();
-    const chunks = provider.streamChat(messages, decision.model, {
-      apiKey: process.env[`${decision.provider.toUpperCase()}_API_KEY`] || '',
-      model: decision.model,
-      maxTokens: 4096,
-    });
+
+    let lastError: string | undefined;
+    let chunks: AsyncGenerator<any, void, unknown>;
+    let finalDecision = decision;
+
+    for (const fallbackProvider of [decision.provider, ...this.providerOrder.filter((p) => p !== decision.provider)]) {
+      try {
+        const fallbackDecision: RouteDecision = {
+          provider: fallbackProvider,
+          model: decision.model,
+          reasoning: fallbackProvider === decision.provider ? decision.reasoning : `Fallback to ${fallbackProvider}`,
+        };
+
+        const fallbackProviderImpl = getProvider(fallbackProvider);
+        const fallbackKey = process.env[`${fallbackProvider.toUpperCase()}_API_KEY`];
+
+        if (!fallbackKey) {
+          lastError = `No API key configured for ${fallbackProvider}`;
+          continue;
+        }
+
+        chunks = fallbackProviderImpl.streamChat(messages, fallbackDecision.model, {
+          apiKey: fallbackKey,
+          model: fallbackDecision.model,
+          maxTokens: 4096,
+        });
+
+        finalDecision = fallbackDecision;
+        lastError = undefined;
+        break;
+      } catch (error: any) {
+        lastError = error.message || `Provider ${fallbackProvider} failed`;
+        continue;
+      }
+    }
+
+    if (lastError) {
+      chunks = (async function* () {
+        yield { type: 'error', error: `All providers failed. Last error: ${lastError}` };
+        yield { type: 'done' };
+      })();
+    }
 
     return {
       chunks,
-      decision,
+      decision: finalDecision,
     };
   }
 

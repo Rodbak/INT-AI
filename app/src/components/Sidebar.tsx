@@ -11,6 +11,7 @@ export default function Sidebar() {
     const map: Record<string, string> = {
       '/current-task': 'current-task',
       '/history': 'history',
+      '/conversations': 'conversations',
       '/specialists': 'specialists',
       '/ai-teams': 'ai-teams',
       '/automations': 'automations',
@@ -19,6 +20,7 @@ export default function Sidebar() {
       '/connections': 'connections',
       '/admin-dashboard': 'admin-dashboard',
       '/billing-api-keys': 'billing-api-keys',
+      '/settings': 'settings',
     };
     return map[path] || defaultActiveNavId;
   }, [path]);
@@ -27,6 +29,7 @@ export default function Sidebar() {
     const routeMap: Record<string, string> = {
       'current-task': '/current-task',
       'history': '/history',
+      'conversations': '/history',
       'specialists': '/specialists',
       'ai-teams': '/ai-teams',
       'automations': '/automations',
@@ -35,6 +38,7 @@ export default function Sidebar() {
       'connections': '/connections',
       'admin-dashboard': '/admin-dashboard',
       'billing-api-keys': '/billing-api-keys',
+      'settings': '/settings',
     };
     navigate(routeMap[id] || '/current-task');
   };

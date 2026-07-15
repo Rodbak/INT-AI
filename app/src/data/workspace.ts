@@ -37,6 +37,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { id: 'admin-dashboard', label: 'Admin Dashboard' },
       { id: 'billing-api-keys', label: 'Billing & API Keys' },
+      { id: 'settings', label: 'Settings' },
     ],
   },
 ];

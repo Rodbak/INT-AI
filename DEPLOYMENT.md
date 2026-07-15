@@ -115,6 +115,8 @@ Deploy the Express backend (`server/`) to Render, Railway, or a similar containe
 - `DATABASE_URL` — Supabase Postgres connection string
 - `SUPABASE_URL` — Supabase project URL
 - `SUPABASE_JWT_SECRET` — used to verify Supabase-issued access tokens
+- `OAUTH_ENCRYPTION_KEY` — 32+ character key for encrypting OAuth tokens
+- `PUBLIC_BASE_URL` — public URL of this backend (e.g. `https://api.yourapp.com`)
 - `REDIS_URL` — Redis connection string
 - `ANTHROPIC_API_KEY` — Anthropic API key
 - `ANTHROPIC_MODEL` — Model name (default: `claude-sonnet-4-5-20250929`)
@@ -127,6 +129,26 @@ Deploy the Express backend (`server/`) to Render, Railway, or a similar containe
 
 ### Static assets:
 In production, the server serves the built frontend from `app/dist`. Ensure the frontend build output is available to the backend process, or deploy the frontend and backend as separate services and configure `VITE_API_URL` to point to the backend.
+
+## OAuth Connections
+
+INT AI supports OAuth 2.0 connections to external services. To enable them:
+
+1. Create OAuth apps in each provider's developer console:
+   - **Google:** https://console.cloud.google.com/apis/credentials
+   - **Microsoft:** https://portal.azure.com/ -> App registrations
+   - **Slack:** https://api.slack.com/apps
+   - **GitHub:** https://github.com/settings/developers
+
+2. Set the redirect URI to: `{PUBLIC_BASE_URL}/api/connections/oauth/callback/{provider}`
+
+3. Add the client IDs and secrets to `server/.env`:
+   - `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET`
+   - `MICROSOFT_OAUTH_CLIENT_ID` / `MICROSOFT_OAUTH_CLIENT_SECRET`
+   - `SLACK_OAUTH_CLIENT_ID` / `SLACK_OAUTH_CLIENT_SECRET`
+   - `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`
+
+4. Generate a strong `OAUTH_ENCRYPTION_KEY` (32+ characters) for token encryption.
 
 ## Environment Variables
 
@@ -143,6 +165,8 @@ In production, the server serves the built frontend from `app/dist`. Ensure the 
 | `OPENROUTER_API_KEY` | No | — | OpenRouter API key |
 | `GOOGLE_AI_API_KEY` | No | — | Google AI API key |
 | `GOOGLE_MODEL` | No | `gemini-2.0-flash` | Model identifier |
+| `STRIPE_PRICE_ID_MAP` | No | `{}` | JSON mapping of plan IDs to Stripe price IDs |
+| `PUBLIC_BASE_URL` | Yes | `http://localhost:3001` | Public URL of the backend |
 | `PORT` | No | `3001` | Server port |
 | `NODE_ENV` | No | `development` | Node environment |
 | `VITE_API_URL` | Yes (frontend) | — | Backend API URL for frontend |

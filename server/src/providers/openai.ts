@@ -30,26 +30,33 @@ export class OpenAIProvider implements Provider {
     }));
 
     try {
-      const stream = this.getClient().chat.completions.create({
-        model: model || config.model,
-        max_tokens: config.maxTokens || 4096,
-        messages: openaiMessages,
-        stream: true,
-      }) as unknown as AsyncIterable<any>;
-
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
       let promptTokens = 0;
       let completionTokens = 0;
 
-      for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta?.content;
-        if (delta) {
-          yield { type: 'text', content: delta };
-        }
+      try {
+        const stream = this.getClient().chat.completions.create({
+          model: model || config.model,
+          max_tokens: config.maxTokens || 4096,
+          messages: openaiMessages,
+          stream: true,
+          signal: controller.signal,
+        }) as unknown as AsyncIterable<any>;
 
-        if (chunk.usage) {
-          promptTokens = chunk.usage.prompt_tokens || 0;
-          completionTokens = chunk.usage.completion_tokens || 0;
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content;
+          if (delta) {
+            yield { type: 'text', content: delta };
+          }
+
+          if (chunk.usage) {
+            promptTokens = chunk.usage.prompt_tokens || 0;
+            completionTokens = chunk.usage.completion_tokens || 0;
+          }
         }
+      } finally {
+        clearTimeout(timeout);
       }
 
       yield {

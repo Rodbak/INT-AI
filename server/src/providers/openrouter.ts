@@ -37,26 +37,33 @@ export class OpenRouterProvider implements Provider {
     }));
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
       const stream = this.getClient().chat.completions.create({
         model: model || config.model,
         max_tokens: config.maxTokens || 4096,
         messages: openaiMessages,
         stream: true,
+        signal: controller.signal,
       }) as unknown as AsyncIterable<any>;
 
       let promptTokens = 0;
       let completionTokens = 0;
 
-      for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta?.content;
-        if (delta) {
-          yield { type: 'text', content: delta };
-        }
+      try {
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content;
+          if (delta) {
+            yield { type: 'text', content: delta };
+          }
 
-        if (chunk.usage) {
-          promptTokens = chunk.usage.prompt_tokens || 0;
-          completionTokens = chunk.usage.completion_tokens || 0;
+          if (chunk.usage) {
+            promptTokens = chunk.usage.prompt_tokens || 0;
+            completionTokens = chunk.usage.completion_tokens || 0;
+          }
         }
+      } finally {
+        clearTimeout(timeout);
       }
 
       yield {

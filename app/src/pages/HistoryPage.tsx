@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchConversations } from '../lib/api';
 import type { Conversation } from '../types/index';
 import './HistoryPage.css';
@@ -6,6 +7,7 @@ import './HistoryPage.css';
 export default function HistoryPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchConversations()
@@ -27,14 +29,19 @@ export default function HistoryPage() {
       ) : (
         <div className="history__list">
           {conversations.map((conv) => (
-            <div key={conv.id} className="history__item">
+            <button
+              key={conv.id}
+              type="button"
+              className="history__item"
+              onClick={() => navigate(`/conversations/${conv.id}`)}
+            >
               <div className="history__item-title">{conv.title}</div>
               <div className="history__item-preview">{conv.preview}</div>
               <div className="history__item-meta">
                 <span>{new Date(conv.updatedAt).toLocaleDateString()}</span>
                 <span>{conv.model}</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

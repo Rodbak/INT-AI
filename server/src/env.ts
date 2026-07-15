@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { path } from 'dotenv';
+import { path } from 'node:path';
 import { z } from 'zod';
 
 // Load .env first, then .env.local for local overrides (both are gitignored)
@@ -10,6 +10,19 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_JWT_SECRET: z.string().min(1, "SUPABASE_JWT_SECRET is required"),
+  OAUTH_ENCRYPTION_KEY: z.string().min(32, "OAUTH_ENCRYPTION_KEY must be at least 32 characters").optional(),
+  GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
+  MICROSOFT_OAUTH_CLIENT_ID: z.string().optional(),
+  MICROSOFT_OAUTH_CLIENT_SECRET: z.string().optional(),
+  SLACK_OAUTH_CLIENT_ID: z.string().optional(),
+  SLACK_OAUTH_CLIENT_SECRET: z.string().optional(),
+  GITHUB_OAUTH_CLIENT_ID: z.string().optional(),
+  GITHUB_OAUTH_CLIENT_SECRET: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_ID_MAP: z.string().optional(),
+  PUBLIC_BASE_URL: z.string().url().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-4-5-20250929"),
   OPENAI_API_KEY: z.string().optional(),

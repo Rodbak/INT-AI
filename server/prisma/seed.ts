@@ -8,7 +8,7 @@ const SPECIALISTS = [
     role: "Deep research and synthesis",
     description:
       "Specialist focused on gathering, cross-referencing, and synthesizing information from connected docs and the web.",
-    model: "claude-opus-4-8",
+    model: "claude-opus-4-20250514",
     capabilities: ["web_search", "doc_search", "summarization"],
     active: true,
   },
@@ -17,7 +17,7 @@ const SPECIALISTS = [
     role: "Systems and code architecture",
     description:
       "Specialist that designs system structure, evaluates trade-offs, and produces implementation plans.",
-    model: "claude-opus-4-8",
+    model: "claude-opus-4-20250514",
     capabilities: ["code_analysis", "planning", "diagramming"],
     active: true,
   },
@@ -26,7 +26,7 @@ const SPECIALISTS = [
     role: "Content and copywriting",
     description:
       "Specialist that drafts, edits, and refines written content for clarity and tone.",
-    model: "claude-opus-4-8",
+    model: "claude-opus-4-20250514",
     capabilities: ["drafting", "editing", "tone_adaptation"],
     active: true,
   },
@@ -35,7 +35,7 @@ const SPECIALISTS = [
     role: "Data and metrics analysis",
     description:
       "Specialist that analyzes datasets, builds metrics, and surfaces actionable insights.",
-    model: "claude-opus-4-8",
+    model: "claude-opus-4-20250514",
     capabilities: ["data_analysis", "visualization", "forecasting"],
     active: true,
   },
@@ -43,7 +43,7 @@ const SPECIALISTS = [
 
 const MODELS = [
   {
-    id: "claude-opus-4-8",
+    id: "claude-opus-4-20250514",
     name: "Claude Opus 4",
     provider: "anthropic",
     description: "Most powerful model for complex reasoning and creative tasks",
@@ -130,6 +130,12 @@ async function main() {
       plan: "FREE",
     },
   });
+
+  // Note: WorkspaceUser membership must be created after a user signs in via Supabase Auth.
+  // Use the SQL editor in Supabase to grant access:
+  //   INSERT INTO "WorkspaceUser" (id, userId, workspaceId, role, createdAt, updatedAt)
+  //   VALUES (gen_random_uuid(), '<user-uuid-from-auth.users>', '${workspace.id}', 'OWNER', NOW(), NOW())
+  //   ON CONFLICT (userId_workspaceId) DO NOTHING;
 
   for (const plan of BILLING_PLANS) {
     await prisma.billingPlan.upsert({

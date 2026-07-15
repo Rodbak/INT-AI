@@ -8,10 +8,10 @@ interface Props {
 
 const MODELS = [
   { id: 'auto', name: 'Auto-select model' },
-  { id: 'claude-opus-4-8', name: 'Claude Opus 4' },
-  { id: 'claude-sonnet-4', name: 'Claude Sonnet 4' },
+  { id: 'claude-opus-4-20250514', name: 'Claude Opus 4' },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' },
   { id: 'gpt-4o', name: 'GPT-4o' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
 ];
 
 export default function ModelSelector({ value, onChange }: Props) {

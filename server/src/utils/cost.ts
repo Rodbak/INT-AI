@@ -13,6 +13,7 @@ export function calculateCost(
     anthropic: { input: 3.0, output: 15.0 },
     openai: { input: 2.5, output: 10.0 },
     google: { input: 1.25, output: 10.0 },
+    openrouter: { input: 3.0, output: 15.0 },
   };
 
   const prices = pricing[provider];
@@ -30,11 +31,10 @@ export function estimateLatency(
     anthropic: 800,
     openai: 700,
     google: 900,
+    openrouter: 800,
   };
 
-  const base = baseLatency[provider] || 800;
-  const tokenFactor = promptTokens / 1000;
-  return Math.round(base + tokenFactor * 50);
+  return baseLatency[provider] || 1000;
 }
 
 export function formatCost(cost: number): string {
@@ -48,6 +48,9 @@ export function validateModelForProvider(provider: ProviderName, model: string):
   }
   if (provider === 'openai') {
     return model.startsWith('gpt') || model.startsWith('o');
+  }
+  if (provider === 'openrouter') {
+    return model.includes('/');
   }
   if (provider === 'google') {
     return model.startsWith('gemini');

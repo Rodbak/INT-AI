@@ -35,24 +35,30 @@ export class GoogleProvider implements Provider {
     const lastMessage = messages[messages.length - 1]?.content || '';
 
     try {
-      const chat = genModel.startChat({ history });
-      const result = await chat.sendMessageStream(lastMessage);
-
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
       let promptTokens = 0;
       let completionTokens = 0;
 
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (text) {
-          yield { type: 'text', content: text };
-        }
-      }
+      try {
+        const chat = genModel.startChat({ history });
+        const result = await chat.sendMessageStream(lastMessage, {}, { signal: controller.signal });
 
-      const finalResponse = await result.response;
-      const usageMetadata = finalResponse.usageMetadata;
-      if (usageMetadata) {
-        promptTokens = usageMetadata.promptTokenCount || 0;
-        completionTokens = usageMetadata.candidatesTokenCount || 0;
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            yield { type: 'text', content: text };
+          }
+        }
+
+        const finalResponse = await result.response;
+        const usageMetadata = finalResponse.usageMetadata;
+        if (usageMetadata) {
+          promptTokens = usageMetadata.promptTokenCount || 0;
+          completionTokens = usageMetadata.candidatesTokenCount || 0;
+        }
+      } finally {
+        clearTimeout(timeout);
       }
 
       yield {

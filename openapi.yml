@@ -1,0 +1,208 @@
+openapi: 3.0.0
+info:
+  title: INT AI API
+  version: 1.0.0
+  description: Backend API for INT AI platform
+
+servers:
+  - url: http://localhost:3001
+    description: Development server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Server is healthy
+
+  /ready:
+    get:
+      summary: Readiness check
+      responses:
+        '200':
+          description: Server and database are ready
+        '503':
+          description: Service not ready
+
+  /api/auth/me:
+    get:
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+        '401':
+          description: Unauthorized
+
+  /api/chat:
+    post:
+      summary: Send a chat message
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                conversationId:
+                  type: string
+                provider:
+                  type: string
+                  enum: [anthropic, openai, google, openrouter]
+                model:
+                  type: string
+                stream:
+                  type: boolean
+      responses:
+        '200':
+          description: Chat response
+        '401':
+          description: Unauthorized
+
+  /api/connections:
+    get:
+      summary: List connections
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of connections
+    post:
+      summary: Create connection
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  enum: [google, microsoft, slack, github]
+                name:
+                  type: string
+                accessToken:
+                  type: string
+                refreshToken:
+                  type: string
+                expiresAt:
+                  type: string
+                workspaceId:
+                  type: string
+      responses:
+        '201':
+          description: Connection created
+
+  /api/connections/oauth/authorize/{provider}:
+    get:
+      summary: Initiate OAuth flow
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspaceId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OAuth authorization URL
+
+  /api/connections/oauth/callback/{provider}:
+    get:
+      summary: OAuth callback
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Connection created
+
+  /api/upload:
+    post:
+      summary: Upload files
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                workspaceId:
+                  type: string
+      responses:
+        '201':
+          description: Files uploaded
+
+  /api/billing/checkout:
+    post:
+      summary: Create Stripe checkout session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                planId:
+                  type: string
+      responses:
+        '200':
+          description: Checkout session URL
+
+  /api/stripe/webhook:
+    post:
+      summary: Stripe webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook received
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

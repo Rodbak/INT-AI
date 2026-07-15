@@ -1,10 +1,26 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import Stripe from 'stripe';
 import { prisma } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { env } from '../env.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();
+
+let stripeClient: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    if (!env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not configured');
+    }
+    stripeClient = new Stripe(env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-06-20',
+    });
+  }
+  return stripeClient;
+}
 
 const checkoutSchema = z.object({
   planId: z.string().min(1),
@@ -54,9 +70,38 @@ router.post('/checkout', async (req: AuthenticatedRequest, res) => {
       return;
     }
 
-    res.json({
-      checkoutUrl: `https://checkout.example.com/session/${plan.id}-${req.user!.id}`,
+    if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PRICE_ID_MAP) {
+      res.status(503).json({ error: 'Payments are not configured' });
+      return;
+    }
+
+    const priceId = (env.STRIPE_PRICE_ID_MAP as Record<string, string>)[plan.id];
+    if (!priceId) {
+      res.status(400).json({ error: `No Stripe price configured for plan ${plan.id}` });
+      return;
+    }
+
+    const stripe = getStripe();
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      customer_email: req.user?.email,
+      metadata: {
+        userId: req.user!.id,
+        planId: plan.id,
+      },
+      success_url: `${env.PUBLIC_BASE_URL || 'http://localhost:5173'}/billing-api-keys?success=true`,
+      cancel_url: `${env.PUBLIC_BASE_URL || 'http://localhost:5173'}/billing-api-keys?canceled=true`,
     });
+
+    res.json({ checkoutUrl: session.url, status: 'pending' });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Validation failed', details: error.errors });
