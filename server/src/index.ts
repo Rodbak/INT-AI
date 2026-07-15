@@ -78,6 +78,11 @@ app.get('/ready', async (req, res) => {
   }
 });
 
+// Serve static frontend assets in production
+const frontendDistPath = path.resolve(__dirname, '../../app/dist');
+app.use(express.static(frontendDistPath, { maxAge: '1y', etag: true }));
+
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/conversations', authenticate, conversationRoutes);
 app.use('/api/chat', chatRoutes);
@@ -98,6 +103,14 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/models', adminModelsRoutes);
 app.use('/api/stripe', stripeWebhookRoutes);
+
+// SPA fallback: serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
 
 app.use(errorHandler);
 

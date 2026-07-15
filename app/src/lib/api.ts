@@ -18,7 +18,9 @@ import type {
   AdminStats,
 } from '../types/index';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || '';
+const API_PREFIX = '/api';
+export const API_BASE_URL = API_BASE ? `${API_BASE}${API_PREFIX}` : API_PREFIX;
 
 function extractMessage(error: unknown): string {
   if (typeof error === 'string') return error;
@@ -36,7 +38,7 @@ function extractMessage(error: unknown): string {
 }
 
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -94,7 +96,7 @@ export async function sendMessage(
   signal?: AbortSignal,
 ): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
   const { data: sessionData } = await supabase.auth.getSession();
-  const response = await fetch(`${API_BASE}/chat`, {
+  const response = await fetch(`${API_BASE_URL}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
