@@ -96,6 +96,61 @@
   flex-shrink: 0;
 }
 
+.composer__mic {
+  font-size: 13px;
+}
+
+.composer__mic--active {
+  background: var(--white);
+  color: var(--black);
+  border-color: var(--white);
+}
+
+.voice-status {
+  max-width: 700px;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.voice-status__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.voice-status__dot--listening {
+  background: #4ade80;
+  animation: pulse 1.2s infinite;
+}
+
+.voice-status__dot--transcribing,
+.voice-status__dot--thinking {
+  background: #facc15;
+  animation: pulse 1.2s infinite;
+}
+
+.voice-status__dot--speaking {
+  background: #60a5fa;
+  animation: pulse 1.2s infinite;
+}
+
+.voice-status__interrupt {
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .message {
   display: flex;
   margin-bottom: 18px;

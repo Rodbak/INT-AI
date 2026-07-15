@@ -1,19 +1,28 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useStreamingChat } from '../hooks/useStreamingChat';
 import { useConversations } from '../hooks/useConversations';
+import { useVoiceChat } from '../hooks/useVoiceChat';
 import ConversationList from '../components/ConversationList';
 import ModelSelector from '../components/ModelSelector';
 import CostBadge from '../components/CostBadge';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import type { Message } from '../types/index';
+import '../components/Composer.css';
 import './CurrentTaskPage.css';
 
+const VOICE_STATUS_LABEL: Record<string, string> = {
+  listening: 'Listening…',
+  transcribing: 'Transcribing…',
+  thinking: 'Thinking…',
+  speaking: 'Speaking…',
+};
+
 export default function CurrentTaskPage() {
-  const navigate = useNavigate();
   const { conversations, create } = useConversations();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('auto');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [composerValue, setComposerValue] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { messages, sending, error, send, cancel } = useStreamingChat(activeId);
@@ -28,13 +37,45 @@ export default function CurrentTaskPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleNewConversation = async () => {
+  const handleNewConversation = useCallback(async () => {
     const conv = await create('New conversation');
     setActiveId(conv.id);
-  };
+    return conv;
+  }, [create]);
 
-  const handleSend = (text: string) => {
-    send(text, selectedModel === 'auto' ? undefined : selectedModel);
+  const handleSend = useCallback(
+    (text: string) => {
+      if (!text.trim()) return;
+      send(text, selectedModel === 'auto' ? undefined : selectedModel);
+    },
+    [send, selectedModel],
+  );
+
+  const handleVoiceTranscript = useCallback(
+    async (text: string) => {
+      const result = await send(text, selectedModel === 'auto' ? undefined : selectedModel);
+      return result?.message.text;
+    },
+    [send, selectedModel],
+  );
+
+  const voiceChat = useVoiceChat({ onTranscript: handleVoiceTranscript });
+
+  const handleToggleVoice = useCallback(async () => {
+    if (!voiceChat.active) {
+      if (!activeId) {
+        await handleNewConversation();
+      }
+      voiceChat.toggle();
+    } else {
+      voiceChat.toggle();
+    }
+  }, [voiceChat, activeId, handleNewConversation]);
+
+  const submitComposer = () => {
+    if (!composerValue.trim() || sending) return;
+    handleSend(composerValue.trim());
+    setComposerValue('');
   };
 
   return (
@@ -98,14 +139,41 @@ export default function CurrentTaskPage() {
       </div>
 
       <div className="current-task__composer">
+        {voiceChat.active && (
+          <div className="voice-status">
+            <span className={`voice-status__dot voice-status__dot--${voiceChat.voiceState}`} />
+            {VOICE_STATUS_LABEL[voiceChat.voiceState] || 'Voice mode on'}
+            {voiceChat.voiceState === 'speaking' && (
+              <button type="button" className="voice-status__interrupt" onClick={voiceChat.interrupt}>
+                Interrupt
+              </button>
+            )}
+          </div>
+        )}
+        {voiceChat.voiceError && <div className="current-task__error">{voiceChat.voiceError}</div>}
+
         <div className="composer">
           <div className="composer__inner">
             <div className="composer__box">
-              <ComposerInput onSend={handleSend} disabled={sending} />
+              <ComposerInput
+                value={composerValue}
+                onChange={setComposerValue}
+                onSubmit={submitComposer}
+                disabled={sending}
+              />
               <div className="composer__row">
                 <div className="composer__controls">
                   <button type="button" className="composer__icon-button" aria-label="Add attachment">
                     +
+                  </button>
+                  <button
+                    type="button"
+                    className={`composer__icon-button composer__mic${voiceChat.active ? ' composer__mic--active' : ''}`}
+                    aria-label={voiceChat.active ? 'Turn off voice mode' : 'Turn on voice mode'}
+                    aria-pressed={voiceChat.active}
+                    onClick={handleToggleVoice}
+                  >
+                    🎙
                   </button>
                   <ModelSelector value={selectedModel} onChange={setSelectedModel} />
                 </div>
@@ -115,7 +183,7 @@ export default function CurrentTaskPage() {
                       Cancel
                     </button>
                   )}
-                  <SendButton disabled={!sending} onClick={() => {}} />
+                  <SendButton disabled={sending || !composerValue.trim()} onClick={submitComposer} />
                 </div>
               </div>
             </div>
@@ -127,26 +195,25 @@ export default function CurrentTaskPage() {
 }
 
 function ComposerInput({
-  onSend,
+  value,
+  onChange,
+  onSubmit,
   disabled,
 }: {
-  onSend: (text: string) => void;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
   disabled: boolean;
 }) {
-  const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const handleSend = () => {
-    if (!value.trim() || disabled) return;
-    onSend(value.trim());
-    setValue('');
-    textareaRef.current?.focus();
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (!disabled) {
+        onSubmit();
+        textareaRef.current?.focus();
+      }
     }
   };
 
@@ -157,7 +224,7 @@ function ComposerInput({
       placeholder="Describe what you want to accomplish…"
       rows={1}
       value={value}
-      onChange={(e) => setValue(e.target.value)}
+      onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}
       disabled={disabled}
     />

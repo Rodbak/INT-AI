@@ -130,13 +130,13 @@ export async function sendMessage(
   onChunk?: (chunk: string) => void,
   signal?: AbortSignal,
 ): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
-  const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+  const response = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
     },
-    body: JSON.stringify({ text, model, stream: true }),
+    body: JSON.stringify({ message: text, conversationId, model, stream: true }),
     signal,
   });
 
@@ -188,6 +188,20 @@ export async function sendMessage(
     },
     usage,
   };
+}
+
+export async function transcribeAudio(blob: Blob): Promise<string> {
+  const { data } = await api.post<{ text: string }>('/voice/transcribe', blob, {
+    headers: { 'Content-Type': blob.type || 'audio/webm' },
+  });
+  return data.text;
+}
+
+export async function synthesizeSpeech(text: string, voice?: string): Promise<Blob> {
+  const { data } = await api.post('/voice/speech', { text, voice }, {
+    responseType: 'blob',
+  });
+  return data as Blob;
 }
 
 export async function uploadFile(file: File): Promise<{ id: string; url: string }> {

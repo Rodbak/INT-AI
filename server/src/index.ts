@@ -11,6 +11,7 @@ import { logger, requestLogger } from './middleware/logger.js';
 import authRoutes from './routes/auth.js';
 import conversationRoutes from './routes/conversations.js';
 import chatRoutes from './routes/chat.js';
+import voiceRoutes from './routes/voice.js';
 import modelsRoutes from './routes/models.js';
 import specialistsRoutes from './routes/specialists.js';
 import teamsRoutes from './routes/teams.js';
@@ -62,6 +63,7 @@ app.get('/ready', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/conversations', authenticate, conversationRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/voice', voiceRoutes);
 app.use('/api/models', modelsRoutes);
 app.use('/api/specialists', authenticate, specialistsRoutes);
 app.use('/api/teams', authenticate, teamsRoutes);
