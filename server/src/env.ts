@@ -1,5 +1,10 @@
-import "dotenv/config";
-import { z } from "zod";
+import dotenv from 'dotenv';
+import { path } from 'dotenv';
+import { z } from 'zod';
+
+// Load .env first, then .env.local for local overrides (both are gitignored)
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
@@ -9,6 +14,7 @@ const envSchema = z.object({
   ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-4-5-20250929"),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().min(1).default("gpt-4o"),
+  OPENROUTER_API_KEY: z.string().optional(),
   GOOGLE_AI_API_KEY: z.string().optional(),
   GOOGLE_MODEL: z.string().min(1).default("gemini-2.0-flash"),
   PORT: z.coerce.number().int().positive().default(3001),

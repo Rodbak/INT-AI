@@ -2,6 +2,7 @@ import type { Provider, ProviderName } from '../types.js';
 import { AnthropicProvider } from './anthropic.js';
 import { OpenAIProvider } from './openai.js';
 import { GoogleProvider } from './google.js';
+import { OpenRouterProvider } from './openrouter.js';
 
 const providers: Record<ProviderName, Provider> = {
   anthropic: new AnthropicProvider(
@@ -11,6 +12,10 @@ const providers: Record<ProviderName, Provider> = {
   openai: new OpenAIProvider(
     process.env.OPENAI_API_KEY || '',
     { apiKey: process.env.OPENAI_API_KEY || '', model: 'gpt-4o', maxTokens: 4096 },
+  ),
+  openrouter: new OpenRouterProvider(
+    process.env.OPENROUTER_API_KEY || '',
+    { apiKey: process.env.OPENROUTER_API_KEY || '', model: 'anthropic/claude-sonnet-4', maxTokens: 4096 },
   ),
   google: new GoogleProvider(
     process.env.GOOGLE_AI_API_KEY || '',

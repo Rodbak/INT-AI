@@ -1,5 +1,16 @@
 # INT AI Deployment Guide
 
+## Architecture Note
+
+INT AI is a **Vite + Express monorepo**, not a Next.js app. The frontend (`app/`) is a Vite React app, and the backend (`server/`) is an Express API. All AI provider API keys and secrets live **exclusively on the server**. The client never sees raw secrets and never calls external AI APIs directly.
+
+### Secret storage rules
+
+- **Server-side only:** `server/.env` and `server/.env.local` contain all API keys.
+- **Gitignored:** Both files are listed in `server/.gitignore`.
+- **No `NEXT_PUBLIC_` prefix:** This project does not use Next.js. The frontend accesses secrets only through authenticated server routes like `/api/chat`.
+- **Frontend env vars:** Only non-secret config (e.g., `VITE_API_URL`, `VITE_SUPABASE_URL`) is exposed to the Vite build via `VITE_` prefix.
+
 ## Authentication: Supabase
 
 INT AI uses [Supabase Auth](https://supabase.com/docs/guides/auth) for login/register — there is no custom
@@ -34,31 +45,36 @@ UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';
 ## Local Development
 
 1. Clone the repository and install dependencies:
-   ```bash
-   npm install
-   ```
+    ```bash
+    npm install
+    ```
 
 2. Copy the environment templates and fill in the Supabase values from above:
-   ```bash
-   cp server/.env.example server/.env
-   cp app/.env.example app/.env
-   ```
+    ```bash
+    cp server/.env.example server/.env
+    cp app/.env.example app/.env
+    ```
 
-3. Start Redis (via Docker or locally):
-   ```bash
-   docker compose up redis -d
-   ```
+3. **Optional:** Create `server/.env.local` for local-only overrides (e.g., different API keys per machine). This file is loaded after `server/.env` and is also gitignored.
+    ```bash
+    cp server/.env.local.example server/.env.local
+    ```
 
-4. Apply database migrations and seed reference data (specialists, models, billing plans):
-   ```bash
-   npm run db:push --workspace=server
-   npm run db:seed --workspace=server
-   ```
+4. Start Redis (via Docker or locally):
+    ```bash
+    docker compose up redis -d
+    ```
 
-5. Start the development servers:
-   ```bash
-   npm run dev
-   ```
+5. Apply database migrations and seed reference data (specialists, models, billing plans):
+    ```bash
+    npm run db:push --workspace=server
+    npm run db:seed --workspace=server
+    ```
+
+6. Start the development servers:
+    ```bash
+    npm run dev
+    ```
 
 This starts the Express backend on `http://localhost:3001` and the Vite frontend on `http://localhost:5173`.
 
@@ -122,11 +138,20 @@ In production, the server serves the built frontend from `app/dist`. Ensure the 
 | `REDIS_URL` | Yes | — | Redis connection string |
 | `ANTHROPIC_API_KEY` | Yes | — | Anthropic API key |
 | `ANTHROPIC_MODEL` | No | `claude-sonnet-4-5-20250929` | Model identifier |
+| `OPENAI_API_KEY` | No | — | OpenAI API key |
+| `OPENAI_MODEL` | No | `gpt-4o` | Model identifier |
+| `OPENROUTER_API_KEY` | No | — | OpenRouter API key |
+| `GOOGLE_AI_API_KEY` | No | — | Google AI API key |
+| `GOOGLE_MODEL` | No | `gemini-2.0-flash` | Model identifier |
 | `PORT` | No | `3001` | Server port |
 | `NODE_ENV` | No | `development` | Node environment |
 | `VITE_API_URL` | Yes (frontend) | — | Backend API URL for frontend |
 | `VITE_SUPABASE_URL` | Yes (frontend) | — | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes (frontend) | — | Supabase anon public key |
+
+### `.env.local`
+
+For local development, you may create `server/.env.local` to override values from `server/.env` without editing the shared file. It is also gitignored and is loaded after `.env`.
 
 ## Database Migrations
 

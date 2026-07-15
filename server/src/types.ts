@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 
-export type ProviderName = 'anthropic' | 'openai' | 'google';
+export type ProviderName = 'anthropic' | 'openai' | 'google' | 'openrouter';
 
 export type UserRole = 'user' | 'admin';
 

@@ -1,6 +1,7 @@
 import { AnthropicProvider } from '../providers/anthropic.js';
 import { OpenAIProvider } from '../providers/openai.js';
 import { GoogleProvider } from '../providers/google.js';
+import { OpenRouterProvider } from '../providers/openrouter.js';
 import type { ModelCapability, ProviderName, RouteDecision, TaskType } from '../types.js';
 
 export interface RoutingPreferences {
@@ -22,6 +23,7 @@ export class ModelRegistry {
     const providers = [
       new AnthropicProvider('', { apiKey: '', model: '', maxTokens: 0 }),
       new OpenAIProvider('', { apiKey: '', model: '', maxTokens: 0 }),
+      new OpenRouterProvider('', { apiKey: '', model: '', maxTokens: 0 }),
       new GoogleProvider('', { apiKey: '', model: '', maxTokens: 0 }),
     ];
 
