@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
               {users.map((user) => (
                 <div key={user.id} className="admin-dashboard__table-row">
                   <div>{user.email}</div>
-                  <div>{user.name || '-'</div>
+                  <div>{user.name || '-'}</div>
                   <div>
                     <select
                       value={user.role}

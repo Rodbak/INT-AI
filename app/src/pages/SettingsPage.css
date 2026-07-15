@@ -1,0 +1,112 @@
+/* Settings page styles */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings__header {
+  margin-bottom: 24px;
+}
+
+.settings__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-color, #111827);
+  margin: 0 0 4px 0;
+}
+
+.settings__subtitle {
+  font-size: 14px;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+}
+
+.settings__section {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.settings__section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color, #111827);
+  margin: 0 0 16px 0;
+}
+
+.settings__field {
+  margin-bottom: 16px;
+}
+
+.settings__label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color, #374151);
+  margin-bottom: 6px;
+}
+
+.settings__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-color, #111827);
+  background: var(--input-bg, #ffffff);
+}
+
+.settings__input:disabled {
+  background: var(--disabled-bg, #f3f4f6);
+  color: var(--disabled-text, #9ca3af);
+}
+
+.settings__button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--primary-color, #2563eb);
+  color: white;
+}
+
+.settings__button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.settings__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings__button--danger {
+  background: #dc2626;
+}
+
+.settings__button--danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.settings__message {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.settings__text {
+  font-size: 14px;
+  color: var(--text-secondary, #6b7280);
+}
