@@ -74,8 +74,7 @@ export default function SettingsPage() {
           type="button"
           className="settings__button settings__button--danger"
           onClick={() => {
-            authManager.logout();
-            window.location.href = '/login';
+            window.location.href = '/current-task';
           }}
         >
           Sign Out
