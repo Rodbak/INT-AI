@@ -1,10 +1,14 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthenticatedRequest, UserRole } from '../types.js';
+import { env } from '../env.js';
 
-// Demo user for public access
+// Real per-request auth is disabled — every request is attached to this one
+// user. It must match a real row in Supabase's auth.users (profiles has a
+// foreign key to it), so its id is configurable via DEMO_USER_ID rather than
+// hardcoded — see DEPLOYMENT.md for how to create that user and set this.
 const DEMO_USER = {
-  id: '00000000-0000-0000-0000-000000000000',
-  email: 'demo@example.com',
+  id: env.DEMO_USER_ID,
+  email: env.DEMO_USER_EMAIL,
   role: 'admin' as UserRole,
 };
 

@@ -35,6 +35,11 @@ const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   CORS_ORIGINS: z.string().default("http://localhost:5173"),
   REDIS_URL: z.string().default("redis://localhost:6379"),
+  // See middleware/auth.ts — real per-request auth is currently disabled;
+  // every request is attached to this one user, which must exist as a real
+  // Supabase auth.users row (profiles has a foreign key to it).
+  DEMO_USER_ID: z.string().uuid().default("00000000-0000-0000-0000-000000000000"),
+  DEMO_USER_EMAIL: z.string().email().default("demo@example.com"),
 });
 
 const parsed = envSchema.safeParse(process.env);

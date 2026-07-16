@@ -1,6 +1,10 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+const DEMO_USER_ID = process.env.DEMO_USER_ID || "00000000-0000-0000-0000-000000000000";
+const DEMO_USER_EMAIL = process.env.DEMO_USER_EMAIL || "demo@example.com";
 
 const SPECIALISTS = [
   {
@@ -131,8 +135,33 @@ async function main() {
     },
   });
 
-  // Note: WorkspaceUser membership must be created after a user signs in via Supabase Auth.
-  // Use the SQL editor in Supabase to grant access:
+  // middleware/auth.ts currently has real auth checks disabled and attaches this
+  // fixed demo user (id from DEMO_USER_ID) to every request. profiles has a real
+  // foreign key to Supabase's auth.users, so this upsert only succeeds once a
+  // matching auth.users row exists — see DEPLOYMENT.md for how to create one via
+  // the Supabase dashboard. Without it, sending the first chat message fails
+  // with a foreign key violation because the conversation has nowhere to attach.
+  const demoUser = await prisma.user.upsert({
+    where: { id: DEMO_USER_ID },
+    update: {},
+    create: {
+      id: DEMO_USER_ID,
+      email: DEMO_USER_EMAIL,
+      name: "Demo User",
+      role: "admin",
+    },
+  });
+
+  await prisma.workspaceUser.upsert({
+    where: { userId_workspaceId: { userId: demoUser.id, workspaceId: workspace.id } },
+    update: {},
+    create: { userId: demoUser.id, workspaceId: workspace.id, role: "OWNER" },
+  });
+
+  // Once real Supabase Auth is wired back up (see middleware/auth.ts and
+  // app/src/lib/auth.ts, both currently stubbed), real users get a profiles row
+  // automatically via the handle_new_user trigger and can be granted workspace
+  // access with:
   //   INSERT INTO "WorkspaceUser" (id, userId, workspaceId, role, createdAt, updatedAt)
   //   VALUES (gen_random_uuid(), '<user-uuid-from-auth.users>', '${workspace.id}', 'OWNER', NOW(), NOW())
   //   ON CONFLICT (userId_workspaceId) DO NOTHING;
@@ -150,12 +179,8 @@ async function main() {
     models: MODELS.length,
     workspace: workspace.slug,
     billingPlans: BILLING_PLANS.length,
+    demoUser: demoUser.email,
   });
-  console.log(
-    "Note: no demo user was seeded — sign in once via Google, then run " +
-      "`UPDATE profiles SET role = 'admin' WHERE email = '<your-email>';` " +
-      "to grant admin access, and join the default workspace via a WorkspaceUser row if needed.",
-  );
 }
 
 main()

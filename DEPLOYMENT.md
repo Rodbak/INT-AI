@@ -33,10 +33,32 @@ database trigger — see `server/prisma/migrations/20260715105100_supabase_auth_
    - JWT Settings -> JWT Secret -> `SUPABASE_JWT_SECRET`
    - Database -> Connection string -> `DATABASE_URL`
 
+### Current state: real per-request auth is disabled
+
+`server/src/middleware/auth.ts` and `app/src/lib/auth.ts` are both stubbed — every request is attached to
+one hardcoded "demo user" rather than a verified Supabase session, and the frontend never actually calls
+`supabase.auth.signInWithOAuth(...)`. There is no login gate: anyone who reaches the app uses the same
+shared account. This is a known gap, not something this deployment guide papers over — treat wiring up real
+per-user Supabase Auth (session handling, a working `/login` route, JWT verification in `authenticate`) as a
+follow-up before treating this as production-ready for multiple real users.
+
+In the meantime, the demo user must exist as a real row in Supabase's `auth.users` table, because `profiles`
+has a foreign-key constraint against it — without this, creating a conversation (i.e. sending the first chat
+message) fails with a foreign key violation.
+
+**One-time setup:**
+1. Supabase dashboard -> Authentication -> Users -> **Add user** -> create one user (e.g.
+   `demo@yourapp.com`, any password, "Auto Confirm User" checked). Copy its UUID.
+2. Set `DEMO_USER_ID` (to that UUID) and `DEMO_USER_EMAIL` (to that email) in your environment — see the
+   variable table below. The default `DEMO_USER_ID` in `.env.example` will NOT exist in your database.
+3. Run the seed script (see Database Migrations below) — it upserts a matching `profiles` row (via the
+   `handle_new_user` trigger you get this for free once the `auth.users` row exists) and joins it to the
+   default workspace as owner.
+
 ### Granting admin access
 
-`server/prisma/seed.ts` no longer creates a demo user (Supabase owns user creation now). To make yourself an
-admin: sign in once through the app via Google, then run in the Supabase SQL editor:
+The seeded demo user already has `role = 'admin'`. If you later add other real users, promote them via the
+Supabase SQL editor:
 
 ```sql
 UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';
@@ -119,13 +141,19 @@ directly — no separate host needed).
    - `SUPABASE_JWT_SECRET`, `OAUTH_ENCRYPTION_KEY`, `PUBLIC_BASE_URL` (set to your Vercel domain, e.g.
      `https://int-ai-nu.vercel.app`), `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, and any OAuth/Stripe keys you use
      — same variables as the table below.
+   - `DEMO_USER_ID` / `DEMO_USER_EMAIL` — see "Current state: real per-request auth is disabled" above.
+     **Required** — without a `DEMO_USER_ID` that matches a real `auth.users` row, sending the first chat
+     message will fail.
    - `REDIS_URL` — see "Rate limiting on Vercel" below. If unset, rate limiting still works but only
      per-instance (see caveat).
    - `NODE_ENV=production`
 
-3. Run migrations against the database once, from your machine (Vercel doesn't do this automatically):
+3. Create the demo user (Supabase dashboard -> Authentication -> Users -> Add user) and run migrations +
+   seed against the database once, from your machine (Vercel doesn't do either automatically):
    ```bash
    DATABASE_URL="<your DIRECT_URL>" npm run prisma:migrate --workspace=server -- deploy
+   DATABASE_URL="<your DIRECT_URL>" DEMO_USER_ID="<uuid from step above>" DEMO_USER_EMAIL="<that email>" \
+     npm run db:seed --workspace=server
    ```
 4. Push/redeploy. Vercel runs `npm install` at the repo root (installs both workspaces and runs
    `prisma generate` via `server`'s `postinstall` script), then `npm run build --workspace=app`, then bundles
@@ -202,6 +230,8 @@ INT AI supports OAuth 2.0 connections to external services. To enable them:
 | `DIRECT_URL` | No (Yes for Vercel migrations) | — | Direct (non-pooled) Supabase connection string, port 5432 — used by Prisma for migrations only |
 | `SUPABASE_URL` | No | — | Supabase project URL (used server-side for reference) |
 | `SUPABASE_JWT_SECRET` | Yes | — | Verifies Supabase-issued access tokens |
+| `DEMO_USER_ID` | Yes | `00000000-0000-0000-0000-000000000000` | UUID of a real `auth.users` row every request is attached to while real per-request auth is disabled — see "Current state" above |
+| `DEMO_USER_EMAIL` | No | `demo@example.com` | Email of that same user |
 | `REDIS_URL` | Yes | — | Redis connection string |
 | `ANTHROPIC_API_KEY` | Yes | — | Anthropic API key |
 | `ANTHROPIC_MODEL` | No | `claude-sonnet-5` | Model identifier |

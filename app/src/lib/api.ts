@@ -73,15 +73,15 @@ export async function getCurrentUser() {
 }
 
 export async function fetchConversations() {
-  const { data } = await api.get<{ conversations: Conversation[] }>('/conversations');
-  return data.conversations;
+  const { data } = await api.get<Conversation[]>('/conversations');
+  return data;
 }
 
 export async function createConversation(title: string) {
-  const { data } = await api.post<{ conversation: Conversation }>('/conversations', {
+  const { data } = await api.post<Conversation>('/conversations', {
     title,
   });
-  return data.conversation;
+  return data;
 }
 
 export async function deleteConversation(id: string) {
@@ -180,18 +180,18 @@ export async function uploadFile(file: File): Promise<{ id: string; url: string 
 }
 
 export async function fetchModels() {
-  const { data } = await api.get<{ models: ModelOption[] }>('/models');
-  return data.models;
+  const { data } = await api.get<ModelOption[]>('/models');
+  return data;
 }
 
 export async function fetchSpecialists() {
-  const { data } = await api.get<{ specialists: Specialist[] }>('/specialists');
-  return data.specialists;
+  const { data } = await api.get<Specialist[]>('/specialists');
+  return data;
 }
 
 export async function fetchTeams() {
-  const { data } = await api.get<{ teams: AITeam[] }>('/teams');
-  return data.teams;
+  const { data } = await api.get<AITeam[]>('/teams');
+  return data;
 }
 
 export async function createTeam(data: {
@@ -218,8 +218,8 @@ export async function deleteTeam(id: string) {
 }
 
 export async function fetchAutomations() {
-  const { data } = await api.get<{ automations: Automation[] }>('/automations');
-  return data.automations;
+  const { data } = await api.get<Automation[]>('/automations');
+  return data;
 }
 
 export async function createAutomation(data: {
@@ -256,8 +256,8 @@ export async function executeAutomation(id: string) {
 }
 
 export async function fetchKnowledge() {
-  const { data } = await api.get<{ docs: KnowledgeDoc[] }>('/knowledge');
-  return data.docs;
+  const { data } = await api.get<KnowledgeDoc[]>('/knowledge');
+  return data;
 }
 
 export async function createDocument(data: {
@@ -277,8 +277,8 @@ export async function deleteDocument(id: string) {
 }
 
 export async function fetchPrompts() {
-  const { data } = await api.get<{ prompts: PromptTemplate[] }>('/prompts');
-  return data.prompts;
+  const { data } = await api.get<PromptTemplate[]>('/prompts');
+  return data;
 }
 
 export async function createPrompt(data: {
@@ -305,8 +305,8 @@ export async function deletePrompt(id: string) {
 }
 
 export async function fetchConnections() {
-  const { data } = await api.get<{ connections: Connection[] }>('/connections');
-  return data.connections;
+  const { data } = await api.get<Connection[]>('/connections');
+  return data;
 }
 
 export async function createConnection(data: {
@@ -338,8 +338,8 @@ export async function refreshConnection(provider: string, connectionId: string) 
 }
 
 export async function fetchWorkspaces() {
-  const { data } = await api.get<{ workspaces: any[] }>('/workspaces');
-  return data.workspaces;
+  const { data } = await api.get<any[]>('/workspaces');
+  return data;
 }
 
 export async function createWorkspace(data: { name: string; slug: string; plan?: string }) {
@@ -387,8 +387,8 @@ export async function fetchPlans() {
 }
 
 export async function fetchInvoices() {
-  const { data } = await api.get<{ invoices: Invoice[] }>('/billing/invoices');
-  return data.invoices;
+  const { data } = await api.get<Invoice[]>('/billing/invoices');
+  return data;
 }
 
 export async function createCheckout(planId: string) {

@@ -15,7 +15,68 @@ router.use(authenticate);
 router.use(adminOnly);
 
 router.get('/stats', async (req: AuthenticatedRequest, res) => {
-  // ... existing stats code ...
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - 13);
+    since.setHours(0, 0, 0, 0);
+
+    const [
+      totalUsers,
+      totalConversations,
+      totalMessages,
+      costAggregate,
+      activeSpecialists,
+      totalTeams,
+      totalDocuments,
+      totalConnections,
+      recentUsage,
+      modelGroups,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.conversation.count(),
+      prisma.message.count(),
+      prisma.usageLog.aggregate({ _sum: { cost: true } }),
+      prisma.specialist.count({ where: { active: true } }),
+      prisma.team.count(),
+      prisma.document.count(),
+      prisma.connection.count(),
+      prisma.usageLog.findMany({
+        where: { createdAt: { gte: since } },
+        select: { createdAt: true, cost: true },
+      }),
+      prisma.usageLog.groupBy({
+        by: ['model'],
+        where: { model: { not: null } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const activityByDay = new Map<string, number>();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(since);
+      d.setDate(d.getDate() + i);
+      activityByDay.set(d.toISOString().slice(0, 10), 0);
+    }
+    for (const log of recentUsage) {
+      const day = log.createdAt.toISOString().slice(0, 10);
+      activityByDay.set(day, (activityByDay.get(day) ?? 0) + log.cost);
+    }
+
+    res.json({
+      totalUsers,
+      totalConversations,
+      totalMessages,
+      totalCost: costAggregate._sum.cost ?? 0,
+      activeSpecialists,
+      totalTeams,
+      totalDocuments,
+      totalConnections,
+      recentActivity: Array.from(activityByDay.entries()).map(([date, cost]) => ({ date, cost })),
+      modelDistribution: modelGroups.map((g) => ({ model: g.model as string, count: g._count._all })),
+    });
+  } catch (error) {
+    throw error;
+  }
 });
 
 router.get('/users', async (req: AuthenticatedRequest, res) => {
