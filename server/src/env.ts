@@ -8,6 +8,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
+  DIRECT_URL: z.string().url().optional(),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_JWT_SECRET: z.string().min(1, "SUPABASE_JWT_SECRET is required"),
   OAUTH_ENCRYPTION_KEY: z.string().min(32, "OAUTH_ENCRYPTION_KEY must be at least 32 characters").optional(),

@@ -94,25 +94,69 @@ This starts the Express backend on `http://localhost:3001` and the Vite frontend
 
 4. The application will be available at `http://localhost:3001`.
 
-## Vercel Frontend Deployment
+## Vercel Deployment (frontend + backend, single project) — recommended
 
-The frontend lives in `app/` and is configured for Vercel deployment.
+The whole app deploys as **one Vercel project**: the frontend builds to static assets as before, and the
+Express backend runs as a single Vercel serverless function (`api/index.ts`, which wraps `server/src/app.ts`
+directly — no separate host needed).
 
-1. Connect your repository to Vercel.
-2. Set the **Root Directory** to `app`.
-3. Vercel will automatically detect the Vite framework and run `npm run build`.
-4. Set the following environment variables in the Vercel dashboard:
-   - `VITE_API_URL` — URL of your deployed backend (e.g. `https://int-ai-api.onrender.com`)
-   - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — from the Supabase project settings above
+1. Connect your repository to Vercel with the **Root Directory** left at the repo root (not `app`).
+   `vercel.json` at the root already defines the install/build commands and routes `/api/*` requests to
+   the serverless function; everything else falls through to the SPA (`app/dist/index.html`).
+2. Set these environment variables in the Vercel dashboard (Project Settings -> Environment Variables):
 
-The `vercel.json` at the project root is configured for frontend-only deployment. The backend must be deployed separately.
+   **Frontend (must have the `VITE_` prefix — baked into the build):**
+   - `VITE_SUPABASE_URL` — Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` — Supabase anon public key
+   - (No `VITE_API_URL` needed — the frontend calls `/api/...` on the same origin.)
 
-## Render / Railway Backend Deployment
+   **Backend (read by the serverless function at runtime):**
+   - `DATABASE_URL` — **pooled** Supabase connection string, port `6543` (Supabase dashboard -> Connect ->
+     Transaction pooler). Serverless functions open a fresh connection per invocation; without pooling you
+     will exhaust Postgres's connection limit under any real concurrency.
+   - `DIRECT_URL` — **direct** Supabase connection string, port `5432`. Only used by Prisma for running
+     migrations (`prisma migrate deploy`), never at request time.
+   - `SUPABASE_JWT_SECRET`, `OAUTH_ENCRYPTION_KEY`, `PUBLIC_BASE_URL` (set to your Vercel domain, e.g.
+     `https://int-ai-nu.vercel.app`), `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, and any OAuth/Stripe keys you use
+     — same variables as the table below.
+   - `REDIS_URL` — see "Rate limiting on Vercel" below. If unset, rate limiting still works but only
+     per-instance (see caveat).
+   - `NODE_ENV=production`
 
-Deploy the Express backend (`server/`) to Render, Railway, or a similar container host.
+3. Run migrations against the database once, from your machine (Vercel doesn't do this automatically):
+   ```bash
+   DATABASE_URL="<your DIRECT_URL>" npm run prisma:migrate --workspace=server -- deploy
+   ```
+4. Push/redeploy. Vercel runs `npm install` at the repo root (installs both workspaces and runs
+   `prisma generate` via `server`'s `postinstall` script), then `npm run build --workspace=app`, then bundles
+   `api/index.ts` as the serverless function.
+
+### Rate limiting on Vercel
+
+`server/src/middleware/rateLimit.ts` already falls back to an in-memory limiter when Redis isn't configured
+or reachable, so the app works without `REDIS_URL`. The caveat: each serverless instance has its own memory,
+so the limit is enforced per-instance rather than globally across all concurrent invocations. For a real
+global rate limit, point `REDIS_URL` at a managed Redis reachable over the public internet (e.g. Upstash's
+free tier, which is built for serverless — a local/Docker Redis instance is not reachable from Vercel).
+
+### Known limitation: file uploads
+
+`server/src/routes/uploads.ts` writes to `/tmp/uploads` in production. On Vercel, `/tmp` is ephemeral and
+**not shared** across function invocations or instances — an uploaded file may not be retrievable by a later
+request. This works as-is on the Docker/self-host path (persistent disk) but not reliably on Vercel serverless.
+Fixing this for Vercel requires switching upload storage to Supabase Storage or S3, which is a follow-up, not
+part of this conversion.
+
+## Render / Railway Backend Deployment (alternative)
+
+If you'd rather run the backend as a long-lived container instead of Vercel serverless functions (e.g. to
+avoid the connection-pooling and ephemeral-storage caveats above), deploy `server/` to Render, Railway, or
+similar, and keep `vercel.json` frontend-only (point `VITE_API_URL` at the container's URL instead of using
+same-origin `/api` calls). This is the same shape as the Docker deployment above, just hosted rather than
+self-run.
 
 ### Required environment variables:
-- `DATABASE_URL` — Supabase Postgres connection string
+- `DATABASE_URL` — Supabase Postgres connection string (direct connection is fine here — long-lived process, no pooling concern)
 - `SUPABASE_URL` — Supabase project URL
 - `SUPABASE_JWT_SECRET` — used to verify Supabase-issued access tokens
 - `OAUTH_ENCRYPTION_KEY` — 32+ character key for encrypting OAuth tokens
@@ -154,7 +198,8 @@ INT AI supports OAuth 2.0 connections to external services. To enable them:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DATABASE_URL` | Yes | — | Supabase Postgres connection string |
+| `DATABASE_URL` | Yes | — | Supabase Postgres connection string (pooled, port 6543, when deploying to Vercel serverless) |
+| `DIRECT_URL` | No (Yes for Vercel migrations) | — | Direct (non-pooled) Supabase connection string, port 5432 — used by Prisma for migrations only |
 | `SUPABASE_URL` | No | — | Supabase project URL (used server-side for reference) |
 | `SUPABASE_JWT_SECRET` | Yes | — | Verifies Supabase-issued access tokens |
 | `REDIS_URL` | Yes | — | Redis connection string |
