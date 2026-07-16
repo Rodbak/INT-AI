@@ -19,14 +19,15 @@
 .sidebar__logo {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
-  background: var(--white);
+  border-radius: 7px;
+  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-soft) 100%);
+  box-shadow: 0 0 12px var(--accent-glow-soft);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 13px;
-  color: var(--black);
+  color: #04141a;
 }
 
 .sidebar__brand-name {
@@ -48,6 +49,13 @@
   color: var(--text-tertiary);
   font-size: 13px;
   text-align: left;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.sidebar__new-task:hover {
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+  box-shadow: 0 0 10px var(--accent-glow-soft);
 }
 
 .sidebar__new-task-icon {
@@ -94,8 +102,9 @@
 
 .sidebar__item--active {
   background: var(--bg-active);
-  color: var(--white);
+  color: var(--accent-strong);
   font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .sidebar__spacer {

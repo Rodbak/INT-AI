@@ -1,0 +1,203 @@
+.hands-free {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 700px 500px at 50% 38%, var(--accent-glow-soft), transparent 65%),
+    radial-gradient(ellipse 1200px 800px at 50% 100%, rgba(62, 224, 255, 0.04), transparent 70%),
+    var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.hands-free__hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.hands-free__hud-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hands-free__hud-item--right {
+  color: var(--text-dim);
+}
+
+.hands-free__hud-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.hands-free__hud-dot--listening,
+.hands-free__hud-dot--speaking,
+.hands-free__hud-dot--idle {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: pulse 1.6s infinite;
+}
+
+.hands-free__hud-dot--transcribing {
+  background: #facc15;
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+  animation: pulse 1s infinite;
+}
+
+.hands-free__hud-dot--thinking {
+  background: #a78bfa;
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.6);
+  animation: pulse 0.9s infinite;
+}
+
+.hands-free__stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hands-free__captions {
+  flex-shrink: 0;
+  padding: 0 40px;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.hands-free__hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.hands-free__caption {
+  margin: 0;
+  max-width: 620px;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.hands-free__caption--user {
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.hands-free__caption--assistant {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.hands-free__error {
+  margin: 0 auto 8px;
+  max-width: 560px;
+  padding: 10px 16px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.hands-free__controls {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 22px 24px 32px;
+}
+
+.hands-free__controls-spacer {
+  width: 96px;
+}
+
+.hands-free__mode-switch,
+.hands-free__interrupt {
+  width: 96px;
+  border: 1px solid var(--border-strong);
+  background: var(--glass-bg);
+  color: var(--text-tertiary);
+  border-radius: 20px;
+  padding: 9px 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.hands-free__mode-switch:hover {
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+}
+
+.hands-free__interrupt {
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+}
+
+.hands-free__mic {
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--glass-bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.hands-free__mic-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hands-free__mic-icon::before {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--text-tertiary);
+}
+
+.hands-free__mic--active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 22px var(--accent-glow-soft);
+}
+
+.hands-free__mic--active .hands-free__mic-icon::before {
+  background: var(--accent-strong);
+}
+
+@media (max-width: 640px) {
+  .hands-free__hud {
+    padding: 14px 16px;
+    font-size: 10px;
+  }
+  .hands-free__captions {
+    padding: 0 20px;
+  }
+}

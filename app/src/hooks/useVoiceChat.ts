@@ -26,7 +26,10 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   const silenceTimerRef = useRef<number | null>(null);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const retryCountRef = useRef(0);
+  const audioLevelRef = useRef(0);
   const MAX_VOICE_RETRIES = 5;
+
+  const getAudioLevel = useCallback(() => audioLevelRef.current, []);
 
   const stopVad = useCallback(() => {
     if (vadFrameRef.current !== null) {
@@ -41,6 +44,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
 
   const teardownCapture = useCallback(() => {
     stopVad();
+    audioLevelRef.current = 0;
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
@@ -146,6 +150,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
           sumSquares += normalized * normalized;
         }
         const rms = Math.sqrt(sumSquares / buffer.length);
+        audioLevelRef.current = rms;
 
         if (rms > SILENCE_RMS_THRESHOLD) {
           hasSpoken = true;
@@ -238,5 +243,5 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
     }
   }, [startListening]);
 
-  return { voiceState, voiceError, active, toggle, interrupt };
+  return { voiceState, voiceError, active, toggle, interrupt, start, stop, getAudioLevel };
 }

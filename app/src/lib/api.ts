@@ -115,9 +115,10 @@ export async function sendMessage(
   const decoder = new TextDecoder();
   let fullText = '';
   let usage: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } | undefined;
+  let streamError: string | undefined;
 
   if (reader) {
-    while (true) {
+    outer: while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value, { stream: true });
@@ -133,6 +134,10 @@ export async function sendMessage(
               onChunk?.(parsed.content);
             } else if (parsed.type === 'usage' && parsed.usage) {
               usage = parsed.usage;
+            } else if (parsed.type === 'error') {
+              streamError = parsed.error || 'The model provider returned an error';
+              await reader.cancel().catch(() => {});
+              break outer;
             }
           } catch {
             // ignore parse errors
@@ -140,6 +145,10 @@ export async function sendMessage(
         }
       }
     }
+  }
+
+  if (streamError) {
+    throw new Error(streamError);
   }
 
   return {

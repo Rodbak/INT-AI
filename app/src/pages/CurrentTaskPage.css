@@ -4,6 +4,18 @@
   position: relative;
 }
 
+.current-task__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.current-task--voice {
+  display: block;
+}
+
 .current-task__mobile-toggle {
   display: none;
   position: absolute;
@@ -56,9 +68,10 @@
 .current-task__empty-icon {
   width: 48px;
   height: 48px;
-  border-radius: 10px;
-  background: var(--white);
-  color: var(--black);
+  border-radius: 12px;
+  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-soft) 100%);
+  box-shadow: 0 0 24px var(--accent-glow-soft);
+  color: #04141a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,57 +111,12 @@
 
 .composer__mic {
   font-size: 13px;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
-.composer__mic--active {
-  background: var(--white);
-  color: var(--black);
-  border-color: var(--white);
-}
-
-.voice-status {
-  max-width: 700px;
-  margin: 0 auto 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.voice-status__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.voice-status__dot--listening {
-  background: #4ade80;
-  animation: pulse 1.2s infinite;
-}
-
-.voice-status__dot--transcribing,
-.voice-status__dot--thinking {
-  background: #facc15;
-  animation: pulse 1.2s infinite;
-}
-
-.voice-status__dot--speaking {
-  background: #60a5fa;
-  animation: pulse 1.2s infinite;
-}
-
-.voice-status__interrupt {
-  margin-left: auto;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 11px;
-  cursor: pointer;
+.composer__mic:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 10px var(--accent-glow-soft);
 }
 
 .message {
@@ -175,8 +143,9 @@
 }
 
 .message--user .message__bubble {
-  background: var(--white);
-  color: var(--black);
+  background: var(--accent-dim);
+  color: var(--text);
+  border: 1px solid var(--accent-border);
   border-radius: 14px 14px 4px 14px;
 }
 
