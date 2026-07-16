@@ -62,9 +62,19 @@
   align-items: center;
   justify-content: center;
   color: var(--text-dim);
-  font-size: 14px;
   cursor: pointer;
   padding: 0;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.composer__icon-button:hover {
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+}
+
+.composer__icon {
+  width: 15px;
+  height: 15px;
 }
 
 .composer__model-pill {

@@ -16,6 +16,22 @@
   display: block;
 }
 
+.current-task__stage {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+  transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), filter 0.28s ease;
+}
+
+.current-task__stage--transitioning {
+  opacity: 0;
+  transform: scale(0.97);
+  filter: blur(6px);
+}
+
 .current-task__mobile-toggle {
   display: none;
   position: absolute;
@@ -116,6 +132,7 @@
 
 .composer__mic:hover {
   border-color: var(--accent-border);
+  color: var(--accent-strong);
   box-shadow: 0 0 10px var(--accent-glow-soft);
 }
 

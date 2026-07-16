@@ -1,4 +1,5 @@
 import VoiceOrb from './VoiceOrb';
+import { KeyboardIcon, MicIcon, StopIcon } from './icons';
 import type { VoiceState } from '../hooks/useVoiceChat';
 import './HandsFreeView.css';
 
@@ -15,6 +16,7 @@ interface HandsFreeViewProps {
   voiceError: string | null;
   micActive: boolean;
   getAudioLevel: () => number;
+  powerUpTrigger: number;
   lastUserText: string;
   assistantText: string;
   onToggleMic: () => void;
@@ -28,6 +30,7 @@ export default function HandsFreeView({
   voiceError,
   micActive,
   getAudioLevel,
+  powerUpTrigger,
   lastUserText,
   assistantText,
   onToggleMic,
@@ -46,7 +49,7 @@ export default function HandsFreeView({
       </div>
 
       <div className="hands-free__stage">
-        <VoiceOrb voiceState={voiceState} getAudioLevel={getAudioLevel} />
+        <VoiceOrb voiceState={voiceState} getAudioLevel={getAudioLevel} powerUpTrigger={powerUpTrigger} />
       </div>
 
       <div className="hands-free__captions">
@@ -68,8 +71,10 @@ export default function HandsFreeView({
           type="button"
           className="hands-free__mode-switch"
           onClick={onSwitchToType}
+          title="Type instead"
+          aria-label="Switch to type mode"
         >
-          ⌨ Type instead
+          <KeyboardIcon className="hands-free__icon" />
         </button>
 
         <button
@@ -77,14 +82,21 @@ export default function HandsFreeView({
           className={`hands-free__mic${micActive ? ' hands-free__mic--active' : ''}`}
           onClick={onToggleMic}
           aria-pressed={micActive}
+          title={micActive ? 'Turn off hands-free mode' : 'Turn on hands-free mode'}
           aria-label={micActive ? 'Turn off hands-free mode' : 'Turn on hands-free mode'}
         >
-          <span className="hands-free__mic-icon" />
+          <MicIcon className="hands-free__icon hands-free__icon--mic" />
         </button>
 
         {voiceState === 'speaking' ? (
-          <button type="button" className="hands-free__interrupt" onClick={onInterrupt}>
-            Interrupt
+          <button
+            type="button"
+            className="hands-free__interrupt"
+            onClick={onInterrupt}
+            title="Interrupt"
+            aria-label="Interrupt"
+          >
+            <StopIcon className="hands-free__icon" />
           </button>
         ) : (
           <span className="hands-free__controls-spacer" />
