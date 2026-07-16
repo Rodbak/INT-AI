@@ -19,3 +19,11 @@ export async function optionalAuth(req: AuthenticatedRequest, res: Response, nex
   req.user = DEMO_USER;
   next();
 }
+
+export async function adminOnly(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  if (req.user?.role !== 'admin') {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+  next();
+}

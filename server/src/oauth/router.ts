@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { getOAuthConfig, type OAuthProviderConfig } from './config.js';
 import { encryptToken, decryptToken } from './crypto.js';
+import { authenticate } from '../middleware/auth.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();

@@ -58,7 +58,10 @@ export class RoutingEngine {
     const startTime = Date.now();
 
     let lastError: string | undefined;
-    let chunks: AsyncGenerator<any, void, unknown>;
+    let chunks: AsyncGenerator<any, void, unknown> = (async function* () {
+      yield { type: 'error', error: 'No providers configured' };
+      yield { type: 'done' };
+    })();
     let finalDecision = decision;
 
     for (const fallbackProvider of [decision.provider, ...this.providerOrder.filter((p) => p !== decision.provider)]) {

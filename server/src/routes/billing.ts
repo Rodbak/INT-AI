@@ -75,7 +75,15 @@ router.post('/checkout', async (req: AuthenticatedRequest, res) => {
       return;
     }
 
-    const priceId = (env.STRIPE_PRICE_ID_MAP as Record<string, string>)[plan.id];
+    let priceIdMap: Record<string, string>;
+    try {
+      priceIdMap = JSON.parse(env.STRIPE_PRICE_ID_MAP) as Record<string, string>;
+    } catch {
+      res.status(500).json({ error: 'STRIPE_PRICE_ID_MAP is not valid JSON' });
+      return;
+    }
+
+    const priceId = priceIdMap[plan.id];
     if (!priceId) {
       res.status(400).json({ error: `No Stripe price configured for plan ${plan.id}` });
       return;

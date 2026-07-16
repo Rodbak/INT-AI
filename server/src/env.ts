@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { path } from 'node:path';
+import path from 'node:path';
 import { z } from 'zod';
 
 // Load .env first, then .env.local for local overrides (both are gitignored)
@@ -24,7 +24,7 @@ const envSchema = z.object({
   STRIPE_PRICE_ID_MAP: z.string().optional(),
   PUBLIC_BASE_URL: z.string().url().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
-  ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-4-5-20250929"),
+  ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-5"),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().min(1).default("gpt-4o"),
   OPENROUTER_API_KEY: z.string().optional(),

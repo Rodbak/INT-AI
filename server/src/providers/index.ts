@@ -7,7 +7,7 @@ import { OpenRouterProvider } from './openrouter.js';
 const providers: Record<ProviderName, Provider> = {
   anthropic: new AnthropicProvider(
     process.env.ANTHROPIC_API_KEY || '',
-    { apiKey: process.env.ANTHROPIC_API_KEY || '', model: 'claude-sonnet-4-5-20250929', maxTokens: 4096 },
+    { apiKey: process.env.ANTHROPIC_API_KEY || '', model: 'claude-sonnet-5', maxTokens: 4096 },
   ),
   openai: new OpenAIProvider(
     process.env.OPENAI_API_KEY || '',

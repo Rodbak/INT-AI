@@ -8,7 +8,7 @@ const SPECIALISTS = [
     role: "Deep research and synthesis",
     description:
       "Specialist focused on gathering, cross-referencing, and synthesizing information from connected docs and the web.",
-    model: "claude-opus-4-20250514",
+    model: "claude-opus-4-8",
     capabilities: ["web_search", "doc_search", "summarization"],
     active: true,
   },
@@ -17,7 +17,7 @@ const SPECIALISTS = [
     role: "Systems and code architecture",
     description:
       "Specialist that designs system structure, evaluates trade-offs, and produces implementation plans.",
-    model: "claude-opus-4-20250514",
+    model: "claude-opus-4-8",
     capabilities: ["code_analysis", "planning", "diagramming"],
     active: true,
   },
@@ -26,7 +26,7 @@ const SPECIALISTS = [
     role: "Content and copywriting",
     description:
       "Specialist that drafts, edits, and refines written content for clarity and tone.",
-    model: "claude-opus-4-20250514",
+    model: "claude-opus-4-8",
     capabilities: ["drafting", "editing", "tone_adaptation"],
     active: true,
   },
@@ -35,7 +35,7 @@ const SPECIALISTS = [
     role: "Data and metrics analysis",
     description:
       "Specialist that analyzes datasets, builds metrics, and surfaces actionable insights.",
-    model: "claude-opus-4-20250514",
+    model: "claude-opus-4-8",
     capabilities: ["data_analysis", "visualization", "forecasting"],
     active: true,
   },
@@ -43,13 +43,13 @@ const SPECIALISTS = [
 
 const MODELS = [
   {
-    id: "claude-opus-4-20250514",
-    name: "Claude Opus 4",
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4.8",
     provider: "anthropic",
     description: "Most powerful model for complex reasoning and creative tasks",
-    contextWindow: 200000,
-    inputPricePerMillion: 15.0,
-    outputPricePerMillion: 75.0,
+    contextWindow: 1000000,
+    inputPricePerMillion: 5.0,
+    outputPricePerMillion: 25.0,
     capabilities: ["text", "vision", "tool_use", "reasoning"],
     active: true,
   },

@@ -42,7 +42,7 @@ export class GoogleProvider implements Provider {
 
       try {
         const chat = genModel.startChat({ history });
-        const result = await chat.sendMessageStream(lastMessage, {}, { signal: controller.signal });
+        const result = await chat.sendMessageStream(lastMessage, { signal: controller.signal });
 
         for await (const chunk of result.stream) {
           const text = chunk.text();

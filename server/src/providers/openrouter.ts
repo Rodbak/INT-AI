@@ -39,13 +39,15 @@ export class OpenRouterProvider implements Provider {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 120_000);
-      const stream = this.getClient().chat.completions.create({
-        model: model || config.model,
-        max_tokens: config.maxTokens || 4096,
-        messages: openaiMessages,
-        stream: true,
-        signal: controller.signal,
-      }) as unknown as AsyncIterable<any>;
+      const stream = await this.getClient().chat.completions.create(
+        {
+          model: model || config.model,
+          max_tokens: config.maxTokens || 4096,
+          messages: openaiMessages,
+          stream: true,
+        },
+        { signal: controller.signal },
+      );
 
       let promptTokens = 0;
       let completionTokens = 0;

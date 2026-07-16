@@ -36,13 +36,15 @@ export class OpenAIProvider implements Provider {
       let completionTokens = 0;
 
       try {
-        const stream = this.getClient().chat.completions.create({
-          model: model || config.model,
-          max_tokens: config.maxTokens || 4096,
-          messages: openaiMessages,
-          stream: true,
-          signal: controller.signal,
-        }) as unknown as AsyncIterable<any>;
+        const stream = await this.getClient().chat.completions.create(
+          {
+            model: model || config.model,
+            max_tokens: config.maxTokens || 4096,
+            messages: openaiMessages,
+            stream: true,
+          },
+          { signal: controller.signal },
+        );
 
         for await (const chunk of stream) {
           const delta = chunk.choices[0]?.delta?.content;

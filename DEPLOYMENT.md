@@ -119,7 +119,7 @@ Deploy the Express backend (`server/`) to Render, Railway, or a similar containe
 - `PUBLIC_BASE_URL` — public URL of this backend (e.g. `https://api.yourapp.com`)
 - `REDIS_URL` — Redis connection string
 - `ANTHROPIC_API_KEY` — Anthropic API key
-- `ANTHROPIC_MODEL` — Model name (default: `claude-sonnet-4-5-20250929`)
+- `ANTHROPIC_MODEL` — Model name (default: `claude-sonnet-5`)
 - `NODE_ENV=production`
 - `PORT=3001`
 
@@ -159,7 +159,7 @@ INT AI supports OAuth 2.0 connections to external services. To enable them:
 | `SUPABASE_JWT_SECRET` | Yes | — | Verifies Supabase-issued access tokens |
 | `REDIS_URL` | Yes | — | Redis connection string |
 | `ANTHROPIC_API_KEY` | Yes | — | Anthropic API key |
-| `ANTHROPIC_MODEL` | No | `claude-sonnet-4-5-20250929` | Model identifier |
+| `ANTHROPIC_MODEL` | No | `claude-sonnet-5` | Model identifier |
 | `OPENAI_API_KEY` | No | — | OpenAI API key |
 | `OPENAI_MODEL` | No | `gpt-4o` | Model identifier |
 | `OPENROUTER_API_KEY` | No | — | OpenRouter API key |

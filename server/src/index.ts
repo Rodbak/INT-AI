@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { connectDb, disconnectDb } from './db.js';
-import { connectRedis, disconnectRedis } from './utils/redis.js';
+import { redis, connectRedis, disconnectRedis } from './utils/redis.js';
 import { authenticate } from './middleware/auth.js';
 import { errorHandler } from './middleware/error.js';
 import { logger, requestLogger } from './middleware/logger.js';
@@ -105,7 +105,7 @@ app.use('/api/admin/models', adminModelsRoutes);
 app.use('/api/stripe', stripeWebhookRoutes);
 
 // SPA fallback: serve index.html for all non-API routes
-app.get('*', (req, res) => {
+app.get('/*splat', (req, res) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
     return res.status(404).json({ error: 'Not found' });
   }
