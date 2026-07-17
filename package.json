@@ -1,6 +1,7 @@
 {
   "name": "int-ai",
   "private": true,
+  "type": "module",
   "workspaces": [
     "app",
     "server"
