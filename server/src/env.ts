@@ -6,10 +6,17 @@ import { z } from 'zod';
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
+// Vercel's env var UI lets you add a key with an empty value, which shows up
+// here as "" rather than being truly unset. zod's .optional()/.default()
+// only kick in for undefined, so an empty string still fails a .url()/
+// .email()/.uuid() check below — normalize "" to undefined first so a
+// blank-but-present var behaves the same as an absent one.
+const blankToUndefined = (val: unknown) => (val === "" ? undefined : val);
+
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
-  DIRECT_URL: z.string().url().optional(),
-  SUPABASE_URL: z.string().url().optional(),
+  DIRECT_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+  SUPABASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
   SUPABASE_JWT_SECRET: z.string().min(1, "SUPABASE_JWT_SECRET is required"),
   OAUTH_ENCRYPTION_KEY: z.string().min(32, "OAUTH_ENCRYPTION_KEY must be at least 32 characters").optional(),
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
@@ -23,7 +30,7 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_ID_MAP: z.string().optional(),
-  PUBLIC_BASE_URL: z.string().url().optional(),
+  PUBLIC_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().min(1).default("claude-sonnet-5"),
   OPENAI_API_KEY: z.string().optional(),
@@ -38,15 +45,18 @@ const envSchema = z.object({
   // See middleware/auth.ts — real per-request auth is currently disabled;
   // every request is attached to this one user, which must exist as a real
   // Supabase auth.users row (profiles has a foreign key to it).
-  DEMO_USER_ID: z.string().uuid().default("00000000-0000-0000-0000-000000000000"),
-  DEMO_USER_EMAIL: z.string().email().default("demo@example.com"),
+  DEMO_USER_ID: z.preprocess(blankToUndefined, z.string().uuid().default("00000000-0000-0000-0000-000000000000")),
+  DEMO_USER_EMAIL: z.preprocess(blankToUndefined, z.string().email().default("demo@example.com")),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
+  const details = parsed.error.issues
+    .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+    .join("; ");
   console.error("Invalid environment variables:", parsed.error.format());
-  throw new Error("Invalid environment variables");
+  throw new Error(`Invalid environment variables: ${details}`);
 }
 
 export const env = parsed.data;
