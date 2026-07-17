@@ -40,18 +40,26 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.billing__plan:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 16px var(--accent-glow-soft);
 }
 
 .billing__plan-name {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 4px;
+  color: var(--text);
 }
 
 .billing__plan-price {
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 8px;
+  color: var(--text);
 }
 
 .billing__plan-desc {
@@ -74,13 +82,14 @@
 
 .billing__plan-feature::before {
   content: "✓ ";
-  color: #4ade80;
+  color: var(--success);
 }
 
 .billing__badge {
   display: inline-block;
-  background: var(--accent);
-  color: white;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  color: var(--accent-strong);
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 6px;
@@ -89,13 +98,20 @@
 
 .billing__upgrade {
   display: inline-block;
-  background: var(--accent);
-  color: white;
+  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-soft) 100%);
+  box-shadow: 0 0 12px var(--accent-glow-soft);
+  color: #04141a;
   font-size: 13px;
+  font-weight: 600;
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: 7px;
   border: none;
   cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.billing__upgrade:hover {
+  opacity: 0.9;
 }
 
 .billing__invoices {
@@ -111,6 +127,7 @@
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .billing__invoice-row:last-child {
@@ -119,28 +136,34 @@
 
 .billing__invoice-status {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 500;
 }
 
 .billing__invoice-status--paid {
-  background: #1a3a2a;
-  color: #4ade80;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
 }
 
 .billing__invoice-status--pending {
-  background: #3a3a1a;
-  color: #facc15;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning);
 }
 
 .billing__invoice-status--failed {
-  background: #3a1a1a;
-  color: #f87171;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
 }
 
 .billing__empty {
   text-align: center;
   color: var(--text-dim);
-  padding: 60px 0;
+  padding: 60px 24px;
   font-size: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }

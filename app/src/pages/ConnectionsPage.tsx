@@ -3,18 +3,18 @@ import { fetchConnections, initiateOAuth } from '../lib/api';
 import type { Connection } from '../types/index';
 import './ConnectionsPage.css';
 
-const PROVIDER_ICONS: Record<string, string> = {
-  google: '🔍',
-  microsoft: '📊',
-  slack: '💬',
-  github: '💻',
+const PROVIDER_INITIALS: Record<string, string> = {
+  google: 'G',
+  microsoft: 'M',
+  slack: 'S',
+  github: 'Gh',
 };
 
 const SUPPORTED_PROVIDERS = [
-  { id: 'google', name: 'Google', icon: '🔍' },
-  { id: 'microsoft', name: 'Microsoft', icon: '📊' },
-  { id: 'slack', name: 'Slack', icon: '💬' },
-  { id: 'github', name: 'GitHub', icon: '💻' },
+  { id: 'google', name: 'Google', icon: 'G' },
+  { id: 'microsoft', name: 'Microsoft', icon: 'M' },
+  { id: 'slack', name: 'Slack', icon: 'S' },
+  { id: 'github', name: 'GitHub', icon: 'Gh' },
 ];
 
 function capitalize(value: string): string {
@@ -90,7 +90,7 @@ export default function ConnectionsPage() {
             return (
               <div key={conn.id} className="connections__item">
                 <div className="connections__icon">
-                  {PROVIDER_ICONS[provider] ?? '🔗'}
+                  {PROVIDER_INITIALS[provider] ?? conn.provider.charAt(0).toUpperCase()}
                 </div>
                 <div className="connections__info">
                   <div className="connections__provider">{capitalize(conn.provider)}</div>

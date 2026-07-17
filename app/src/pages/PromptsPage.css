@@ -30,12 +30,19 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.prompts__card:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 16px var(--accent-glow-soft);
 }
 
 .prompts__card-title {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 6px;
+  color: var(--text);
 }
 
 .prompts__card-content {
@@ -52,12 +59,12 @@
 }
 
 .prompts__tag {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
   border-radius: 6px;
   padding: 1px 8px;
   font-size: 11px;
-  color: var(--text-label);
+  color: var(--accent-strong);
 }
 
 .prompts__workspace {
@@ -69,6 +76,8 @@
 .prompts__empty {
   text-align: center;
   color: var(--text-dim);
-  padding: 60px 0;
+  padding: 60px 24px;
   font-size: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }

@@ -30,12 +30,19 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ai-teams__card:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 16px var(--accent-glow-soft);
 }
 
 .ai-teams__card-title {
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 4px;
+  color: var(--text);
 }
 
 .ai-teams__card-desc {
@@ -58,15 +65,18 @@
 
 .ai-teams__member {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .ai-teams__empty {
   text-align: center;
   color: var(--text-dim);
-  padding: 60px 0;
+  padding: 60px 24px;
   font-size: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }

@@ -8,7 +8,7 @@ import { RoutingEngine } from '../routing/engine.js';
 import { calculateCost, countTokens, validateModelForProvider } from '../utils/cost.js';
 import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream.js';
 import { retrieveRelevantChunks } from '../rag/retriever.js';
-import type { AuthenticatedRequest, ChatRequest, StreamChunk, TaskType } from '../types.js';
+import type { AuthenticatedRequest, ChatMessage, ChatRequest, StreamChunk, TaskType } from '../types.js';
 
 const router = Router();
 const routingEngine = new RoutingEngine();
@@ -35,7 +35,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
   try {
     const input = chatSchema.parse(req.body);
 
-    const messages = input.messages || [{ role: 'user', content: input.message }];
+    const messages: ChatMessage[] = input.messages || [{ role: 'user', content: input.message }];
     const startTime = Date.now();
 
     const conversation = input.conversationId && req.user?.id

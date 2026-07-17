@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
       {loading ? (
         <div className="admin-dashboard__empty">Loading...</div>
       ) : error ? (
-        <div className="admin-dashboard__empty">{error}</div>
+        <div className="admin-dashboard__empty admin-dashboard__empty--error">{error}</div>
       ) : stats ? (
         <>
           <div className="admin-dashboard__stats">
@@ -139,6 +139,7 @@ export default function AdminDashboardPage() {
                     <select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                      className="admin-dashboard__role-select"
                     >
                       <option value="user">User</option>
                       <option value="admin">Admin</option>

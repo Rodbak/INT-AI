@@ -15,6 +15,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 14px;
   padding: 32px 28px;
+  box-shadow: 0 0 40px var(--accent-glow-soft);
 }
 
 .login__brand {
@@ -25,14 +26,15 @@
 .login__logo {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: var(--white);
+  border-radius: 11px;
+  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-soft) 100%);
+  box-shadow: 0 0 24px var(--accent-glow-soft);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 18px;
-  color: var(--black);
+  color: #04141a;
   margin: 0 auto 14px;
 }
 
@@ -55,9 +57,9 @@
 }
 
 .login__error {
-  background: rgba(239, 68, 68, 0.1);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
@@ -89,7 +91,8 @@
 }
 
 .login__input:focus {
-  border-color: var(--text-dim);
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-glow-soft);
 }
 
 .login__input::placeholder {
@@ -98,8 +101,9 @@
 
 .login__button {
   margin-top: 4px;
-  background: var(--white);
-  color: var(--black);
+  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-soft) 100%);
+  box-shadow: 0 0 16px var(--accent-glow-soft);
+  color: #04141a;
   border: none;
   border-radius: 8px;
   padding: 11px;

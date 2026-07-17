@@ -25,16 +25,25 @@ export default function ConversationPage() {
   }, [id]);
 
   if (loading) {
-    return <div className="conversation-page">Loading...</div>;
+    return (
+      <div className="conversation-page">
+        <div className="conversation-page__not-found">Loading…</div>
+      </div>
+    );
   }
 
   if (!conversation) {
     return (
       <div className="conversation-page">
-        <div className="conversation-page__not-found">Conversation not found</div>
-        <button className="conversation-page__back" onClick={() => navigate('/history')}>
-          Back to History
-        </button>
+        <div className="conversation-page__not-found">
+          Conversation not found
+          <button
+            className="conversation-page__back conversation-page__back--centered"
+            onClick={() => navigate('/history')}
+          >
+            ← Back to History
+          </button>
+        </div>
       </div>
     );
   }

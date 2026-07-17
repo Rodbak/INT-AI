@@ -14,10 +14,13 @@
   font-size: 13px;
   cursor: pointer;
   text-align: left;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .conv-list__new:hover {
-  background: var(--bg-active);
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+  box-shadow: 0 0 10px var(--accent-glow-soft);
 }
 
 .conv-list__items {
@@ -43,7 +46,8 @@
 
 .conv-list__item--active {
   background: var(--bg-active);
-  color: var(--white);
+  color: var(--accent-strong);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .conv-list__item-title {
@@ -72,7 +76,7 @@
 }
 
 .conv-list__item-delete:hover {
-  color: #f87171;
+  color: var(--danger);
 }
 
 .conv-list__empty {

@@ -33,6 +33,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.automations__item:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 16px var(--accent-glow-soft);
 }
 
 .automations__item-info {
@@ -43,6 +49,7 @@
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 4px;
+  color: var(--text);
 }
 
 .automations__item-desc {
@@ -53,33 +60,39 @@
 .automations__trigger {
   display: inline-block;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   padding: 2px 10px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: var(--text-secondary);
 }
 
 .automations__status {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 500;
 }
 
 .automations__status--active {
-  background: #1a3a2a;
-  color: #4ade80;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
 }
 
 .automations__status--inactive {
-  background: #3a1a1a;
-  color: #f87171;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
 }
 
 .automations__empty {
   text-align: center;
   color: var(--text-dim);
-  padding: 60px 0;
+  padding: 60px 24px;
   font-size: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }

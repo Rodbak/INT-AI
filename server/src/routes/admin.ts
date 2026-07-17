@@ -110,7 +110,6 @@ router.get('/users', async (req: AuthenticatedRequest, res) => {
           _count: {
             select: {
               conversations: true,
-              messages: true,
               usageLogs: true,
             },
           },

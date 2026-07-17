@@ -31,11 +31,12 @@
   border-radius: 10px;
   padding: 16px;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .history__item:hover {
-  border-color: var(--border-strong);
+  border-color: var(--accent-border);
+  box-shadow: 0 0 16px var(--accent-glow-soft);
 }
 
 .history__item-title {
@@ -63,6 +64,8 @@
 .history__empty {
   text-align: center;
   color: var(--text-dim);
-  padding: 60px 0;
+  padding: 60px 24px;
   font-size: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }

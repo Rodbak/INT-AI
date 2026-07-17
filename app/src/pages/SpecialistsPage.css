@@ -30,6 +30,12 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.specialists__card:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 16px var(--accent-glow-soft);
 }
 
 .specialists__card-header {
@@ -43,36 +49,40 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-soft) 100%);
+  color: #04141a;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .specialists__status {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
   text-transform: capitalize;
+  font-weight: 500;
 }
 
 .specialists__status--active {
-  background: #1a3a2a;
-  color: #4ade80;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
 }
 
 .specialists__status--inactive {
-  background: #3a1a1a;
-  color: #f87171;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
 }
 
 .specialists__name {
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 4px;
+  color: var(--text);
 }
 
 .specialists__role {
@@ -96,6 +106,8 @@
 .specialists__empty {
   text-align: center;
   color: var(--text-dim);
-  padding: 60px 0;
+  padding: 60px 24px;
   font-size: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }

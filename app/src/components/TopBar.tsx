@@ -12,6 +12,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/connections': 'Connections',
   '/admin-dashboard': 'Admin Dashboard',
   '/billing-api-keys': 'Billing & API Keys',
+  '/settings': 'Settings',
 };
 
 export default function TopBar() {
