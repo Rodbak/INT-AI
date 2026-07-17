@@ -8,7 +8,9 @@
       "maxDuration": 60
     }
   },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "rewrites": {
+    "fallback": [
+      { "source": "/(.*)", "destination": "/index.html" }
+    ]
+  }
 }
