@@ -20,8 +20,8 @@ export default function CurrentTaskPage() {
   const [selectedModel, setSelectedModel] = useState('auto');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [composerValue, setComposerValue] = useState('');
-  const [mode, setMode] = useState<Mode>('voice');
-  const [displayedMode, setDisplayedMode] = useState<Mode>('voice');
+  const [mode, setMode] = useState<Mode>('type');
+  const [displayedMode, setDisplayedMode] = useState<Mode>('type');
   const [transitioning, setTransitioning] = useState(false);
   const [powerUpTrigger, setPowerUpTrigger] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
