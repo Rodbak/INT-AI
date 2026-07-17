@@ -174,12 +174,13 @@ you press Enter, check `https://<your-domain>/api/health` directly in a browser:
 - Real JSON (`{"status":"ok",...}`) means the function is reachable — the actual problem is something else
   (usually a missing/wrong env var causing the function to error; check Vercel's Runtime Logs).
 - Your app's UI (or a blank page) instead of JSON means `/api/*` requests are matching the SPA's catch-all
-  rewrite instead of the serverless function. `vercel.json`'s `rewrites.fallback` (rather than a plain
-  `rewrites` array) makes the catch-all explicitly a last resort, checked only after static files and
-  functions — but also confirm on Vercel's dashboard, under Deployments -> your latest deployment ->
-  Functions tab, that `api/index.ts` is actually listed as a deployed function. If it isn't listed at all,
-  the function isn't being built — check Project Settings -> General -> Root Directory is blank/repo-root,
-  not `app`.
+  rewrite instead of the serverless function. `vercel.json`'s rewrites list an explicit `/api/(.*) ->
+  /api/$1` passthrough rule before the catch-all, so the SPA rule can never match an `/api/*` path
+  regardless of Vercel's default precedence between rewrites and detected functions. If `/api/health` is
+  still returning HTML after that, the function likely isn't being detected/built at all — confirm on
+  Vercel's dashboard, under Deployments -> your latest deployment -> Functions tab, that `api/index.ts` is
+  listed as a deployed function. If it isn't listed, check Project Settings -> General -> Root Directory is
+  blank/repo-root, not `app`.
 
 ### Known limitation: file uploads
 
