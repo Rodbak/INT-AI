@@ -19,7 +19,7 @@ export function useStreamingChat(conversationId: string | null) {
   const abortRef = useRef<AbortController | null>(null);
 
   const send = useCallback(
-    async (text: string, model?: string): Promise<SendMessageResult | void> => {
+    async (text: string, model?: string, provider?: string): Promise<SendMessageResult | void> => {
       if (!conversationId || !text.trim()) return;
 
       setSending(true);
@@ -57,6 +57,7 @@ export function useStreamingChat(conversationId: string | null) {
             );
           },
           controller.signal,
+          provider,
         );
 
         // Update assistant message with final text and usage data

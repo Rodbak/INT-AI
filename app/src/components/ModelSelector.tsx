@@ -6,12 +6,24 @@ interface Props {
   onChange: (value: string) => void;
 }
 
-const MODELS = [
+export type ModelProvider = 'anthropic' | 'openai' | 'google' | 'openrouter';
+
+export interface ModelOption {
+  id: string;
+  name: string;
+  provider?: ModelProvider;
+}
+
+export const MODELS: ModelOption[] = [
   { id: 'auto', name: 'Auto-select model' },
-  { id: 'claude-opus-4-20250514', name: 'Claude Opus 4' },
-  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' },
-  { id: 'gpt-4o', name: 'GPT-4o' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+  { id: 'claude-sonnet-5', name: 'Claude Sonnet 5', provider: 'anthropic' },
+  { id: 'claude-opus-4-8', name: 'Claude Opus 4.8', provider: 'anthropic' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'google' },
+  { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4 (OpenRouter)', provider: 'openrouter' },
+  { id: 'openai/gpt-4o', name: 'GPT-4o (OpenRouter)', provider: 'openrouter' },
+  { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash (OpenRouter)', provider: 'openrouter' },
+  { id: 'meta-llama/llama-4-maverick', name: 'Llama 4 Maverick (OpenRouter)', provider: 'openrouter' },
 ];
 
 export default function ModelSelector({ value, onChange }: Props) {

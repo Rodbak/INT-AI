@@ -3,7 +3,7 @@ import { useStreamingChat } from '../hooks/useStreamingChat';
 import { useConversations } from '../hooks/useConversations';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import ConversationList from '../components/ConversationList';
-import ModelSelector from '../components/ModelSelector';
+import ModelSelector, { MODELS } from '../components/ModelSelector';
 import CostBadge from '../components/CostBadge';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import HandsFreeView from '../components/HandsFreeView';
@@ -67,20 +67,25 @@ export default function CurrentTaskPage() {
     return conv;
   }, [create]);
 
+  const selectedProvider = useMemo(
+    () => (selectedModel === 'auto' ? undefined : MODELS.find((m) => m.id === selectedModel)?.provider),
+    [selectedModel],
+  );
+
   const handleSend = useCallback(
     (text: string) => {
       if (!text.trim()) return;
-      send(text, selectedModel === 'auto' ? undefined : selectedModel);
+      send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider);
     },
-    [send, selectedModel],
+    [send, selectedModel, selectedProvider],
   );
 
   const handleVoiceTranscript = useCallback(
     async (text: string) => {
-      const result = await send(text, selectedModel === 'auto' ? undefined : selectedModel);
+      const result = await send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider);
       return result?.message.text;
     },
-    [send, selectedModel],
+    [send, selectedModel, selectedProvider],
   );
 
   const voiceChat = useVoiceChat({ onTranscript: handleVoiceTranscript });

@@ -107,6 +107,7 @@ export async function sendMessage(
   model?: string,
   onChunk?: (chunk: string) => void,
   signal?: AbortSignal,
+  provider?: string,
 ): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -115,7 +116,7 @@ export async function sendMessage(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${sessionData.session?.access_token ?? ''}`,
     },
-    body: JSON.stringify({ message: text, conversationId, model, stream: true }),
+    body: JSON.stringify({ message: text, conversationId, model, provider, stream: true }),
     signal,
   });
 
