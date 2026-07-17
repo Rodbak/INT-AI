@@ -170,17 +170,34 @@ free tier, which is built for serverless — a local/Docker Redis instance is no
 ### Troubleshooting: /api requests returning the app's HTML instead of JSON
 
 If pages crash with errors like `.map is not a function`, or the chat composer silently does nothing when
-you press Enter, check `https://<your-domain>/api/health` directly in a browser:
-- Real JSON (`{"status":"ok",...}`) means the function is reachable — the actual problem is something else
-  (usually a missing/wrong env var causing the function to error; check Vercel's Runtime Logs).
-- Your app's UI (or a blank page) instead of JSON means `/api/*` requests are matching the SPA's catch-all
-  rewrite instead of the serverless function. `vercel.json`'s rewrites list an explicit `/api/(.*) ->
-  /api/$1` passthrough rule before the catch-all, so the SPA rule can never match an `/api/*` path
-  regardless of Vercel's default precedence between rewrites and detected functions. If `/api/health` is
-  still returning HTML after that, the function likely isn't being detected/built at all — confirm on
-  Vercel's dashboard, under Deployments -> your latest deployment -> Functions tab, that `api/index.ts` is
-  listed as a deployed function. If it isn't listed, check Project Settings -> General -> Root Directory is
-  blank/repo-root, not `app`.
+you press Enter, check `https://<your-domain>/api/health` directly in a browser. If you see your app's UI
+(or a blank page) instead of `{"status":"ok",...}`, this is almost certainly the same routing gap this
+project used to have, confirmed by deploying isolated repros against real Vercel infrastructure:
+
+**Root cause:** a file named `api/index.ts` is a zero-config Vercel Serverless Function, but outside of a
+Next.js project, Vercel does **not** treat it as a wildcard for every path under `/api/*` — it only
+registers the single literal route `/api` (and `/api/index`). A request to `/api/health` or `/api/chat`
+therefore never reaches the function at all; it falls straight through the routing table to whatever else
+matches, which in this project is the SPA's catch-all rewrite — hence getting `index.html` back with a 200.
+This is invisible from `vercel build` locally and from the deployment's build logs, since the function
+builds and deploys successfully; the gap only shows up when you actually request a path other than `/api`
+or `/api/index`.
+
+**Fix:** `vercel.json`'s rewrites explicitly send every `/api/*` request to the function's real, single
+registered path before the SPA catch-all ever sees it:
+```json
+"rewrites": [
+  { "source": "/api/(.*)", "destination": "/api" },
+  { "source": "/(.*)", "destination": "/index.html" }
+]
+```
+Vercel rewrites a routing *destination*, not the request the function receives — Express still sees the
+original `req.path` (e.g. `/api/health`), so `app.get('/api/health', ...)` inside `server/src/app.ts`
+matches correctly once the request actually reaches the function.
+
+If `/api/health` still returns HTML after this fix, confirm on Vercel's dashboard, under Deployments ->
+your latest deployment -> Functions tab, that `api/index.ts` is listed as a deployed function at all — if
+it's missing entirely, check Project Settings -> General -> Root Directory is blank/repo-root, not `app`.
 
 ### Known limitation: file uploads
 
