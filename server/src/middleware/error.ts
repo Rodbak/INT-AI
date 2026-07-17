@@ -32,7 +32,7 @@ export function errorHandler(
   );
 
   const response: any = {
-    error: statusCode === 500 ? 'Internal server error' : err.message,
+    error: statusCode === 500 ? `Internal server error: ${err.message}` : err.message,
   };
 
   if (process.env.NODE_ENV === 'development') {
