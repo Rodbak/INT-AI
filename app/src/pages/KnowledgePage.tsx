@@ -30,7 +30,7 @@ export default function KnowledgePage() {
   useEffect(() => {
     fetchKnowledge()
       .then(setDocs)
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load documents:', err))
       .finally(() => setLoading(false));
   }, []);
 

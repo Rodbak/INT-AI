@@ -14,7 +14,7 @@ export default function BillingPage() {
         setPlans(plansData);
         setInvoices(invoicesData);
       })
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load billing data:', err))
       .finally(() => setLoading(false));
   }, []);
 

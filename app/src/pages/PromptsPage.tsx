@@ -14,7 +14,7 @@ export default function PromptsPage() {
   useEffect(() => {
     fetchPrompts()
       .then(setPrompts)
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load prompts:', err))
       .finally(() => setLoading(false));
   }, []);
 

@@ -20,7 +20,7 @@ export default function ConversationPage() {
           setConversation(found);
         }
       })
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load conversation:', err))
       .finally(() => setLoading(false));
   }, [id]);
 

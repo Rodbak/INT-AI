@@ -10,7 +10,7 @@ export default function AITeamsPage() {
   useEffect(() => {
     fetchTeams()
       .then(setTeams)
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load teams:', err))
       .finally(() => setLoading(false));
   }, []);
 

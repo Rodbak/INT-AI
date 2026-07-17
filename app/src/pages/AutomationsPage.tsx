@@ -10,7 +10,7 @@ export default function AutomationsPage() {
   useEffect(() => {
     fetchAutomations()
       .then(setAutomations)
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load automations:', err))
       .finally(() => setLoading(false));
   }, []);
 

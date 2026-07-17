@@ -10,7 +10,7 @@ export default function SpecialistsPage() {
   useEffect(() => {
     fetchSpecialists()
       .then(setSpecialists)
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load specialists:', err))
       .finally(() => setLoading(false));
   }, []);
 

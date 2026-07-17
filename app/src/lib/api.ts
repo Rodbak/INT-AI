@@ -57,7 +57,20 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // A 200 with an HTML body (instead of JSON) almost always means the
+    // request never reached the API function and got the SPA shell back
+    // instead — surface that clearly instead of letting callers treat the
+    // HTML string as if it were the expected array/object.
+    const contentType = String(response.headers['content-type'] || '');
+    if (!contentType.includes('application/json')) {
+      throw new Error(
+        `Expected a JSON response from ${response.config.url} but got "${contentType || 'unknown content type'}". ` +
+          'The request likely never reached the backend API — check that /api/* is routing to the serverless function.',
+      );
+    }
+    return response;
+  },
   async (error) => {
     if (error.response?.status === 401) {
       await supabase.auth.signOut();
@@ -109,6 +122,14 @@ export async function sendMessage(
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     throw new Error(data.error || 'Failed to send message');
+  }
+
+  const responseContentType = response.headers.get('content-type') || '';
+  if (!responseContentType.includes('text/event-stream')) {
+    throw new Error(
+      `Expected a streaming reply but got "${responseContentType || 'unknown content type'}" — ` +
+        'the request likely never reached the chat API. Check that /api/* is routing to the serverless function.',
+    );
   }
 
   const reader = response.body?.getReader();

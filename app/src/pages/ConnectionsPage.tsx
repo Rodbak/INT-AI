@@ -29,7 +29,7 @@ export default function ConnectionsPage() {
   useEffect(() => {
     fetchConnections()
       .then(setConnections)
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load connections:', err))
       .finally(() => setLoading(false));
   }, []);
 

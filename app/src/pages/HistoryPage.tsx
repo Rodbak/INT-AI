@@ -12,7 +12,7 @@ export default function HistoryPage() {
   useEffect(() => {
     fetchConversations()
       .then((data: Conversation[]) => setConversations(data))
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load conversations:', err))
       .finally(() => setLoading(false));
   }, []);
 
