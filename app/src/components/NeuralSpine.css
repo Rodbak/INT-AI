@@ -1,0 +1,30 @@
+/* The Spine — a narrow living nerve column between the nav and the workspace.
+   It has its own gutter so it never sits behind readable content. */
+.neural-spine {
+  position: relative;
+  width: 64px;
+  flex-shrink: 0;
+  align-self: stretch;
+  overflow: hidden;
+  /* A faint vertical channel the trunk lives in, brighter at the top where the
+     core sits, plus a hairline luminous edge dividing it from the workspace. */
+  background:
+    linear-gradient(180deg, rgba(var(--rgb-accent), 0.06) 0%, rgba(var(--rgb-synapse), 0.03) 60%, transparent 100%),
+    linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.25));
+  border-right: 1px solid rgba(var(--rgb-accent), 0.1);
+  box-shadow: inset -14px 0 26px -18px rgba(var(--rgb-accent), 0.4);
+}
+
+.neural-spine__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .neural-spine {
+    display: none;
+  }
+}

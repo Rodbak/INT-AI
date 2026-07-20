@@ -4,8 +4,12 @@
   display: flex;
   width: 100%;
   height: 100vh;
-  /* Transparent so the fixed neural substrate shows through the app chrome. */
-  background: transparent;
+  /* The nervous system now lives in the Spine gutter, so the workspace itself
+     is a clean, calm dark surface — a faint cool glow up top, deep space below,
+     nothing moving behind the text. */
+  background:
+    radial-gradient(ellipse 70% 40% at 12% -8%, rgba(var(--rgb-accent), 0.05), transparent 60%),
+    linear-gradient(180deg, var(--void-2) 0%, var(--void-1) 40%, var(--void-0) 100%);
   color: var(--text);
   overflow: hidden;
 }

@@ -13,6 +13,7 @@ import MarkdownRenderer from '../components/MarkdownRenderer';
 import HandsFreeView from '../components/HandsFreeView';
 import { MicIcon, PlusIcon, CopyIcon, CheckIcon, RegenerateIcon, EditIcon } from '../components/icons';
 import { getPreference } from '../lib/preferences';
+import { drainSentences } from '../lib/speech';
 import type { Message } from '../types/index';
 import '../components/Composer.css';
 import './CurrentTaskPage.css';
@@ -126,17 +127,27 @@ export default function CurrentTaskPage() {
   );
 
   const handleVoiceTranscript = useCallback(
-    async (text: string) => {
+    async (text: string, speak: (sentence: string) => void) => {
       const conversationId = activeId || (await handleNewConversation(deriveTitle(text))).id;
       titleFromFirstMessage(conversationId, text);
-      const result = await send(
+      // Speak the reply sentence-by-sentence as it streams, so the voice starts
+      // almost immediately instead of waiting for the whole answer.
+      let buffer = '';
+      await send(
         text,
         selectedModel === 'auto' ? undefined : selectedModel,
         selectedProvider,
         conversationId,
         specialistId,
+        (chunk) => {
+          buffer += chunk;
+          const { sentences, rest } = drainSentences(buffer);
+          buffer = rest;
+          sentences.forEach(speak);
+        },
       );
-      return result?.message.text;
+      const { sentences } = drainSentences(buffer, true);
+      sentences.forEach(speak);
     },
     [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage, specialistId],
   );

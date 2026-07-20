@@ -67,6 +67,7 @@ export function useStreamingChat(conversationId: string | null) {
       provider?: string,
       specialistId?: string,
       regenerate?: boolean,
+      onDelta?: (chunk: string) => void,
     ): Promise<SendMessageResult | void> => {
       hydratedRef.current = targetConversationId;
       hydrationTokenRef.current++;
@@ -97,6 +98,7 @@ export function useStreamingChat(conversationId: string | null) {
           model,
           (chunk) => {
             pulseStreaming(model);
+            onDelta?.(chunk);
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk } : m)),
             );
@@ -148,6 +150,7 @@ export function useStreamingChat(conversationId: string | null) {
       provider?: string,
       conversationIdOverride?: string,
       specialistId?: string,
+      onDelta?: (chunk: string) => void,
     ): Promise<SendMessageResult | void> => {
       const targetConversationId = conversationIdOverride || conversationId;
       if (!targetConversationId || !text.trim()) return;
@@ -160,7 +163,7 @@ export function useStreamingChat(conversationId: string | null) {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      return runAssistant(targetConversationId, text.trim(), model, provider, specialistId);
+      return runAssistant(targetConversationId, text.trim(), model, provider, specialistId, false, onDelta);
     },
     [conversationId, runAssistant],
   );

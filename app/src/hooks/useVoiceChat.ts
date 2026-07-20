@@ -9,13 +9,19 @@ const MAX_UTTERANCE_MS = 20000;
 const MIN_AUDIO_BYTES = 1000;
 
 interface UseVoiceChatOptions {
-  onTranscript: (text: string) => Promise<string | void>;
+  /**
+   * Handle a finished user utterance. Receives a `speak` callback the caller
+   * pumps sentences into AS THE REPLY STREAMS, so speech starts almost
+   * immediately instead of waiting for the whole answer (ChatGPT-style).
+   * Resolves when generation is complete.
+   */
+  onTranscript: (text: string, speak: (sentence: string) => void) => Promise<void>;
 }
 
 // The browser's Web Speech API (Chrome/Edge) gives us speech-to-text and
 // text-to-speech with no API key and no server round-trip. We prefer it when
-// available and fall back to the server pipeline (OpenAI Whisper + TTS, which
-// requires OPENAI_API_KEY) only when it isn't.
+// available and fall back to the server pipeline (Whisper + TTS) only when it
+// isn't.
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 interface SpeechRecognitionLike {
   lang: string;
@@ -58,59 +64,143 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
 
   // --- browser Web Speech refs (primary path) ---
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const processingRef = useRef(false);
+  const processingRef = useRef(false); // a turn (generation + speech) is in flight
 
-  // --- shared playback ---
+  // --- TTS queue (streamed sentence playback) ---
+  const queueRef = useRef<string[]>([]);
+  const playingRef = useRef(false);
+  const genRef = useRef(false); // LLM still generating this turn
+  const turnRef = useRef(0); // bumped each turn / interrupt to discard stale speech
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   const usingBrowserSpeech = useRef<boolean>(getSpeechRecognition() !== null);
 
   const getAudioLevel = useCallback(() => audioLevelRef.current, []);
 
+  // Resume-listening indirection so the queue/turn logic can restart whichever
+  // capture path is in use without forward-referencing the starters.
+  const resumeRef = useRef<() => void>(() => {});
+
   // ---------------------------------------------------------------------------
-  // Text-to-speech (shared): prefer the browser's speechSynthesis, else server.
+  // Voice selection — prefer a natural en-US voice; getVoices() populates async.
   // ---------------------------------------------------------------------------
-  const speak = useCallback(async (text: string) => {
-    if (speechSynthesisAvailable) {
-      await new Promise<void>((resolve) => {
-        try {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.rate = 1.02;
-          utterance.pitch = 1;
-          const preferred = window.speechSynthesis
-            .getVoices()
-            .find((v) => /en-US/i.test(v.lang) && /(natural|google|samantha|aria)/i.test(v.name));
-          if (preferred) utterance.voice = preferred;
-          utterance.onend = () => resolve();
-          utterance.onerror = () => resolve();
-          utteranceRef.current = utterance;
-          window.speechSynthesis.speak(utterance);
-        } catch {
+  useEffect(() => {
+    if (!speechSynthesisAvailable) return;
+    const load = () => {
+      voicesRef.current = window.speechSynthesis.getVoices();
+    };
+    load();
+    window.speechSynthesis.addEventListener?.('voiceschanged', load);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', load);
+  }, []);
+
+  const pickVoice = useCallback((): SpeechSynthesisVoice | undefined => {
+    const vs = voicesRef.current;
+    if (!vs.length) return undefined;
+    return (
+      vs.find((v) => /en[-_]US/i.test(v.lang) && /(Google US English|Samantha|Aria|Jenny|Natural|Neural)/i.test(v.name)) ||
+      vs.find((v) => /en[-_]US/i.test(v.lang)) ||
+      vs.find((v) => /^en/i.test(v.lang)) ||
+      vs[0]
+    );
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // TTS queue: play one sentence at a time so speech can start mid-generation.
+  // ---------------------------------------------------------------------------
+  const speakOne = useCallback(
+    (text: string) =>
+      new Promise<void>((resolve) => {
+        if (!activeRef.current) {
           resolve();
+          return;
         }
-      });
-      utteranceRef.current = null;
+        if (speechSynthesisAvailable) {
+          try {
+            const u = new SpeechSynthesisUtterance(text);
+            u.rate = 1.05;
+            u.pitch = 1;
+            const v = pickVoice();
+            if (v) u.voice = v;
+            u.onend = () => resolve();
+            u.onerror = () => resolve();
+            utteranceRef.current = u;
+            window.speechSynthesis.speak(u);
+          } catch {
+            resolve();
+          }
+          return;
+        }
+        // Server TTS fallback.
+        synthesizeSpeech(text)
+          .then((blob) => {
+            if (!activeRef.current) {
+              resolve();
+              return;
+            }
+            const url = URL.createObjectURL(blob);
+            const audioEl = new Audio(url);
+            playerRef.current = audioEl;
+            audioEl.onended = () => {
+              URL.revokeObjectURL(url);
+              resolve();
+            };
+            audioEl.onerror = () => resolve();
+            audioEl.play().catch(() => resolve());
+          })
+          .catch(() => resolve());
+      }),
+    [pickVoice],
+  );
+
+  const maybeResume = useCallback(() => {
+    if (!activeRef.current) {
+      setVoiceState('idle');
       return;
     }
+    if (genRef.current || playingRef.current || queueRef.current.length) return;
+    processingRef.current = false;
+    setVoiceState('listening');
+    resumeRef.current();
+  }, []);
 
-    // Server TTS fallback (requires OPENAI_API_KEY on the backend).
-    try {
-      const blob = await synthesizeSpeech(text);
-      if (!activeRef.current) return;
-      const url = URL.createObjectURL(blob);
-      const audioEl = new Audio(url);
-      playerRef.current = audioEl;
-      await new Promise<void>((resolve) => {
-        audioEl.onended = () => resolve();
-        audioEl.onerror = () => resolve();
-        audioEl.play().catch(() => resolve());
-      });
-      URL.revokeObjectURL(url);
+  const playNext = useCallback(async () => {
+    if (playingRef.current) return;
+    const myTurn = turnRef.current;
+    const next = queueRef.current.shift();
+    if (next === undefined) {
+      maybeResume();
+      return;
+    }
+    playingRef.current = true;
+    setVoiceState('speaking');
+    await speakOne(next);
+    playingRef.current = false;
+    if (turnRef.current !== myTurn) return; // interrupted — a new turn owns playback
+    playNext();
+  }, [speakOne, maybeResume]);
+
+  const enqueueSpeech = useCallback(
+    (text: string) => {
+      const clean = text.trim();
+      if (!clean || !activeRef.current) return;
+      queueRef.current.push(clean);
+      if (!playingRef.current) playNext();
+    },
+    [playNext],
+  );
+
+  const stopPlayback = useCallback(() => {
+    turnRef.current += 1; // invalidate any in-flight speakOne continuation
+    queueRef.current = [];
+    playingRef.current = false;
+    if (speechSynthesisAvailable) window.speechSynthesis.cancel();
+    utteranceRef.current = null;
+    if (playerRef.current) {
+      playerRef.current.pause();
       playerRef.current = null;
-    } catch (err: any) {
-      setVoiceError(err?.message || 'Speech playback failed');
     }
   }, []);
 
@@ -139,13 +229,11 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
         else interim += result[0].transcript;
       }
       setInterimText((finalText + interim).trim());
-      // Fake a little audio-level movement so the orb reacts while hearing speech.
       audioLevelRef.current = Math.min(0.12 + (finalText.length + interim.length) * 0.004, 0.45);
     };
 
     recognition.onerror = (event: any) => {
       const err = event?.error;
-      // Transient errors self-recover via the onend restart below.
       if (err === 'no-speech' || err === 'aborted' || err === 'network') return;
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         setVoiceError('Microphone access was blocked. Allow mic access to use hands-free mode.');
@@ -171,30 +259,24 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
 
       const text = finalText.trim();
       if (!text) {
-        // Nothing captured — keep listening.
-        startBrowserRecognition();
+        startBrowserRecognition(); // nothing captured — keep listening
         return;
       }
 
+      // New turn: reset speech pipeline and stream the reply into the queue.
       processingRef.current = true;
+      genRef.current = true;
+      turnRef.current += 1;
+      queueRef.current = [];
       setInterimText('');
       setVoiceState('thinking');
       try {
-        const reply = await onTranscript(text);
-        if (activeRef.current && reply && reply.trim()) {
-          setVoiceState('speaking');
-          await speak(reply);
-        }
+        await onTranscript(text, enqueueSpeech);
       } catch (err: any) {
         setVoiceError(err?.message || 'Voice request failed');
       } finally {
-        processingRef.current = false;
-        if (activeRef.current) {
-          setVoiceState('listening');
-          startBrowserRecognition();
-        } else {
-          setVoiceState('idle');
-        }
+        genRef.current = false;
+        maybeResume(); // resume now if nothing queued; else the queue finishes then resumes
       }
     };
 
@@ -202,12 +284,11 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       recognition.start();
       setVoiceState('listening');
     } catch {
-      // start() throws if called too soon after a previous stop; retry shortly.
       window.setTimeout(() => {
         if (activeRef.current && !processingRef.current) startBrowserRecognition();
       }, 250);
     }
-  }, [onTranscript, speak]);
+  }, [onTranscript, enqueueSpeech, maybeResume]);
 
   // ---------------------------------------------------------------------------
   // Server-pipeline recognition path (MediaRecorder + Whisper) — fallback only
@@ -237,11 +318,13 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   }, [stopVad]);
 
   const startServerListening = useCallback(async () => {
-    if (!activeRef.current) return;
+    if (!activeRef.current || processingRef.current) return;
     setVoiceError(null);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
       if (!activeRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
@@ -294,22 +377,17 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
             return;
           }
 
+          processingRef.current = true;
+          genRef.current = true;
+          turnRef.current += 1;
+          queueRef.current = [];
           setVoiceState('thinking');
-          const reply = await onTranscript(text);
-          if (!activeRef.current) return;
-
-          if (reply && reply.trim()) {
-            setVoiceState('speaking');
-            await speak(reply);
-          }
+          await onTranscript(text, enqueueSpeech);
         } catch (err: any) {
           setVoiceError(err?.message || 'Voice request failed');
         } finally {
-          if (activeRef.current) {
-            startServerListening();
-          } else {
-            setVoiceState('idle');
-          }
+          genRef.current = false;
+          maybeResume();
         }
       };
 
@@ -341,9 +419,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
           }
         } else if (hasSpoken && silenceTimerRef.current === null) {
           silenceTimerRef.current = window.setTimeout(() => {
-            if (recorderRef.current?.state === 'recording') {
-              recorderRef.current.stop();
-            }
+            if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
           }, SILENCE_HOLD_MS);
         }
 
@@ -361,7 +437,13 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       activeRef.current = false;
       setActive(false);
     }
-  }, [onTranscript, teardownCapture, speak]);
+  }, [onTranscript, enqueueSpeech, maybeResume, teardownCapture]);
+
+  // Keep the resume indirection pointed at the active capture path.
+  resumeRef.current = () => {
+    if (usingBrowserSpeech.current) startBrowserRecognition();
+    else startServerListening();
+  };
 
   // ---------------------------------------------------------------------------
   // Public controls
@@ -369,20 +451,21 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   const start = useCallback(() => {
     activeRef.current = true;
     processingRef.current = false;
+    genRef.current = false;
+    queueRef.current = [];
     setActive(true);
     setVoiceError(null);
     setInterimText('');
-    if (usingBrowserSpeech.current) startBrowserRecognition();
-    else startServerListening();
-  }, [startBrowserRecognition, startServerListening]);
+    resumeRef.current();
+  }, []);
 
   const stop = useCallback(() => {
     activeRef.current = false;
     processingRef.current = false;
+    genRef.current = false;
     setActive(false);
     setInterimText('');
 
-    // Browser path
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
@@ -391,42 +474,26 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       }
       recognitionRef.current = null;
     }
-    if (speechSynthesisAvailable) window.speechSynthesis.cancel();
-    utteranceRef.current = null;
-
-    // Server path
+    stopPlayback();
     teardownCapture();
     if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
-    if (playerRef.current) {
-      playerRef.current.pause();
-      playerRef.current = null;
-    }
     setVoiceState('idle');
-  }, [teardownCapture]);
+  }, [stopPlayback, teardownCapture]);
 
   const toggle = useCallback(() => {
     if (activeRef.current) stop();
     else start();
   }, [start, stop]);
 
+  // Barge-in: stop whatever is being spoken and return to listening immediately.
   const interrupt = useCallback(() => {
     if (!activeRef.current) return;
-    // Stop whatever is currently being spoken and return to listening.
-    if (speechSynthesisAvailable) window.speechSynthesis.cancel();
-    utteranceRef.current = null;
-    if (playerRef.current) {
-      playerRef.current.pause();
-      playerRef.current = null;
-    }
-    if (usingBrowserSpeech.current) {
-      if (!processingRef.current && !recognitionRef.current) {
-        setVoiceState('listening');
-        startBrowserRecognition();
-      }
-    } else if (recorderRef.current?.state !== 'recording') {
-      startServerListening();
-    }
-  }, [startBrowserRecognition, startServerListening]);
+    stopPlayback();
+    if (genRef.current) return; // reply still generating — it'll resume when done/drained
+    processingRef.current = false;
+    setVoiceState('listening');
+    resumeRef.current();
+  }, [stopPlayback]);
 
   // Release everything if the component using this unmounts mid-session.
   useEffect(() => {

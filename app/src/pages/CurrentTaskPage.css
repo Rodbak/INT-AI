@@ -221,15 +221,24 @@
   border-radius: 14px 14px 4px 14px;
 }
 
+/* Assistant replies read as a solid, near-opaque "reading lane" so long
+   answers stay crisp over any part of the neural field — no wash-out, no
+   faint full-width text. Wider than the user bubble because responses run long. */
+.message--assistant {
+  align-items: stretch;
+}
+
 .message--assistant .message__bubble {
-  background: rgba(9, 14, 22, 0.62);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(var(--rgb-accent), 0.09);
+  background: linear-gradient(180deg, rgba(15, 22, 33, 0.94), rgba(10, 15, 23, 0.94));
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  border: 1px solid rgba(var(--rgb-accent), 0.1);
+  border-left: 2px solid rgba(var(--rgb-accent), 0.5);
   color: var(--text);
-  padding: 12px 16px;
-  border-radius: 4px 14px 14px 14px;
-  max-width: 85%;
+  padding: 16px 20px;
+  border-radius: 12px;
+  max-width: 100%;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
 }
 
 .message__pending {
