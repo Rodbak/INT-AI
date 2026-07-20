@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { supabase } from './supabaseClient';
 import type {
   User,
   Conversation,
@@ -21,6 +20,11 @@ import type {
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || '';
 const API_PREFIX = '/api';
 export const API_BASE_URL = API_BASE ? `${API_BASE}${API_PREFIX}` : API_PREFIX;
+
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token');
+}
 
 function extractMessage(error: unknown): string {
   if (typeof error === 'string') return error;
@@ -45,9 +49,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(
-  async (config) => {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+  (config) => {
+    const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -57,23 +60,13 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => {
-    // A 200 with an HTML body (instead of JSON) almost always means the
-    // request never reached the API function and got the SPA shell back
-    // instead — surface that clearly instead of letting callers treat the
-    // HTML string as if it were the expected array/object.
-    const contentType = String(response.headers['content-type'] || '');
-    if (!contentType.includes('application/json')) {
-      throw new Error(
-        `Expected a JSON response from ${response.config.url} but got "${contentType || 'unknown content type'}". ` +
-          'The request likely never reached the backend API — check that /api/* is routing to the serverless function.',
-      );
-    }
-    return response;
-  },
+  (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await supabase.auth.signOut();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+      }
       window.location.href = '/login';
     }
     return Promise.reject(new Error(extractMessage(error)));
@@ -109,12 +102,12 @@ export async function sendMessage(
   signal?: AbortSignal,
   provider?: string,
 ): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionData.session?.access_token ?? ''}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ message: text, conversationId, model, provider, stream: true }),
     signal,
