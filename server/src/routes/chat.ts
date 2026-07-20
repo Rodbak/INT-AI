@@ -8,7 +8,8 @@ import { RoutingEngine } from '../routing/engine.js';
 import { calculateCost, countTokens, validateModelForProvider } from '../utils/cost.js';
 import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream.js';
 import { retrieveRelevantChunks } from '../rag/retriever.js';
-import { buildSpecialistPrompt, providerForModel, type SpecialistLike } from '../routing/specialist.js';
+import { buildSpecialistPrompt, resolveModelForProviders, type SpecialistLike } from '../routing/specialist.js';
+import { buildPlatformIdentity, availableProviders, loadPlatformRoster } from '../routing/platform.js';
 import type { AuthenticatedRequest, ChatMessage, ChatRequest, StreamChunk, TaskType } from '../types.js';
 
 const router = Router();
@@ -126,14 +127,32 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
 
     let preferredProvider = input.provider;
     let preferredModel = input.model;
-    let systemPrompt: string | undefined;
+
+    // Ground every turn with INT AI's self-knowledge, assembled from live state
+    // (which providers have keys, which specialists/teams exist) so the
+    // assistant can accurately explain what it is and how it works.
+    const providers = availableProviders();
+    const roster = await loadPlatformRoster();
+    const platformIdentity = buildPlatformIdentity({
+      availableProviders: providers,
+      specialists: roster.specialists,
+      teams: roster.teams,
+      activeSpecialist: specialist ? { name: specialist.name, role: specialist.role } : null,
+    });
+
+    const systemParts: string[] = [platformIdentity];
     if (specialist) {
-      systemPrompt = buildSpecialistPrompt(specialist);
+      systemParts.push(buildSpecialistPrompt(specialist));
+      // Only fill in from the specialist when the user didn't pick a model. Its
+      // pinned model is re-routed through OpenRouter if its native provider has
+      // no key, so a specialist still answers on an OpenRouter-only setup.
       if (specialist.model && !preferredModel) {
-        preferredModel = specialist.model;
-        preferredProvider = providerForModel(specialist.model);
+        const resolved = resolveModelForProviders(specialist.model, providers);
+        preferredModel = resolved.model;
+        preferredProvider = resolved.provider;
       }
     }
+    const systemPrompt = systemParts.join('\n\n');
 
     const context = {
       message: input.message,

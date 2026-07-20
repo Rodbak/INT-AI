@@ -12,11 +12,13 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import BillingPage from './pages/BillingPage';
 import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout';
+import RouteError from './components/RouteError';
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <Navigate to="/current-task" replace /> },
       { path: 'current-task', element: <CurrentTaskPage /> },

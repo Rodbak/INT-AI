@@ -116,6 +116,14 @@ button {
   font-family: inherit;
 }
 
+/* Page headings sit at the top of the content area, directly beneath the storm
+   cloud. A soft dark halo keeps them crisp against the brightest part of the
+   neural field without needing an opaque bar. */
+.layout__content h1,
+.layout__content h2 {
+  text-shadow: 0 2px 18px rgba(4, 6, 10, 0.7), 0 0 32px rgba(4, 6, 10, 0.45);
+}
+
 /* --- Frosted-glass panels floating on the neural substrate --- */
 .prompts__card,
 .specialists__card,

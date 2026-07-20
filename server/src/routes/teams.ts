@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { RoutingEngine } from '../routing/engine.js';
-import { buildSpecialistPrompt, providerForModel } from '../routing/specialist.js';
+import { buildSpecialistPrompt, resolveModelForProviders } from '../routing/specialist.js';
+import { buildPlatformIdentity, availableProviders, loadPlatformRoster } from '../routing/platform.js';
 import { createSSEResponse, sendSSEEnd } from '../utils/stream.js';
 import type { AuthenticatedRequest } from '../types.js';
 
@@ -271,6 +272,11 @@ router.post('/:id/run', async (req: AuthenticatedRequest, res) => {
     return;
   }
 
+  // Ground every team member in INT AI's self-knowledge, so each one knows it
+  // is a specialist inside this platform, running as one stage of this team.
+  const roster = await loadPlatformRoster();
+  const providers = availableProviders();
+
   let combined = '';
 
   try {
@@ -283,14 +289,25 @@ router.post('/:id/run', async (req: AuthenticatedRequest, res) => {
         ? message
         : `The user's request:\n${message}\n\nWork produced so far by the team:\n${combined}\n\nAs ${s.name} (${s.role}), build on the prior work and contribute your part. Do not repeat earlier sections verbatim.`;
 
-      const preferredModel = s.model || undefined;
-      const preferredProvider = preferredModel ? providerForModel(preferredModel) : undefined;
+      // Re-route the member's pinned model through OpenRouter if its native
+      // provider has no key, so the team still runs on an OpenRouter-only setup.
+      const resolved = s.model ? resolveModelForProviders(s.model, providers) : undefined;
+      const preferredModel = resolved?.model;
+      const preferredProvider = resolved?.provider;
+
+      const platformIdentity = buildPlatformIdentity({
+        availableProviders: providers,
+        specialists: roster.specialists,
+        teams: roster.teams,
+        activeSpecialist: { name: s.name, role: s.role },
+        activeTeam: { name: team.name, position: i + 1, total: members.length },
+      });
 
       const { chunks } = await teamEngine.execute({
         message: userMessage,
         history: [],
         userId: req.user?.id,
-        systemPrompt: buildSpecialistPrompt(s),
+        systemPrompt: `${platformIdentity}\n\n${buildSpecialistPrompt(s)}`,
         preferredProvider,
         preferredModel,
       });

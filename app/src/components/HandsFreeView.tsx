@@ -24,6 +24,7 @@ interface HandsFreeViewProps {
   onInterrupt: () => void;
   onSwitchToType: () => void;
   modelLabel: string;
+  usesBrowserSpeech: boolean;
 }
 
 export default function HandsFreeView({
@@ -39,6 +40,7 @@ export default function HandsFreeView({
   onInterrupt,
   onSwitchToType,
   modelLabel,
+  usesBrowserSpeech,
 }: HandsFreeViewProps) {
   // While actively listening, surface the live (interim) transcript; once the
   // turn is captured, fall back to the last committed user utterance.
@@ -69,6 +71,12 @@ export default function HandsFreeView({
         {!hasConversation && (
           <p className="hands-free__hint">
             {micActive ? 'Say something to begin…' : 'Turn on the mic to start a hands-free conversation'}
+          </p>
+        )}
+        {!usesBrowserSpeech && (
+          <p className="hands-free__note">
+            In-browser voice recognition isn't available here. Use Chrome or Edge for
+            hands-free speech, or type your message instead.
           </p>
         )}
         {userLine && (

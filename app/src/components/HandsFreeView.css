@@ -162,6 +162,18 @@
   letter-spacing: 0.2px;
 }
 
+.hands-free__note {
+  margin: 0;
+  max-width: 460px;
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
 .hands-free__caption {
   margin: 0;
   max-width: 680px;

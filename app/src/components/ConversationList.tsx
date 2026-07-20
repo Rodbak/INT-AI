@@ -30,11 +30,21 @@ export default function ConversationList({ conversations, activeId, onSelect, on
       </button>
       <div className="conv-list__items">
         {conversations.map((c) => (
-          <button
+          // A row is clickable but contains its own delete button, so it can't
+          // itself be a <button> (nested buttons are invalid HTML). Use a
+          // focusable div with keyboard activation instead.
+          <div
             key={c.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             className={`conv-list__item${c.id === activeId ? ' conv-list__item--active' : ''}`}
             onClick={() => onSelect(c.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(c.id);
+              }
+            }}
           >
             <div className="conv-list__item-title">{c.title || 'Untitled'}</div>
             <div className="conv-list__item-meta">
@@ -44,11 +54,12 @@ export default function ConversationList({ conversations, activeId, onSelect, on
                 className="conv-list__item-delete"
                 onClick={(e) => handleDelete(c.id, e)}
                 disabled={loading}
+                aria-label="Delete conversation"
               >
                 ×
               </button>
             </div>
-          </button>
+          </div>
         ))}
         {conversations.length === 0 && (
           <div className="conv-list__empty">No conversations yet</div>

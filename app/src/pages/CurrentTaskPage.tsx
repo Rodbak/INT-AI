@@ -302,6 +302,7 @@ export default function CurrentTaskPage() {
             onInterrupt={voiceChat.interrupt}
             onSwitchToType={switchToType}
             modelLabel={selectedModel === 'auto' ? 'AUTO ROUTING' : selectedModel.toUpperCase()}
+            usesBrowserSpeech={voiceChat.usesBrowserSpeech}
           />
         ) : (
           <div className="current-task__body">

@@ -67,7 +67,13 @@ export default function NeuralField({
       return i;
     };
 
-    const coreIdx = push({ id: 'core', x: 0.5, y: 0.5, r: 7, kind: 'core', phase: 0 });
+    // The network hangs as a storm cloud across the TOP of the viewport and
+    // dissipates downward, leaving the lower area calm for readable text. The
+    // core sits up in the cloud; providers/specialists arc beneath it; a wide
+    // band of interneurons gives the cloud its body.
+    const CY = 0.16; // vertical center of the cloud
+
+    const coreIdx = push({ id: 'core', x: 0.5, y: CY, r: 7, kind: 'core', phase: 0 });
 
     const providerIdx: number[] = [];
     PROVIDERS.forEach((p, i) => {
@@ -75,8 +81,8 @@ export default function NeuralField({
       providerIdx.push(
         push({
           id: `provider:${p}`,
-          x: 0.5 + Math.cos(a) * 0.14,
-          y: 0.5 + Math.sin(a) * 0.16,
+          x: 0.5 + Math.cos(a) * 0.15,
+          y: CY + Math.sin(a) * 0.085,
           r: 4.5,
           kind: 'provider',
           phase: Math.random() * 6.283,
@@ -86,13 +92,13 @@ export default function NeuralField({
 
     const specialistIdx: number[] = [];
     for (let i = 0; i < SPECIALIST_SLOTS; i++) {
-      const a = (i / SPECIALIST_SLOTS) * Math.PI * 2 + 0.35;
-      const rad = 0.3 + (i % 2) * 0.05;
+      const a = (i / SPECIALIST_SLOTS) * Math.PI - 0.15; // spread across the top, below the core
+      const rad = 0.28 + (i % 2) * 0.06;
       specialistIdx.push(
         push({
           id: `specialist:slot${i}`,
-          x: 0.5 + Math.cos(a) * rad * 1.15,
-          y: 0.5 + Math.sin(a) * rad,
+          x: 0.5 + Math.cos(a) * rad * 1.3,
+          y: CY + 0.03 + Math.abs(Math.sin(a)) * rad * 0.75,
           r: 3.6,
           kind: 'specialist',
           phase: Math.random() * 6.283,
@@ -100,13 +106,11 @@ export default function NeuralField({
       );
     }
 
-    // scattered interneurons for organic density
+    // scattered interneurons: full width, biased toward the top (cloud body)
     for (let i = 0; i < density; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const rad = 0.18 + Math.random() * 0.42;
       push({
-        x: 0.5 + Math.cos(a) * rad * 1.25,
-        y: 0.5 + Math.sin(a) * rad,
+        x: 0.04 + Math.random() * 0.92,
+        y: 0.02 + Math.pow(Math.random(), 1.7) * 0.42,
         r: 1.4 + Math.random() * 1.8,
         kind: 'inter',
         phase: Math.random() * 6.283,

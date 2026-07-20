@@ -9,10 +9,14 @@
 .neural-bg__void {
   position: absolute;
   inset: 0;
+  /* Luminous overhead — glow gathers at the top like the underside of a
+     storm cloud — then settles into a calm deep-space dark below where the
+     text lives. */
   background:
-    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(var(--rgb-accent), 0.06), transparent 62%),
-    radial-gradient(ellipse 90% 70% at 82% 88%, rgba(var(--rgb-synapse), 0.05), transparent 60%),
-    radial-gradient(circle at 50% 45%, var(--void-2) 0%, var(--void-1) 55%, var(--void-0) 100%);
+    radial-gradient(ellipse 90% 42% at 50% -6%, rgba(var(--rgb-accent), 0.14), transparent 62%),
+    radial-gradient(ellipse 70% 34% at 72% 2%, rgba(var(--rgb-synapse), 0.1), transparent 60%),
+    radial-gradient(ellipse 60% 30% at 24% 4%, rgba(var(--rgb-synapse), 0.06), transparent 60%),
+    linear-gradient(180deg, var(--void-2) 0%, var(--void-1) 34%, var(--void-0) 68%);
 }
 
 .neural-bg__canvas {
@@ -21,10 +25,29 @@
   width: 100%;
   height: 100%;
   display: block;
+  /* The cloud hangs at the top and dissipates downward, keeping the reading
+     area beneath it clear. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 26%,
+    rgba(0, 0, 0, 0.35) 46%,
+    rgba(0, 0, 0, 0) 62%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 26%,
+    rgba(0, 0, 0, 0.35) 46%,
+    rgba(0, 0, 0, 0) 62%
+  );
 }
 
+/* A soft calm band that further settles the reading area beneath the cloud. */
 .neural-bg__vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 80% 70% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+  background:
+    linear-gradient(180deg, transparent 34%, rgba(4, 6, 10, 0.5) 62%, rgba(4, 6, 10, 0.72) 100%),
+    radial-gradient(ellipse 90% 60% at 50% 30%, transparent 60%, rgba(0, 0, 0, 0.4) 100%);
 }
