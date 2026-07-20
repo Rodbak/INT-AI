@@ -19,8 +19,14 @@ export function useStreamingChat(conversationId: string | null) {
   const abortRef = useRef<AbortController | null>(null);
 
   const send = useCallback(
-    async (text: string, model?: string, provider?: string): Promise<SendMessageResult | void> => {
-      if (!conversationId || !text.trim()) return;
+    async (
+      text: string,
+      model?: string,
+      provider?: string,
+      conversationIdOverride?: string,
+    ): Promise<SendMessageResult | void> => {
+      const targetConversationId = conversationIdOverride || conversationId;
+      if (!targetConversationId || !text.trim()) return;
 
       setSending(true);
       setError(null);
@@ -48,7 +54,7 @@ export function useStreamingChat(conversationId: string | null) {
 
       try {
         const result = await sendMessage(
-          conversationId,
+          targetConversationId,
           text.trim(),
           model,
           (chunk) => {

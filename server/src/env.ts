@@ -17,7 +17,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   DIRECT_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
   SUPABASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
-  SUPABASE_JWT_SECRET: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  SUPABASE_JWT_SECRET: z.string().min(1, "SUPABASE_JWT_SECRET is required"),
   OAUTH_ENCRYPTION_KEY: z.string().min(32, "OAUTH_ENCRYPTION_KEY must be at least 32 characters").optional(),
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),

@@ -73,19 +73,26 @@ export default function CurrentTaskPage() {
   );
 
   const handleSend = useCallback(
-    (text: string) => {
+    async (text: string) => {
       if (!text.trim()) return;
-      send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider);
+      const conversationId = activeId || (await handleNewConversation()).id;
+      send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider, conversationId);
     },
-    [send, selectedModel, selectedProvider],
+    [send, selectedModel, selectedProvider, activeId, handleNewConversation],
   );
 
   const handleVoiceTranscript = useCallback(
     async (text: string) => {
-      const result = await send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider);
+      const conversationId = activeId || (await handleNewConversation()).id;
+      const result = await send(
+        text,
+        selectedModel === 'auto' ? undefined : selectedModel,
+        selectedProvider,
+        conversationId,
+      );
       return result?.message.text;
     },
-    [send, selectedModel, selectedProvider],
+    [send, selectedModel, selectedProvider, activeId, handleNewConversation],
   );
 
   const voiceChat = useVoiceChat({ onTranscript: handleVoiceTranscript });

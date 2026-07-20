@@ -35,7 +35,17 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
   try {
     const input = chatSchema.parse(req.body);
 
-    const messages: ChatMessage[] = input.messages || [{ role: 'user', content: input.message }];
+    // Vercel's function-builder type-check has, across several deployments,
+    // inferred an overly-loose (optional role/content) shape for
+    // input.messages that plain `tsc --noEmit` here never reproduces —
+    // build each ChatMessage explicitly instead of relying on the zod-
+    // inferred array being structurally assignable to ChatMessage[].
+    const messages: ChatMessage[] =
+      input.messages && input.messages.length > 0
+        ? input.messages.map(
+            (m): ChatMessage => ({ role: m.role ?? 'user', content: m.content ?? '' }),
+          )
+        : [{ role: 'user', content: input.message }];
     const startTime = Date.now();
 
     const conversation = input.conversationId && req.user?.id
