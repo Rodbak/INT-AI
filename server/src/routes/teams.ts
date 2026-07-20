@@ -2,9 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { RoutingEngine } from '../routing/engine.js';
+import { buildSpecialistPrompt, providerForModel } from '../routing/specialist.js';
+import { createSSEResponse, sendSSEEnd } from '../utils/stream.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();
+const teamEngine = new RoutingEngine();
 
 const createTeamSchema = z.object({
   name: z.string(),
@@ -214,6 +218,111 @@ router.delete('/:id', async (req: AuthenticatedRequest, res) => {
     res.status(204).send();
   } catch (error) {
     throw error;
+  }
+});
+
+// Orchestrate a team: pipeline the request through each specialist in order,
+// each one building on the accumulated work of the ones before it. Streams
+// per-stage SSE events so the client can show the signal firing through the
+// team, member by member.
+const runSchema = z.object({
+  message: z.string().min(1),
+});
+
+router.post('/:id/run', async (req: AuthenticatedRequest, res) => {
+  const parsed = runSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'A message is required' });
+    return;
+  }
+  const { message } = parsed.data;
+
+  const team = await prisma.team.findFirst({
+    where: { id: req.params.id },
+    include: {
+      members: {
+        orderBy: { order: 'asc' },
+        include: { specialist: true },
+      },
+    },
+  });
+
+  if (!team) {
+    res.status(404).json({ error: 'Team not found' });
+    return;
+  }
+
+  const members = team.members.filter((m) => m.specialist && m.specialist.active);
+  createSSEResponse(res);
+
+  const write = (obj: unknown) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+
+  write({
+    type: 'team',
+    team: { id: team.id, name: team.name },
+    stages: members.map((m) => ({
+      specialist: { id: m.specialist.id, name: m.specialist.name, role: m.specialist.role },
+    })),
+  });
+
+  if (members.length === 0) {
+    write({ type: 'error', error: 'This team has no active specialists.' });
+    sendSSEEnd(res);
+    return;
+  }
+
+  let combined = '';
+
+  try {
+    for (let i = 0; i < members.length; i++) {
+      const s = members[i].specialist;
+      write({ type: 'stage', index: i, status: 'start', specialist: { id: s.id, name: s.name, role: s.role } });
+
+      const first = i === 0;
+      const userMessage = first
+        ? message
+        : `The user's request:\n${message}\n\nWork produced so far by the team:\n${combined}\n\nAs ${s.name} (${s.role}), build on the prior work and contribute your part. Do not repeat earlier sections verbatim.`;
+
+      const preferredModel = s.model || undefined;
+      const preferredProvider = preferredModel ? providerForModel(preferredModel) : undefined;
+
+      const { chunks } = await teamEngine.execute({
+        message: userMessage,
+        history: [],
+        userId: req.user?.id,
+        systemPrompt: buildSpecialistPrompt(s),
+        preferredProvider,
+        preferredModel,
+      });
+
+      let stageText = '';
+      let stageError: string | undefined;
+      for await (const chunk of chunks) {
+        if (chunk.type === 'text') {
+          stageText += chunk.content || '';
+          write({ type: 'text', index: i, content: chunk.content });
+        } else if (chunk.type === 'error') {
+          stageError = chunk.error;
+          break;
+        }
+      }
+
+      if (stageError) {
+        write({ type: 'stage', index: i, status: 'error', error: stageError });
+        write({ type: 'error', error: `${s.name} failed: ${stageError}` });
+        sendSSEEnd(res);
+        return;
+      }
+
+      combined += `\n\n## ${s.name} — ${s.role}\n${stageText}`;
+      write({ type: 'stage', index: i, status: 'done' });
+    }
+
+    write({ type: 'done' });
+    sendSSEEnd(res);
+  } catch (error: unknown) {
+    write({ type: 'error', error: error instanceof Error ? error.message : 'Team run failed' });
+    sendSSEEnd(res);
   }
 });
 

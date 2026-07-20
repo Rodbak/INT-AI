@@ -24,6 +24,8 @@ export interface RoutingContext {
   preferredProvider?: ProviderName;
   preferredModel?: string;
   ragContext?: string;
+  /** A specialist's persona/system prompt, prepended to the conversation. */
+  systemPrompt?: string;
 }
 
 export class RoutingEngine {
@@ -54,16 +56,16 @@ export class RoutingEngine {
       logger.info({ decision, taskType }, 'Routing decision');
     }
 
-    const messages: ChatMessage[] = context.ragContext
-      ? [
-          { role: 'system', content: `Use the following context to answer the user's question:\n\n${context.ragContext}` },
-          ...context.history,
-          { role: 'user', content: context.message },
-        ]
-      : [
-          ...context.history,
-          { role: 'user', content: context.message },
-        ];
+    const systemParts: string[] = [];
+    if (context.systemPrompt) systemParts.push(context.systemPrompt);
+    if (context.ragContext) {
+      systemParts.push(`Use the following context to answer the user's question:\n\n${context.ragContext}`);
+    }
+    const messages: ChatMessage[] = [
+      ...(systemParts.length ? [{ role: 'system' as const, content: systemParts.join('\n\n') }] : []),
+      ...context.history,
+      { role: 'user', content: context.message },
+    ];
 
     // The provider actually used isn't known until streaming begins — a
     // provider can fail and we fall through to the next. Return a mutable

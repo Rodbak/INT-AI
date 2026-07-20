@@ -95,3 +95,51 @@
 .markdown__link:hover {
   color: var(--white);
 }
+
+.markdown__code {
+  margin: 12px 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0e14;
+}
+
+.markdown__code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown__code-lang {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.markdown__code-copy {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.markdown__code-copy:hover {
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+  background: var(--accent-dim);
+}
+
+.markdown__code .markdown__code-block {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}

@@ -137,3 +137,9 @@
     #ea4335 270deg 360deg
   );
 }
+
+/* Float the login card above the neural substrate. */
+.login__card {
+  position: relative;
+  z-index: 1;
+}

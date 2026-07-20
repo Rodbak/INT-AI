@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabaseClient';
+import { neural, CORE, specialistNode } from './neural';
 import type {
   User,
   Conversation,
@@ -144,6 +145,8 @@ export async function sendMessage(
   onChunk?: (chunk: string) => void,
   signal?: AbortSignal,
   provider?: string,
+  specialistId?: string,
+  regenerate?: boolean,
 ): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -152,7 +155,7 @@ export async function sendMessage(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${sessionData.session?.access_token ?? ''}`,
     },
-    body: JSON.stringify({ message: text, conversationId, model, provider, stream: true }),
+    body: JSON.stringify({ message: text, conversationId, model, provider, specialistId, regenerate, stream: true }),
     signal,
   });
 
@@ -174,6 +177,8 @@ export async function sendMessage(
   let fullText = '';
   let usage: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } | undefined;
   let streamError: string | undefined;
+  let specialist: { id: string; name: string } | null = null;
+  let usedModel = model;
 
   if (reader) {
     outer: while (true) {
@@ -190,6 +195,14 @@ export async function sendMessage(
             if (parsed.type === 'text' && parsed.content) {
               fullText += parsed.content;
               onChunk?.(parsed.content);
+            } else if (parsed.type === 'meta') {
+              specialist = parsed.specialist || null;
+              usedModel = parsed.model || usedModel;
+              // Light up the responsible neuron in the nervous system.
+              if (specialist) {
+                neural.fire(specialistNode(specialist.id), 1);
+                neural.signal(CORE, specialistNode(specialist.id), 'synapse');
+              }
             } else if (parsed.type === 'usage' && parsed.usage) {
               usage = parsed.usage;
             } else if (parsed.type === 'error') {
@@ -215,9 +228,10 @@ export async function sendMessage(
       role: 'assistant',
       text: fullText,
       timestamp: new Date().toISOString(),
-      model: model || 'auto',
+      model: usedModel || 'auto',
       tokens: usage?.totalTokens,
       cost: usage?.cost,
+      specialist,
     },
     usage,
   };
@@ -313,6 +327,61 @@ export async function updateTeam(id: string, data: {
 
 export async function deleteTeam(id: string) {
   await api.delete(`/teams/${id}`);
+}
+
+export type TeamRunEvent =
+  | { type: 'team'; team: { id: string; name: string }; stages: Array<{ specialist: { id: string; name: string; role: string } }> }
+  | { type: 'stage'; index: number; status: 'start' | 'done' | 'error'; specialist?: { id: string; name: string; role: string }; error?: string }
+  | { type: 'text'; index: number; content: string }
+  | { type: 'error'; error: string }
+  | { type: 'done' };
+
+// Runs a team orchestration and calls onEvent for each streamed SSE event.
+export async function runTeam(
+  teamId: string,
+  message: string,
+  onEvent: (event: TeamRunEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const response = await fetch(`${API_BASE_URL}/teams/${teamId}/run`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${sessionData.session?.access_token ?? ''}`,
+    },
+    body: JSON.stringify({ message }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || 'Team run failed');
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  if (!reader) return;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop() || '';
+    for (const part of parts) {
+      for (const line of part.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6);
+        if (payload === '[DONE]') continue;
+        try {
+          onEvent(JSON.parse(payload) as TeamRunEvent);
+        } catch {
+          /* ignore parse errors */
+        }
+      }
+    }
+  }
 }
 
 export async function fetchAutomations() {

@@ -36,6 +36,8 @@ export interface Message {
   tokens?: number;
   cost?: number;
   model?: string;
+  status?: 'error';
+  specialist?: { id: string; name: string } | null;
 }
 
 export interface ModelOption {

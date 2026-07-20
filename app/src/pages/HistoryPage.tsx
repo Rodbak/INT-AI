@@ -7,6 +7,7 @@ import './HistoryPage.css';
 export default function HistoryPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,19 +17,37 @@ export default function HistoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filtered = query
+    ? conversations.filter(
+        (c) =>
+          c.title?.toLowerCase().includes(query.toLowerCase()) ||
+          c.preview?.toLowerCase().includes(query.toLowerCase()),
+      )
+    : conversations;
+
   return (
     <div className="history">
       <div className="history__header">
         <h1 className="history__title">History</h1>
         <p className="history__subtitle">Browse your past conversations</p>
       </div>
+      {!loading && conversations.length > 0 && (
+        <input
+          className="history__search"
+          placeholder="Search conversations…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      )}
       {loading ? (
-        <div className="history__empty">Loading...</div>
+        <div className="history__empty">Loading…</div>
       ) : conversations.length === 0 ? (
         <div className="history__empty">No conversations yet</div>
+      ) : filtered.length === 0 ? (
+        <div className="history__empty">No conversations match “{query}”.</div>
       ) : (
         <div className="history__list">
-          {conversations.map((conv) => (
+          {filtered.map((conv) => (
             <button
               key={conv.id}
               type="button"

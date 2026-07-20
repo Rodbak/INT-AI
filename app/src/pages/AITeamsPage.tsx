@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchTeams, createTeam, deleteTeam, fetchSpecialists } from '../lib/api';
 import { useWorkspace } from '../hooks/useWorkspace';
 import Modal from '../components/Modal';
+import TeamRunModal from '../components/TeamRunModal';
 import type { AITeam, Specialist } from '../types/index';
 import './AITeamsPage.css';
 
@@ -16,6 +17,7 @@ export default function AITeamsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [runningTeam, setRunningTeam] = useState<AITeam | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -111,13 +113,23 @@ export default function AITeamsPage() {
             <div key={team.id} className="ai-teams__card">
               <div className="ai-teams__card-head">
                 <div className="ai-teams__card-title">{team.name}</div>
-                <button
-                  type="button"
-                  className="ai-teams__card-btn ai-teams__card-btn--danger"
-                  onClick={() => handleDelete(team)}
-                >
-                  Delete
-                </button>
+                <div className="ai-teams__card-btns">
+                  <button
+                    type="button"
+                    className="ai-teams__card-btn ai-teams__card-btn--run"
+                    onClick={() => setRunningTeam(team)}
+                    disabled={team.members.length === 0}
+                  >
+                    Run
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-teams__card-btn ai-teams__card-btn--danger"
+                    onClick={() => handleDelete(team)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
               {team.description && <p className="ai-teams__card-desc">{team.description}</p>}
               <div className="ai-teams__card-meta">
@@ -192,6 +204,8 @@ export default function AITeamsPage() {
           )}
         </div>
       </Modal>
+
+      {runningTeam && <TeamRunModal team={runningTeam} onClose={() => setRunningTeam(null)} />}
     </div>
   );
 }

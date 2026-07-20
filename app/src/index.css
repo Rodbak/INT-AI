@@ -1,7 +1,11 @@
 :root {
   --bg: #07090c;
-  --bg-raised: #0d1117;
-  --bg-active: #121a22;
+  /* Translucent so cards/panels read as glass floating on the neural field.
+     --bg-solid stays opaque for the few surfaces that need it (dropdowns,
+     code blocks) layered over content. */
+  --bg-raised: rgba(14, 21, 30, 0.72);
+  --bg-solid: #0d1117;
+  --bg-active: rgba(20, 30, 40, 0.85);
   --bg-avatar: #131c24;
   --border: #182028;
   --border-strong: #24313d;
@@ -24,6 +28,28 @@
   --accent-border: rgba(62, 224, 255, 0.35);
   --accent-glow: rgba(62, 224, 255, 0.55);
   --accent-glow-soft: rgba(62, 224, 255, 0.22);
+
+  /* Synapse: the violet/magenta counter-accent that makes the palette read
+     as "neural" rather than flat cyan. Used for signals, secondary nodes,
+     and high-intensity bursts. */
+  --synapse: #a970ff;
+  --synapse-strong: #c9a2ff;
+  --synapse-soft: #7b3ff2;
+  --synapse-dim: rgba(169, 112, 255, 0.16);
+  --synapse-border: rgba(169, 112, 255, 0.34);
+  --synapse-glow: rgba(169, 112, 255, 0.55);
+  --synapse-glow-soft: rgba(169, 112, 255, 0.2);
+
+  /* Raw RGB triplets for canvas work (NeuralField) so it can build rgba()
+     at arbitrary alpha without re-parsing hex. */
+  --rgb-accent: 62, 224, 255;
+  --rgb-synapse: 169, 112, 255;
+  --rgb-core: 120, 240, 255;
+
+  /* Deep-space background stops for the neural void. */
+  --void-0: #05070b;
+  --void-1: #070b12;
+  --void-2: #0a1220;
 
   --glass-bg: rgba(13, 20, 27, 0.6);
   --glass-border: rgba(62, 224, 255, 0.16);
@@ -88,4 +114,25 @@ body {
 
 button {
   font-family: inherit;
+}
+
+/* --- Frosted-glass panels floating on the neural substrate --- */
+.prompts__card,
+.specialists__card,
+.ai-teams__card,
+.automations__item,
+.connections__card,
+.knowledge__item,
+.history__item,
+.settings__section,
+.model-selector__menu,
+.prompt-picker__menu,
+.modal,
+.team-run__stage,
+.admin-dashboard__card,
+.admin-dashboard__stat,
+.billing__card,
+.billing__plan {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

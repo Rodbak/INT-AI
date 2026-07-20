@@ -56,12 +56,18 @@
   color: var(--text);
 }
 
+.ai-teams__card-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .ai-teams__card-btn {
   border: 1px solid var(--border-strong);
   background: transparent;
   color: var(--text-secondary);
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 6px;
   cursor: pointer;
   opacity: 0;
@@ -70,6 +76,21 @@
 
 .ai-teams__card:hover .ai-teams__card-btn {
   opacity: 1;
+}
+
+.ai-teams__card-btn--run {
+  border-color: var(--synapse-border);
+  color: var(--synapse-strong);
+}
+
+.ai-teams__card-btn--run:hover:not(:disabled) {
+  background: var(--synapse-dim);
+  box-shadow: 0 0 12px var(--synapse-glow-soft);
+}
+
+.ai-teams__card-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .ai-teams__card-btn--danger:hover {

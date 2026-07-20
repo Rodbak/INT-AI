@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getConversation, sendMessage } from '../lib/api';
+import { neural, pulseThinking, pulseStreaming } from '../lib/neural';
 import type { Message } from '../types/index';
 
 interface SendMessageResult {
@@ -64,6 +65,8 @@ export function useStreamingChat(conversationId: string | null) {
       text: string,
       model?: string,
       provider?: string,
+      specialistId?: string,
+      regenerate?: boolean,
     ): Promise<SendMessageResult | void> => {
       hydratedRef.current = targetConversationId;
       hydrationTokenRef.current++;
@@ -84,18 +87,24 @@ export function useStreamingChat(conversationId: string | null) {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      // Ignite the nervous system for the duration of the request.
+      pulseThinking(model);
+
       try {
         const result = await sendMessage(
           targetConversationId,
           text,
           model,
           (chunk) => {
+            pulseStreaming(model);
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk } : m)),
             );
           },
           controller.signal,
           provider,
+          specialistId,
+          regenerate,
         );
 
         setMessages((prev) =>
@@ -106,6 +115,8 @@ export function useStreamingChat(conversationId: string | null) {
                   text: result.message.text || m.text,
                   tokens: result.message.tokens,
                   cost: result.message.cost,
+                  model: result.message.model,
+                  specialist: result.message.specialist,
                 }
               : m,
           ),
@@ -123,6 +134,8 @@ export function useStreamingChat(conversationId: string | null) {
       } finally {
         setSending(false);
         abortRef.current = null;
+        // Let the storm settle back to its calm resting state.
+        window.setTimeout(() => neural.calm(), 700);
       }
     },
     [],
@@ -134,6 +147,7 @@ export function useStreamingChat(conversationId: string | null) {
       model?: string,
       provider?: string,
       conversationIdOverride?: string,
+      specialistId?: string,
     ): Promise<SendMessageResult | void> => {
       const targetConversationId = conversationIdOverride || conversationId;
       if (!targetConversationId || !text.trim()) return;
@@ -146,14 +160,14 @@ export function useStreamingChat(conversationId: string | null) {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      return runAssistant(targetConversationId, text.trim(), model, provider);
+      return runAssistant(targetConversationId, text.trim(), model, provider, specialistId);
     },
     [conversationId, runAssistant],
   );
 
   // Re-run the most recent user message, replacing the reply that followed it.
   const regenerate = useCallback(
-    async (model?: string, provider?: string): Promise<SendMessageResult | void> => {
+    async (model?: string, provider?: string, specialistId?: string): Promise<SendMessageResult | void> => {
       if (!conversationId || sending) return;
       const msgs = messagesRef.current;
       const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
@@ -166,7 +180,7 @@ export function useStreamingChat(conversationId: string | null) {
         return idx === -1 ? prev : prev.slice(0, idx + 1);
       });
 
-      return runAssistant(conversationId, lastUser.text, model, provider);
+      return runAssistant(conversationId, lastUser.text, model, provider, specialistId, true);
     },
     [conversationId, sending, runAssistant],
   );

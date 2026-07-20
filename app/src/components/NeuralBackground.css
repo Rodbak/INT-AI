@@ -1,0 +1,30 @@
+.neural-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.neural-bg__void {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(var(--rgb-accent), 0.06), transparent 62%),
+    radial-gradient(ellipse 90% 70% at 82% 88%, rgba(var(--rgb-synapse), 0.05), transparent 60%),
+    radial-gradient(circle at 50% 45%, var(--void-2) 0%, var(--void-1) 55%, var(--void-0) 100%);
+}
+
+.neural-bg__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.neural-bg__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 70% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+}

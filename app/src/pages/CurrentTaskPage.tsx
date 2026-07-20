@@ -4,6 +4,10 @@ import { useConversations } from '../hooks/useConversations';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import ConversationList from '../components/ConversationList';
 import ModelSelector, { MODELS } from '../components/ModelSelector';
+import SpecialistSelector from '../components/SpecialistSelector';
+import PromptPicker from '../components/PromptPicker';
+import { fetchSpecialists } from '../lib/api';
+import type { Specialist } from '../types/index';
 import CostBadge from '../components/CostBadge';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import HandsFreeView from '../components/HandsFreeView';
@@ -19,6 +23,8 @@ export default function CurrentTaskPage() {
   const { conversations, create, rename } = useConversations();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState(() => getPreference('defaultModel'));
+  const [specialists, setSpecialists] = useState<Specialist[]>([]);
+  const [selectedSpecialist, setSelectedSpecialist] = useState('auto');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [composerValue, setComposerValue] = useState('');
   const [mode, setMode] = useState<Mode>('type');
@@ -73,10 +79,19 @@ export default function CurrentTaskPage() {
     [create],
   );
 
+  useEffect(() => {
+    fetchSpecialists()
+      .then(setSpecialists)
+      .catch(() => {});
+  }, []);
+
   const selectedProvider = useMemo(
     () => (selectedModel === 'auto' ? undefined : MODELS.find((m) => m.id === selectedModel)?.provider),
     [selectedModel],
   );
+
+  // 'none' means send no specialist; 'auto' lets the server pick; else an id.
+  const specialistId = selectedSpecialist === 'none' ? undefined : selectedSpecialist;
 
   // A conversation's title is derived from its opening message the first time
   // one is sent — trimmed to a sensible length on a word boundary.
@@ -105,9 +120,9 @@ export default function CurrentTaskPage() {
       if (!text.trim()) return;
       const conversationId = activeId || (await handleNewConversation(deriveTitle(text))).id;
       titleFromFirstMessage(conversationId, text);
-      send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider, conversationId);
+      send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider, conversationId, specialistId);
     },
-    [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage],
+    [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage, specialistId],
   );
 
   const handleVoiceTranscript = useCallback(
@@ -119,10 +134,11 @@ export default function CurrentTaskPage() {
         selectedModel === 'auto' ? undefined : selectedModel,
         selectedProvider,
         conversationId,
+        specialistId,
       );
       return result?.message.text;
     },
-    [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage],
+    [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage, specialistId],
   );
 
   const voiceChat = useVoiceChat({ onTranscript: handleVoiceTranscript });
@@ -206,8 +222,8 @@ export default function CurrentTaskPage() {
   }, [messages]);
 
   const handleRegenerate = useCallback(() => {
-    regenerate(selectedModel === 'auto' ? undefined : selectedModel, selectedProvider);
-  }, [regenerate, selectedModel, selectedProvider]);
+    regenerate(selectedModel === 'auto' ? undefined : selectedModel, selectedProvider, specialistId);
+  }, [regenerate, selectedModel, selectedProvider, specialistId]);
 
   const handleEditLast = useCallback(() => {
     if (sending) return;
@@ -217,6 +233,19 @@ export default function CurrentTaskPage() {
       requestAnimationFrame(() => composerRef.current?.focus());
     }
   }, [popLastUserMessage, sending]);
+
+  // Keyboard shortcuts: Cmd/Ctrl+K starts a new conversation.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        handleNewConversation();
+        requestAnimationFrame(() => composerRef.current?.focus());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleNewConversation]);
 
   return (
     <div className={`current-task${displayedMode === 'voice' ? ' current-task--voice' : ''}`}>
@@ -289,6 +318,12 @@ export default function CurrentTaskPage() {
                 const isStreamingHere = m.id === lastAssistantId && sending;
                 return (
                   <div key={m.id} className={`message message--${m.role}`}>
+                    {m.role === 'assistant' && m.specialist && (
+                      <div className="message__specialist">
+                        <span className="message__specialist-node" aria-hidden="true" />
+                        {m.specialist.name}
+                      </div>
+                    )}
                     <div className="message__bubble">
                       {m.role === 'assistant' && !m.text && sending && (
                         <div className="message__pending">
@@ -333,6 +368,12 @@ export default function CurrentTaskPage() {
                     />
                     <div className="composer__row">
                       <div className="composer__controls">
+                        <PromptPicker
+                          onPick={(content) => {
+                            setComposerValue(content);
+                            requestAnimationFrame(() => composerRef.current?.focus());
+                          }}
+                        />
                         <button type="button" className="composer__icon-button" aria-label="Add attachment" title="Add attachment">
                           <PlusIcon className="composer__icon" />
                         </button>
@@ -345,6 +386,11 @@ export default function CurrentTaskPage() {
                         >
                           <MicIcon className="composer__icon" />
                         </button>
+                        <SpecialistSelector
+                          specialists={specialists}
+                          value={selectedSpecialist}
+                          onChange={setSelectedSpecialist}
+                        />
                         <ModelSelector value={selectedModel} onChange={setSelectedModel} />
                       </div>
                       <div className="composer__actions">

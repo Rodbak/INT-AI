@@ -8,6 +8,7 @@ import { RoutingEngine } from '../routing/engine.js';
 import { calculateCost, countTokens, validateModelForProvider } from '../utils/cost.js';
 import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream.js';
 import { retrieveRelevantChunks } from '../rag/retriever.js';
+import { buildSpecialistPrompt, providerForModel, type SpecialistLike } from '../routing/specialist.js';
 import type { AuthenticatedRequest, ChatMessage, ChatRequest, StreamChunk, TaskType } from '../types.js';
 
 const router = Router();
@@ -24,6 +25,8 @@ const chatSchema = z.object({
   ).optional(),
   provider: z.enum(['anthropic', 'openai', 'google', 'openrouter']).optional(),
   model: z.string().optional(),
+  specialistId: z.string().optional(),
+  regenerate: z.boolean().optional(),
   stream: z.boolean().optional(),
 });
 
@@ -59,6 +62,20 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       return;
     }
 
+    // Regenerate: drop the most recent assistant reply so the new one replaces
+    // it instead of piling up. The user message is left in place and not
+    // re-persisted below.
+    if (input.regenerate && conversation) {
+      const lastAssistant = await prisma.message.findFirst({
+        where: { conversationId: conversation.id, role: 'assistant' },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true },
+      });
+      if (lastAssistant) {
+        await prisma.message.delete({ where: { id: lastAssistant.id } }).catch(() => {});
+      }
+    }
+
     let ragContext: string | undefined;
     if (req.user?.id) {
       try {
@@ -82,20 +99,68 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       }
     }
 
+    // Resolve a specialist: either the one the user picked, or auto-select the
+    // best active specialist for the request. A specialist contributes its
+    // persona system prompt and its preferred model/provider.
+    let specialist: SpecialistLike | null = null;
+    if (input.specialistId && input.specialistId !== 'auto') {
+      specialist = await prisma.specialist.findFirst({
+        where: { id: input.specialistId, active: true },
+        select: { id: true, name: true, role: true, description: true, model: true, capabilities: true },
+      });
+    } else if (input.specialistId === 'auto') {
+      const actives = await prisma.specialist.findMany({
+        where: { active: true },
+        select: { id: true, name: true, role: true, description: true, model: true, capabilities: true },
+      });
+      if (actives.length) {
+        const text = input.message.toLowerCase();
+        // Lightweight keyword match against role/capabilities; fall back to first.
+        specialist =
+          actives.find((s) => {
+            const hay = `${s.role} ${(Array.isArray(s.capabilities) ? (s.capabilities as string[]).join(' ') : '')}`.toLowerCase();
+            return hay.split(/\W+/).some((w) => w.length > 3 && text.includes(w));
+          }) || actives[0];
+      }
+    }
+
+    let preferredProvider = input.provider;
+    let preferredModel = input.model;
+    let systemPrompt: string | undefined;
+    if (specialist) {
+      systemPrompt = buildSpecialistPrompt(specialist);
+      if (specialist.model && !preferredModel) {
+        preferredModel = specialist.model;
+        preferredProvider = providerForModel(specialist.model);
+      }
+    }
+
     const context = {
       message: input.message,
       history: messages.slice(0, -1),
       userId: req.user?.id,
       conversationId: input.conversationId,
-      preferredProvider: input.provider,
-      preferredModel: input.model,
+      preferredProvider,
+      preferredModel,
       ragContext,
+      systemPrompt,
     };
 
     const { chunks, decision } = await routingEngine.execute(context);
 
     if (input.stream) {
       createSSEResponse(res);
+
+      // Tell the client which specialist/model is handling this turn so it can
+      // show a "handled by" badge and light up the right neuron.
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'meta',
+          specialist: specialist ? { id: specialist.id, name: specialist.name } : null,
+          provider: decision.provider,
+          model: decision.model,
+        })}\n\n`,
+      );
 
       let fullContent = '';
       let promptTokens = 0;
@@ -142,16 +207,18 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
         const promptTokensCount = countTokens(messages.map((m) => m.content).join(' '));
         const completionTokensCount = countTokens(fullContent);
 
-        prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            role: 'user',
-            content: input.message,
-            provider: decision.provider,
-            model: decision.model,
-            tokensIn: promptTokensCount,
-          },
-        }).catch(() => {});
+        if (!input.regenerate) {
+          prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: 'user',
+              content: input.message,
+              provider: decision.provider,
+              model: decision.model,
+              tokensIn: promptTokensCount,
+            },
+          }).catch(() => {});
+        }
 
         prisma.message.create({
           data: {
@@ -198,16 +265,18 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
         const promptTokensCount = countTokens(messages.map((m) => m.content).join(' '));
         const completionTokensCount = countTokens(fullContent);
 
-        prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            role: 'user',
-            content: input.message,
-            provider: decision.provider,
-            model: decision.model,
-            tokensIn: promptTokensCount,
-          },
-        }).catch(() => {});
+        if (!input.regenerate) {
+          prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: 'user',
+              content: input.message,
+              provider: decision.provider,
+              model: decision.model,
+              tokensIn: promptTokensCount,
+            },
+          }).catch(() => {});
+        }
 
         prisma.message.create({
           data: {
@@ -227,6 +296,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
         reply: fullContent,
         provider: decision.provider,
         model: decision.model,
+        specialist: specialist ? { id: specialist.id, name: specialist.name } : null,
         usage: {
           promptTokens,
           completionTokens,
