@@ -42,6 +42,10 @@ const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   CORS_ORIGINS: z.string().default("http://localhost:5173"),
   REDIS_URL: z.string().default("redis://localhost:6379"),
+  // When "1"/"true", API error responses include the real error message and
+  // stack (handy while building/debugging in a deployed environment). Leave
+  // unset in production so only a generic message is returned to clients.
+  DEBUG_ERRORS: z.string().optional(),
   // See middleware/auth.ts — real per-request auth is currently disabled;
   // every request is attached to this one user, which must exist as a real
   // Supabase auth.users row (profiles has a foreign key to it).

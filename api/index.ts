@@ -39,15 +39,25 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     // Let the next request retry instead of caching a permanently-broken init.
     initPromise = null;
     const err = error as Error;
+    // The env module may have been what failed to load, so read the flag
+    // straight off process.env rather than importing validated config.
+    const debugErrors =
+      process.env.DEBUG_ERRORS === '1' ||
+      process.env.DEBUG_ERRORS === 'true' ||
+      process.env.NODE_ENV === 'development';
     res.statusCode = 500;
     res.setHeader('content-type', 'application/json');
     res.end(
-      JSON.stringify({
-        error: 'Function failed to initialize',
-        name: err?.name,
-        message: err?.message ?? String(error),
-        stack: err?.stack,
-      }),
+      JSON.stringify(
+        debugErrors
+          ? {
+              error: 'Function failed to initialize',
+              name: err?.name,
+              message: err?.message ?? String(error),
+              stack: err?.stack,
+            }
+          : { error: 'Function failed to initialize' },
+      ),
     );
   }
 }

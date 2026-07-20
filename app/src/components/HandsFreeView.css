@@ -2,22 +2,99 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(ellipse 700px 500px at 50% 38%, var(--accent-glow-soft), transparent 65%),
-    radial-gradient(ellipse 1200px 800px at 50% 100%, rgba(62, 224, 255, 0.04), transparent 70%),
-    var(--bg);
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+  /* Deep, unmistakably-dark stage with a cool cyan core glow and a vignette so
+     the orb reads as the light source rather than the page feeling washed out. */
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 40%, rgba(62, 224, 255, 0.10), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 120%, rgba(62, 224, 255, 0.05), transparent 60%),
+    radial-gradient(circle at 50% 42%, #0a1119 0%, #070b11 55%, #04060a 100%);
+}
+
+/* Corner vignette to deepen the edges. */
+.hands-free::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 75% 65% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  z-index: 0;
+}
+
+/* Concentric aura rings that breathe behind the orb. */
+.hands-free__aura {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hands-free__aura-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1px solid rgba(62, 224, 255, 0.12);
+  transform: translate(-50%, -50%);
+  animation: hf-breathe 6s ease-in-out infinite;
+}
+
+.hands-free__aura-ring--1 {
+  width: 340px;
+  height: 340px;
+}
+.hands-free__aura-ring--2 {
+  width: 520px;
+  height: 520px;
+  border-color: rgba(62, 224, 255, 0.08);
+  animation-delay: -2s;
+}
+.hands-free__aura-ring--3 {
+  width: 720px;
+  height: 720px;
+  border-color: rgba(62, 224, 255, 0.05);
+  animation-delay: -4s;
+}
+
+@keyframes hf-breathe {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+/* State-driven aura intensity. */
+.hands-free--thinking .hands-free__aura-ring,
+.hands-free--transcribing .hands-free__aura-ring {
+  animation-duration: 2.6s;
+  border-color: rgba(62, 224, 255, 0.2);
+}
+.hands-free--speaking .hands-free__aura-ring {
+  animation-duration: 3.4s;
+  border-color: rgba(62, 224, 255, 0.16);
+}
+
+.hands-free__hud,
+.hands-free__stage,
+.hands-free__captions,
+.hands-free__controls,
+.hands-free__error {
+  position: relative;
+  z-index: 1;
 }
 
 .hands-free__hud {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 28px;
-  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  padding: 20px 30px;
+  font-family: 'IBM Plex Mono', 'SF Mono', 'Menlo', 'Consolas', monospace;
   font-size: 11px;
-  letter-spacing: 1.2px;
+  letter-spacing: 1.4px;
   color: var(--text-muted);
   flex-shrink: 0;
 }
@@ -25,16 +102,20 @@
 .hands-free__hud-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
 .hands-free__hud-item--right {
   color: var(--text-dim);
+  padding: 5px 12px;
+  border: 1px solid rgba(62, 224, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(62, 224, 255, 0.04);
 }
 
 .hands-free__hud-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--text-dim);
   flex-shrink: 0;
@@ -46,21 +127,13 @@
 .hands-free__hud-dot--thinking,
 .hands-free__hud-dot--speaking {
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-glow);
+  box-shadow: 0 0 10px var(--accent-glow);
   animation: pulse 1.6s infinite;
 }
 
-.hands-free__hud-dot--transcribing {
-  animation-duration: 0.7s;
-}
-
-.hands-free__hud-dot--thinking {
-  animation-duration: 0.55s;
-}
-
-.hands-free__hud-dot--speaking {
-  animation-duration: 0.9s;
-}
+.hands-free__hud-dot--transcribing { animation-duration: 0.7s; }
+.hands-free__hud-dot--thinking { animation-duration: 0.55s; }
+.hands-free__hud-dot--speaking { animation-duration: 0.9s; }
 
 .hands-free__stage {
   flex: 1;
@@ -73,36 +146,43 @@
 .hands-free__captions {
   flex-shrink: 0;
   padding: 0 40px;
-  min-height: 84px;
+  min-height: 110px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   text-align: center;
 }
 
 .hands-free__hint {
   margin: 0;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
 }
 
 .hands-free__caption {
   margin: 0;
-  max-width: 620px;
-  font-size: 14.5px;
+  max-width: 680px;
   line-height: 1.6;
 }
 
 .hands-free__caption--user {
   color: var(--text-faint);
-  font-size: 13px;
+  font-size: 14px;
+}
+
+.hands-free__caption--live {
+  color: var(--text-secondary);
+  font-size: 17px;
 }
 
 .hands-free__caption--assistant {
   color: var(--text);
+  font-size: 17px;
   font-weight: 500;
+  text-shadow: 0 0 18px rgba(62, 224, 255, 0.14);
 }
 
 .hands-free__error {
@@ -122,13 +202,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  padding: 22px 24px 32px;
-}
-
-.hands-free__controls-spacer {
-  width: 52px;
-  height: 52px;
+  gap: 26px;
+  padding: 24px 24px 40px;
 }
 
 .hands-free__icon {
@@ -138,65 +213,96 @@
   transition: color 0.15s;
 }
 
-.hands-free__mode-switch,
-.hands-free__interrupt {
-  width: 52px;
-  height: 52px;
+.hands-free__side-btn {
+  width: 54px;
+  height: 54px;
   flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid var(--border-strong);
-  background: var(--glass-bg);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, opacity 0.2s, transform 0.2s;
 }
 
-.hands-free__mode-switch:hover {
+.hands-free__side-btn:hover {
   border-color: var(--accent-border);
-  box-shadow: 0 0 10px var(--accent-glow-soft);
+  box-shadow: 0 0 12px var(--accent-glow-soft);
 }
 
-.hands-free__mode-switch:hover .hands-free__icon {
+.hands-free__side-btn:hover .hands-free__icon {
   color: var(--accent-strong);
 }
 
-.hands-free__interrupt {
+.hands-free__side-btn--interrupt {
   border-color: var(--accent-border);
 }
 
-.hands-free__interrupt .hands-free__icon {
+.hands-free__side-btn--interrupt .hands-free__icon {
   color: var(--accent-strong);
+}
+
+/* Keep the interrupt button's slot reserved so the mic stays centered. */
+.hands-free__side-btn--hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.9);
 }
 
 .hands-free__mic {
-  width: 68px;
-  height: 68px;
+  position: relative;
+  width: 76px;
+  height: 76px;
   flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid var(--border-strong);
-  background: var(--glass-bg);
+  background: rgba(62, 224, 255, 0.04);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+
+.hands-free__mic-halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  transition: border-color 0.18s;
 }
 
 .hands-free__mic--active {
   border-color: var(--accent);
   background: var(--accent-dim);
-  box-shadow: 0 0 22px var(--accent-glow-soft);
+  box-shadow: 0 0 28px var(--accent-glow-soft), inset 0 0 18px rgba(62, 224, 255, 0.08);
+}
+
+.hands-free__mic--active .hands-free__mic-halo {
+  border-color: rgba(62, 224, 255, 0.35);
+  animation: hf-halo 2s ease-out infinite;
+}
+
+@keyframes hf-halo {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.35); opacity: 0; }
 }
 
 .hands-free__icon--mic {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
 
 .hands-free__mic--active .hands-free__icon--mic {
   color: var(--accent-strong);
+}
+
+.hands-free__mic:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 20px var(--accent-glow-soft);
 }
 
 @media (max-width: 640px) {
@@ -207,4 +313,5 @@
   .hands-free__captions {
     padding: 0 20px;
   }
+  .hands-free__aura-ring--3 { display: none; }
 }

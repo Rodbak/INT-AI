@@ -122,3 +122,50 @@
   border: 1px dashed var(--border-strong);
   border-radius: 12px;
 }
+
+.knowledge__note {
+  background: var(--warning-bg, rgba(255, 200, 60, 0.06));
+  border: 1px solid var(--warning-border, rgba(255, 200, 60, 0.22));
+  color: var(--text-secondary);
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-bottom: 18px;
+}
+
+.knowledge__note code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  color: var(--accent-strong);
+  background: var(--accent-dim);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.knowledge__item {
+  align-items: center;
+}
+
+.knowledge__delete {
+  flex-shrink: 0;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  opacity: 0;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, opacity 0.15s;
+}
+
+.knowledge__item:hover .knowledge__delete {
+  opacity: 1;
+}
+
+.knowledge__delete:hover {
+  border-color: var(--danger-border);
+  color: var(--danger);
+  background: var(--danger-bg);
+}

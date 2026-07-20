@@ -5,6 +5,10 @@
 
 .specialists__header {
   margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .specialists__title {
@@ -43,6 +47,45 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.specialists__card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.specialists__card-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.specialists__card:hover .specialists__card-actions {
+  opacity: 1;
+}
+
+.specialists__card-btn {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.specialists__card-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+.specialists__card-btn--danger:hover {
+  border-color: var(--danger-border);
+  color: var(--danger);
+  background: var(--danger-bg);
 }
 
 .specialists__avatar {
@@ -103,11 +146,60 @@
   line-height: 1.4;
 }
 
+.specialists__caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.specialists__cap {
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.specialists__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.specialists__checkbox input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+}
+
+.specialists__error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  margin-bottom: 16px;
+}
+
 .specialists__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   text-align: center;
   color: var(--text-dim);
-  padding: 60px 24px;
+  padding: 56px 24px;
   font-size: 14px;
   border: 1px dashed var(--border-strong);
   border-radius: 12px;
+}
+
+.specialists__empty p {
+  margin: 0;
 }

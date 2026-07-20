@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchKnowledge, uploadFile } from '../lib/api';
+import { fetchKnowledge, uploadFile, deleteDocument } from '../lib/api';
 import type { KnowledgeDoc } from '../types/index';
 import './KnowledgePage.css';
 
@@ -33,6 +33,16 @@ export default function KnowledgePage() {
       .catch((err) => console.error('Failed to load documents:', err))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDelete = async (doc: KnowledgeDoc) => {
+    if (!window.confirm(`Remove "${doc.title}" from the knowledge base?`)) return;
+    setDocs((prev) => prev.filter((d) => d.id !== doc.id));
+    try {
+      await deleteDocument(doc.id);
+    } catch {
+      fetchKnowledge().then(setDocs).catch(() => {});
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -95,6 +105,11 @@ export default function KnowledgePage() {
           </button>
         </div>
       </div>
+      <div className="knowledge__note">
+        Documents become searchable by your assistants (RAG) only when{' '}
+        <code>OPENAI_API_KEY</code> is configured for embeddings, and durable file storage is set up —
+        on serverless, uploaded files are not retained between requests. See DEPLOYMENT.md.
+      </div>
       {error && <div className="knowledge__error">{error}</div>}
       {loading ? (
         <div className="knowledge__empty">Loading...</div>
@@ -111,9 +126,17 @@ export default function KnowledgePage() {
                 <div className="knowledge__meta">
                   {formatSize(doc.size)} ·{' '}
                   {new Date(doc.createdAt).toLocaleDateString()} ·{' '}
-                  {doc.workspace.name}
+                  {doc.workspace?.name}
                 </div>
               </div>
+              <button
+                type="button"
+                className="knowledge__delete"
+                onClick={() => handleDelete(doc)}
+                aria-label={`Remove ${doc.title}`}
+              >
+                Remove
+              </button>
             </div>
           ))}
         </div>

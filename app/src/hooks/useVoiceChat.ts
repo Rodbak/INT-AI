@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { transcribeAudio, synthesizeSpeech } from '../lib/api';
 
 export type VoiceState = 'idle' | 'listening' | 'transcribing' | 'thinking' | 'speaking';
@@ -12,25 +12,206 @@ interface UseVoiceChatOptions {
   onTranscript: (text: string) => Promise<string | void>;
 }
 
+// The browser's Web Speech API (Chrome/Edge) gives us speech-to-text and
+// text-to-speech with no API key and no server round-trip. We prefer it when
+// available and fall back to the server pipeline (OpenAI Whisper + TTS, which
+// requires OPENAI_API_KEY) only when it isn't.
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((e: any) => void) | null;
+  onerror: ((e: any) => void) | null;
+  onend: (() => void) | null;
+}
+
+function getSpeechRecognition(): SpeechRecognitionCtor | null {
+  if (typeof window === 'undefined') return null;
+  return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
+}
+
+const speechSynthesisAvailable = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
 export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [active, setActive] = useState(false);
+  const [interimText, setInterimText] = useState('');
 
   const activeRef = useRef(false);
+  const audioLevelRef = useRef(0);
+
+  // --- server-pipeline refs (fallback path) ---
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const vadFrameRef = useRef<number | null>(null);
   const silenceTimerRef = useRef<number | null>(null);
-  const playerRef = useRef<HTMLAudioElement | null>(null);
   const retryCountRef = useRef(0);
-  const audioLevelRef = useRef(0);
   const MAX_VOICE_RETRIES = 5;
+
+  // --- browser Web Speech refs (primary path) ---
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const processingRef = useRef(false);
+
+  // --- shared playback ---
+  const playerRef = useRef<HTMLAudioElement | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  const usingBrowserSpeech = useRef<boolean>(getSpeechRecognition() !== null);
 
   const getAudioLevel = useCallback(() => audioLevelRef.current, []);
 
+  // ---------------------------------------------------------------------------
+  // Text-to-speech (shared): prefer the browser's speechSynthesis, else server.
+  // ---------------------------------------------------------------------------
+  const speak = useCallback(async (text: string) => {
+    if (speechSynthesisAvailable) {
+      await new Promise<void>((resolve) => {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 1.02;
+          utterance.pitch = 1;
+          const preferred = window.speechSynthesis
+            .getVoices()
+            .find((v) => /en-US/i.test(v.lang) && /(natural|google|samantha|aria)/i.test(v.name));
+          if (preferred) utterance.voice = preferred;
+          utterance.onend = () => resolve();
+          utterance.onerror = () => resolve();
+          utteranceRef.current = utterance;
+          window.speechSynthesis.speak(utterance);
+        } catch {
+          resolve();
+        }
+      });
+      utteranceRef.current = null;
+      return;
+    }
+
+    // Server TTS fallback (requires OPENAI_API_KEY on the backend).
+    try {
+      const blob = await synthesizeSpeech(text);
+      if (!activeRef.current) return;
+      const url = URL.createObjectURL(blob);
+      const audioEl = new Audio(url);
+      playerRef.current = audioEl;
+      await new Promise<void>((resolve) => {
+        audioEl.onended = () => resolve();
+        audioEl.onerror = () => resolve();
+        audioEl.play().catch(() => resolve());
+      });
+      URL.revokeObjectURL(url);
+      playerRef.current = null;
+    } catch (err: any) {
+      setVoiceError(err?.message || 'Speech playback failed');
+    }
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Browser Web Speech recognition path
+  // ---------------------------------------------------------------------------
+  const startBrowserRecognition = useCallback(() => {
+    if (!activeRef.current || processingRef.current) return;
+    const Ctor = getSpeechRecognition();
+    if (!Ctor) return;
+
+    const recognition = new Ctor();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+
+    let finalText = '';
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) finalText += result[0].transcript;
+        else interim += result[0].transcript;
+      }
+      setInterimText((finalText + interim).trim());
+      // Fake a little audio-level movement so the orb reacts while hearing speech.
+      audioLevelRef.current = Math.min(0.12 + (finalText.length + interim.length) * 0.004, 0.45);
+    };
+
+    recognition.onerror = (event: any) => {
+      const err = event?.error;
+      // Transient errors self-recover via the onend restart below.
+      if (err === 'no-speech' || err === 'aborted' || err === 'network') return;
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        setVoiceError('Microphone access was blocked. Allow mic access to use hands-free mode.');
+        activeRef.current = false;
+        setActive(false);
+        setVoiceState('idle');
+        return;
+      }
+      if (err === 'audio-capture') {
+        setVoiceError('No microphone was found. Connect a mic to use hands-free mode.');
+        activeRef.current = false;
+        setActive(false);
+        setVoiceState('idle');
+        return;
+      }
+      setVoiceError(`Voice recognition error: ${err || 'unknown'}`);
+    };
+
+    recognition.onend = async () => {
+      audioLevelRef.current = 0;
+      recognitionRef.current = null;
+      if (!activeRef.current || processingRef.current) return;
+
+      const text = finalText.trim();
+      if (!text) {
+        // Nothing captured — keep listening.
+        startBrowserRecognition();
+        return;
+      }
+
+      processingRef.current = true;
+      setInterimText('');
+      setVoiceState('thinking');
+      try {
+        const reply = await onTranscript(text);
+        if (activeRef.current && reply && reply.trim()) {
+          setVoiceState('speaking');
+          await speak(reply);
+        }
+      } catch (err: any) {
+        setVoiceError(err?.message || 'Voice request failed');
+      } finally {
+        processingRef.current = false;
+        if (activeRef.current) {
+          setVoiceState('listening');
+          startBrowserRecognition();
+        } else {
+          setVoiceState('idle');
+        }
+      }
+    };
+
+    try {
+      recognition.start();
+      setVoiceState('listening');
+    } catch {
+      // start() throws if called too soon after a previous stop; retry shortly.
+      window.setTimeout(() => {
+        if (activeRef.current && !processingRef.current) startBrowserRecognition();
+      }, 250);
+    }
+  }, [onTranscript, speak]);
+
+  // ---------------------------------------------------------------------------
+  // Server-pipeline recognition path (MediaRecorder + Whisper) — fallback only
+  // ---------------------------------------------------------------------------
   const stopVad = useCallback(() => {
     if (vadFrameRef.current !== null) {
       cancelAnimationFrame(vadFrameRef.current);
@@ -55,10 +236,9 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
     }
   }, [stopVad]);
 
-  const startListening = useCallback(async () => {
+  const startServerListening = useCallback(async () => {
     if (!activeRef.current) return;
     setVoiceError(null);
-    retryCountRef.current = 0;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -101,7 +281,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
             activeRef.current = false;
             return;
           }
-          startListening();
+          startServerListening();
           return;
         }
 
@@ -110,7 +290,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
           const text = await transcribeAudio(blob);
           if (!activeRef.current) return;
           if (!text.trim()) {
-            startListening();
+            startServerListening();
             return;
           }
 
@@ -126,7 +306,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
           setVoiceError(err?.message || 'Voice request failed');
         } finally {
           if (activeRef.current) {
-            startListening();
+            startServerListening();
           } else {
             setVoiceState('idle');
           }
@@ -135,6 +315,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
 
       recorder.start();
       setVoiceState('listening');
+      retryCountRef.current = 0;
 
       const buffer = new Uint8Array(analyser.fftSize);
       let hasSpoken = false;
@@ -167,9 +348,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
         }
 
         if (Date.now() - startedAt > MAX_UTTERANCE_MS) {
-          if (recorderRef.current?.state === 'recording') {
-            recorderRef.current.stop();
-          }
+          if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
           return;
         }
 
@@ -182,41 +361,42 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       activeRef.current = false;
       setActive(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onTranscript, teardownCapture]);
+  }, [onTranscript, teardownCapture, speak]);
 
-  const speak = useCallback(async (text: string) => {
-    try {
-      const blob = await synthesizeSpeech(text);
-      if (!activeRef.current) return;
-      const url = URL.createObjectURL(blob);
-      const audioEl = new Audio(url);
-      playerRef.current = audioEl;
-      await new Promise<void>((resolve) => {
-        audioEl.onended = () => resolve();
-        audioEl.onerror = () => resolve();
-        audioEl.play().catch(() => resolve());
-      });
-      URL.revokeObjectURL(url);
-      playerRef.current = null;
-    } catch (err: any) {
-      setVoiceError(err?.message || 'Speech playback failed');
-    }
-  }, []);
-
+  // ---------------------------------------------------------------------------
+  // Public controls
+  // ---------------------------------------------------------------------------
   const start = useCallback(() => {
     activeRef.current = true;
+    processingRef.current = false;
     setActive(true);
-    startListening();
-  }, [startListening]);
+    setVoiceError(null);
+    setInterimText('');
+    if (usingBrowserSpeech.current) startBrowserRecognition();
+    else startServerListening();
+  }, [startBrowserRecognition, startServerListening]);
 
   const stop = useCallback(() => {
     activeRef.current = false;
+    processingRef.current = false;
     setActive(false);
-    teardownCapture();
-    if (recorderRef.current?.state === 'recording') {
-      recorderRef.current.stop();
+    setInterimText('');
+
+    // Browser path
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        /* ignore */
+      }
+      recognitionRef.current = null;
     }
+    if (speechSynthesisAvailable) window.speechSynthesis.cancel();
+    utteranceRef.current = null;
+
+    // Server path
+    teardownCapture();
+    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
     if (playerRef.current) {
       playerRef.current.pause();
       playerRef.current = null;
@@ -225,23 +405,55 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   }, [teardownCapture]);
 
   const toggle = useCallback(() => {
-    if (activeRef.current) {
-      stop();
-    } else {
-      start();
-    }
+    if (activeRef.current) stop();
+    else start();
   }, [start, stop]);
 
   const interrupt = useCallback(() => {
     if (!activeRef.current) return;
+    // Stop whatever is currently being spoken and return to listening.
+    if (speechSynthesisAvailable) window.speechSynthesis.cancel();
+    utteranceRef.current = null;
     if (playerRef.current) {
       playerRef.current.pause();
       playerRef.current = null;
     }
-    if (recorderRef.current?.state !== 'recording') {
-      startListening();
+    if (usingBrowserSpeech.current) {
+      if (!processingRef.current && !recognitionRef.current) {
+        setVoiceState('listening');
+        startBrowserRecognition();
+      }
+    } else if (recorderRef.current?.state !== 'recording') {
+      startServerListening();
     }
-  }, [startListening]);
+  }, [startBrowserRecognition, startServerListening]);
 
-  return { voiceState, voiceError, active, toggle, interrupt, start, stop, getAudioLevel };
+  // Release everything if the component using this unmounts mid-session.
+  useEffect(() => {
+    return () => {
+      activeRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          /* ignore */
+        }
+      }
+      if (speechSynthesisAvailable) window.speechSynthesis.cancel();
+      teardownCapture();
+    };
+  }, [teardownCapture]);
+
+  return {
+    voiceState,
+    voiceError,
+    active,
+    interimText,
+    toggle,
+    interrupt,
+    start,
+    stop,
+    getAudioLevel,
+    usesBrowserSpeech: usingBrowserSpeech.current,
+  };
 }

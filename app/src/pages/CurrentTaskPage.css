@@ -32,6 +32,16 @@
   filter: blur(6px);
 }
 
+.current-task__sidebar-panel {
+  width: 264px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+
 .current-task__mobile-toggle {
   display: none;
   position: absolute;
@@ -138,16 +148,57 @@
 
 .message {
   display: flex;
+  flex-direction: column;
   margin-bottom: 18px;
   padding: 0 24px;
 }
 
 .message--user {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .message--assistant {
-  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.message__actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.message:hover .message__actions,
+.message__actions:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.message__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.message__action:hover {
+  color: var(--accent-strong);
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+}
+
+.message__action-icon {
+  width: 15px;
+  height: 15px;
 }
 
 .message__bubble {
@@ -192,6 +243,9 @@
 }
 
 @media (max-width: 768px) {
+  .current-task__sidebar-panel {
+    display: none;
+  }
   .current-task__mobile-toggle {
     display: block;
   }

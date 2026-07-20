@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchConversations, createConversation as apiCreate, deleteConversation as apiDelete } from '../lib/api';
+import {
+  fetchConversations,
+  createConversation as apiCreate,
+  deleteConversation as apiDelete,
+  updateConversation as apiUpdate,
+} from '../lib/api';
 import type { Conversation } from '../types/index';
 
 export function useConversations() {
@@ -34,9 +39,17 @@ export function useConversations() {
     setConversations((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
+  // Optimistically retitle a conversation (used for auto-titling from the
+  // first message); the server write is fire-and-forget since a failed
+  // rename is cosmetic and shouldn't interrupt the chat.
+  const rename = useCallback((id: string, title: string) => {
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
+    apiUpdate(id, { title }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
 
-  return { conversations, loading, error, create, remove, reload: load };
+  return { conversations, loading, error, create, remove, rename, reload: load };
 }

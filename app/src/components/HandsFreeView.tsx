@@ -4,7 +4,7 @@ import type { VoiceState } from '../hooks/useVoiceChat';
 import './HandsFreeView.css';
 
 const STATE_LABEL: Record<VoiceState, string> = {
-  idle: 'Standing by — say something',
+  idle: 'Standing by',
   listening: 'Listening',
   transcribing: 'Transcribing',
   thinking: 'Thinking',
@@ -19,6 +19,7 @@ interface HandsFreeViewProps {
   powerUpTrigger: number;
   lastUserText: string;
   assistantText: string;
+  interimText: string;
   onToggleMic: () => void;
   onInterrupt: () => void;
   onSwitchToType: () => void;
@@ -33,13 +34,25 @@ export default function HandsFreeView({
   powerUpTrigger,
   lastUserText,
   assistantText,
+  interimText,
   onToggleMic,
   onInterrupt,
   onSwitchToType,
   modelLabel,
 }: HandsFreeViewProps) {
+  // While actively listening, surface the live (interim) transcript; once the
+  // turn is captured, fall back to the last committed user utterance.
+  const userLine = voiceState === 'listening' && interimText ? interimText : lastUserText;
+  const hasConversation = Boolean(userLine || assistantText);
+
   return (
-    <div className="hands-free">
+    <div className={`hands-free hands-free--${voiceState}`}>
+      <div className="hands-free__aura" aria-hidden="true">
+        <span className="hands-free__aura-ring hands-free__aura-ring--1" />
+        <span className="hands-free__aura-ring hands-free__aura-ring--2" />
+        <span className="hands-free__aura-ring hands-free__aura-ring--3" />
+      </div>
+
       <div className="hands-free__hud">
         <div className="hands-free__hud-item">
           <span className={`hands-free__hud-dot hands-free__hud-dot--${voiceState}`} />
@@ -53,12 +66,16 @@ export default function HandsFreeView({
       </div>
 
       <div className="hands-free__captions">
-        {!lastUserText && !assistantText && (
+        {!hasConversation && (
           <p className="hands-free__hint">
-            {micActive ? 'Say something to begin' : 'Turn on the mic to start a hands-free conversation'}
+            {micActive ? 'Say something to begin…' : 'Turn on the mic to start a hands-free conversation'}
           </p>
         )}
-        {lastUserText && <p className="hands-free__caption hands-free__caption--user">{lastUserText}</p>}
+        {userLine && (
+          <p className={`hands-free__caption hands-free__caption--user${voiceState === 'listening' && interimText ? ' hands-free__caption--live' : ''}`}>
+            {userLine}
+          </p>
+        )}
         {assistantText && (
           <p className="hands-free__caption hands-free__caption--assistant">{assistantText}</p>
         )}
@@ -69,7 +86,7 @@ export default function HandsFreeView({
       <div className="hands-free__controls">
         <button
           type="button"
-          className="hands-free__mode-switch"
+          className="hands-free__side-btn"
           onClick={onSwitchToType}
           title="Type instead"
           aria-label="Switch to type mode"
@@ -85,22 +102,20 @@ export default function HandsFreeView({
           title={micActive ? 'Turn off hands-free mode' : 'Turn on hands-free mode'}
           aria-label={micActive ? 'Turn off hands-free mode' : 'Turn on hands-free mode'}
         >
+          <span className="hands-free__mic-halo" aria-hidden="true" />
           <MicIcon className="hands-free__icon hands-free__icon--mic" />
         </button>
 
-        {voiceState === 'speaking' ? (
-          <button
-            type="button"
-            className="hands-free__interrupt"
-            onClick={onInterrupt}
-            title="Interrupt"
-            aria-label="Interrupt"
-          >
-            <StopIcon className="hands-free__icon" />
-          </button>
-        ) : (
-          <span className="hands-free__controls-spacer" />
-        )}
+        <button
+          type="button"
+          className={`hands-free__side-btn hands-free__side-btn--interrupt${voiceState === 'speaking' ? '' : ' hands-free__side-btn--hidden'}`}
+          onClick={onInterrupt}
+          title="Interrupt"
+          aria-label="Interrupt"
+          tabIndex={voiceState === 'speaking' ? 0 : -1}
+        >
+          <StopIcon className="hands-free__icon" />
+        </button>
       </div>
     </div>
   );

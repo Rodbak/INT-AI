@@ -54,6 +54,12 @@ export default function ConnectionsPage() {
         <p className="connections__subtitle">External integrations and connected services</p>
       </div>
 
+      <div className="connections__note">
+        Connecting a provider requires its OAuth app credentials (client ID/secret) to be configured in
+        your environment — e.g. <code>GOOGLE_OAUTH_CLIENT_ID</code>, <code>GITHUB_OAUTH_CLIENT_ID</code>.
+        Until those are set, the Connect buttons won't complete. See DEPLOYMENT.md.
+      </div>
+
       <div className="connections__grid">
         {SUPPORTED_PROVIDERS.map((provider) => {
           const isConnected = connectedProviders.has(provider.id);

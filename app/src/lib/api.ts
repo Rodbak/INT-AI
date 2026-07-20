@@ -97,8 +97,44 @@ export async function createConversation(title: string) {
   return data;
 }
 
+export async function updateConversation(id: string, data: { title?: string }) {
+  const { data: updated } = await api.patch<Conversation>(`/conversations/${id}`, data);
+  return updated;
+}
+
 export async function deleteConversation(id: string) {
   await api.delete(`/conversations/${id}`);
+}
+
+interface BackendMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  provider?: string | null;
+  model?: string | null;
+  tokensIn?: number | null;
+  tokensOut?: number | null;
+  cost?: number | null;
+  createdAt: string;
+}
+
+// Loads a single conversation with its full message history and maps the
+// backend's persisted message shape (content/createdAt/split token counts)
+// onto the frontend Message shape the chat UI renders. System messages are
+// dropped since they're internal routing/RAG context, not user-facing turns.
+export async function getConversation(id: string): Promise<Message[]> {
+  const { data } = await api.get<{ messages?: BackendMessage[] }>(`/conversations/${id}`);
+  return (data.messages || [])
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({
+      id: m.id,
+      role: m.role as 'user' | 'assistant',
+      text: m.content,
+      timestamp: m.createdAt,
+      model: m.model || undefined,
+      tokens: (m.tokensIn || 0) + (m.tokensOut || 0) || undefined,
+      cost: m.cost ?? undefined,
+    }));
 }
 
 export async function sendMessage(
@@ -218,6 +254,37 @@ export async function fetchModels() {
 export async function fetchSpecialists() {
   const { data } = await api.get<Specialist[]>('/specialists');
   return data;
+}
+
+export async function createSpecialist(data: {
+  name: string;
+  role: string;
+  description?: string;
+  model?: string;
+  capabilities?: string[];
+  active?: boolean;
+}) {
+  const response = await api.post<Specialist>('/specialists', data);
+  return response.data;
+}
+
+export async function updateSpecialist(
+  id: string,
+  data: {
+    name?: string;
+    role?: string;
+    description?: string;
+    model?: string;
+    capabilities?: string[];
+    active?: boolean;
+  },
+) {
+  const response = await api.patch<Specialist>(`/specialists/${id}`, data);
+  return response.data;
+}
+
+export async function deleteSpecialist(id: string) {
+  await api.delete(`/specialists/${id}`);
 }
 
 export async function fetchTeams() {

@@ -58,7 +58,7 @@ export default function VoiceOrb({ voiceState, getAudioLevel, powerUpTrigger }: 
       const h = canvas.height;
       const cx = w / 2;
       const cy = h / 2;
-      const outer = Math.min(w, h) * 0.24;
+      const outer = Math.min(w, h) * 0.28;
       const [r, g, b] = ACCENT;
 
       ctx.clearRect(0, 0, w, h);

@@ -7,7 +7,8 @@ import ModelSelector, { MODELS } from '../components/ModelSelector';
 import CostBadge from '../components/CostBadge';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import HandsFreeView from '../components/HandsFreeView';
-import { MicIcon, PlusIcon } from '../components/icons';
+import { MicIcon, PlusIcon, CopyIcon, CheckIcon, RegenerateIcon, EditIcon } from '../components/icons';
+import { getPreference } from '../lib/preferences';
 import type { Message } from '../types/index';
 import '../components/Composer.css';
 import './CurrentTaskPage.css';
@@ -15,9 +16,9 @@ import './CurrentTaskPage.css';
 type Mode = 'voice' | 'type';
 
 export default function CurrentTaskPage() {
-  const { conversations, create } = useConversations();
+  const { conversations, create, rename } = useConversations();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState('auto');
+  const [selectedModel, setSelectedModel] = useState(() => getPreference('defaultModel'));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [composerValue, setComposerValue] = useState('');
   const [mode, setMode] = useState<Mode>('type');
@@ -26,7 +27,9 @@ export default function CurrentTaskPage() {
   const [powerUpTrigger, setPowerUpTrigger] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sending, error, send, cancel } = useStreamingChat(activeId);
+  const { messages, sending, error, send, regenerate, popLastUserMessage, cancel } =
+    useStreamingChat(activeId);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (conversations.length > 0 && !activeId) {
@@ -61,29 +64,56 @@ export default function CurrentTaskPage() {
     }
   }, [displayedMode]);
 
-  const handleNewConversation = useCallback(async () => {
-    const conv = await create('New conversation');
-    setActiveId(conv.id);
-    return conv;
-  }, [create]);
+  const handleNewConversation = useCallback(
+    async (title = 'New conversation') => {
+      const conv = await create(title);
+      setActiveId(conv.id);
+      return conv;
+    },
+    [create],
+  );
 
   const selectedProvider = useMemo(
     () => (selectedModel === 'auto' ? undefined : MODELS.find((m) => m.id === selectedModel)?.provider),
     [selectedModel],
   );
 
+  // A conversation's title is derived from its opening message the first time
+  // one is sent — trimmed to a sensible length on a word boundary.
+  const deriveTitle = useCallback((text: string) => {
+    const clean = text.trim().replace(/\s+/g, ' ');
+    if (clean.length <= 48) return clean;
+    const cut = clean.slice(0, 48);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${(lastSpace > 20 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+  }, []);
+
+  // Title a conversation from its opening message. Fires on the first message
+  // whether the conversation was created implicitly here or already existed
+  // empty (e.g. started via the "+" button, which titles it "New conversation").
+  const titleFromFirstMessage = useCallback(
+    (conversationId: string, text: string) => {
+      if (messages.length === 0) {
+        rename(conversationId, deriveTitle(text));
+      }
+    },
+    [messages.length, rename, deriveTitle],
+  );
+
   const handleSend = useCallback(
     async (text: string) => {
       if (!text.trim()) return;
-      const conversationId = activeId || (await handleNewConversation()).id;
+      const conversationId = activeId || (await handleNewConversation(deriveTitle(text))).id;
+      titleFromFirstMessage(conversationId, text);
       send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider, conversationId);
     },
-    [send, selectedModel, selectedProvider, activeId, handleNewConversation],
+    [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage],
   );
 
   const handleVoiceTranscript = useCallback(
     async (text: string) => {
-      const conversationId = activeId || (await handleNewConversation()).id;
+      const conversationId = activeId || (await handleNewConversation(deriveTitle(text))).id;
+      titleFromFirstMessage(conversationId, text);
       const result = await send(
         text,
         selectedModel === 'auto' ? undefined : selectedModel,
@@ -92,7 +122,7 @@ export default function CurrentTaskPage() {
       );
       return result?.message.text;
     },
-    [send, selectedModel, selectedProvider, activeId, handleNewConversation],
+    [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage],
   );
 
   const voiceChat = useVoiceChat({ onTranscript: handleVoiceTranscript });
@@ -159,10 +189,49 @@ export default function CurrentTaskPage() {
     setComposerValue('');
   };
 
+  // Ids of the last user / last assistant messages — regenerate and edit only
+  // apply to the most recent turn.
+  const lastUserId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  const lastAssistantId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant') return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  const handleRegenerate = useCallback(() => {
+    regenerate(selectedModel === 'auto' ? undefined : selectedModel, selectedProvider);
+  }, [regenerate, selectedModel, selectedProvider]);
+
+  const handleEditLast = useCallback(() => {
+    if (sending) return;
+    const text = popLastUserMessage();
+    if (text !== undefined) {
+      setComposerValue(text);
+      requestAnimationFrame(() => composerRef.current?.focus());
+    }
+  }, [popLastUserMessage, sending]);
+
   return (
     <div className={`current-task${displayedMode === 'voice' ? ' current-task--voice' : ''}`}>
       {displayedMode === 'type' && (
         <>
+          {/* Persistent sidebar on desktop; collapses to the toggle+overlay below on mobile. */}
+          <aside className="current-task__sidebar-panel">
+            <ConversationList
+              conversations={conversations}
+              activeId={activeId}
+              onSelect={(id) => setActiveId(id)}
+              onNew={() => handleNewConversation()}
+            />
+          </aside>
+
           <button
             type="button"
             className="current-task__mobile-toggle"
@@ -181,7 +250,7 @@ export default function CurrentTaskPage() {
                     setActiveId(id);
                     setSidebarOpen(false);
                   }}
-                  onNew={handleNewConversation}
+                  onNew={() => handleNewConversation()}
                 />
               </div>
             </div>
@@ -199,6 +268,7 @@ export default function CurrentTaskPage() {
             powerUpTrigger={powerUpTrigger}
             lastUserText={lastUserText}
             assistantText={lastAssistantText}
+            interimText={voiceChat.interimText}
             onToggleMic={handleToggleVoice}
             onInterrupt={voiceChat.interrupt}
             onSwitchToType={switchToType}
@@ -215,25 +285,35 @@ export default function CurrentTaskPage() {
                 </div>
               )}
 
-              {messages.map((m: Message) => (
-                <div key={m.id} className={`message message--${m.role}`}>
-                  <div className="message__bubble">
-                    {m.role === 'assistant' && !m.text && sending && (
-                      <div className="message__pending">
-                        <span className="message__pending-dot" />
-                        Thinking…
-                      </div>
-                    )}
-                    {m.role === 'assistant' && m.text && (
-                      <MarkdownRenderer content={m.text} />
-                    )}
-                    {m.role === 'user' && <span>{m.text}</span>}
-                    {m.role === 'assistant' && m.cost !== undefined && (
-                      <CostBadge tokens={m.tokens} cost={m.cost} />
+              {messages.map((m: Message) => {
+                const isStreamingHere = m.id === lastAssistantId && sending;
+                return (
+                  <div key={m.id} className={`message message--${m.role}`}>
+                    <div className="message__bubble">
+                      {m.role === 'assistant' && !m.text && sending && (
+                        <div className="message__pending">
+                          <span className="message__pending-dot" />
+                          Thinking…
+                        </div>
+                      )}
+                      {m.role === 'assistant' && m.text && <MarkdownRenderer content={m.text} />}
+                      {m.role === 'user' && <span>{m.text}</span>}
+                      {m.role === 'assistant' && m.cost !== undefined && (
+                        <CostBadge tokens={m.tokens} cost={m.cost} />
+                      )}
+                    </div>
+                    {m.text && !isStreamingHere && (
+                      <MessageActions
+                        text={m.text}
+                        canEdit={m.role === 'user' && m.id === lastUserId && !sending}
+                        canRegenerate={m.role === 'assistant' && m.id === lastAssistantId && !sending}
+                        onEdit={handleEditLast}
+                        onRegenerate={handleRegenerate}
+                      />
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {error && <div className="current-task__error">{error}</div>}
 
@@ -249,6 +329,7 @@ export default function CurrentTaskPage() {
                       onChange={setComposerValue}
                       onSubmit={submitComposer}
                       disabled={sending}
+                      inputRef={composerRef}
                     />
                     <div className="composer__row">
                       <div className="composer__controls">
@@ -291,13 +372,16 @@ function ComposerInput({
   onChange,
   onSubmit,
   disabled,
+  inputRef,
 }: {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
   disabled: boolean;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
 }) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = inputRef ?? internalRef;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -320,6 +404,68 @@ function ComposerInput({
       onKeyDown={handleKeyDown}
       disabled={disabled}
     />
+  );
+}
+
+function MessageActions({
+  text,
+  canEdit,
+  canRegenerate,
+  onEdit,
+  onRegenerate,
+}: {
+  text: string;
+  canEdit: boolean;
+  canRegenerate: boolean;
+  onEdit: () => void;
+  onRegenerate: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      /* clipboard unavailable — ignore */
+    }
+  };
+
+  return (
+    <div className="message__actions">
+      <button
+        type="button"
+        className="message__action"
+        onClick={handleCopy}
+        aria-label={copied ? 'Copied' : 'Copy message'}
+        title={copied ? 'Copied' : 'Copy'}
+      >
+        {copied ? <CheckIcon className="message__action-icon" /> : <CopyIcon className="message__action-icon" />}
+      </button>
+      {canRegenerate && (
+        <button
+          type="button"
+          className="message__action"
+          onClick={onRegenerate}
+          aria-label="Regenerate reply"
+          title="Regenerate"
+        >
+          <RegenerateIcon className="message__action-icon" />
+        </button>
+      )}
+      {canEdit && (
+        <button
+          type="button"
+          className="message__action"
+          onClick={onEdit}
+          aria-label="Edit message"
+          title="Edit"
+        >
+          <EditIcon className="message__action-icon" />
+        </button>
+      )}
+    </div>
   );
 }
 

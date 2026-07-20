@@ -31,11 +31,24 @@ export function errorHandler(
     'Unhandled error',
   );
 
+  // Full error detail is exposed in responses only when explicitly opted in
+  // (DEBUG_ERRORS=1) or in local development. In production it defaults to a
+  // safe generic message so internal details never leak to real visitors.
+  const debugErrors =
+    process.env.DEBUG_ERRORS === '1' ||
+    process.env.DEBUG_ERRORS === 'true' ||
+    process.env.NODE_ENV === 'development';
+
   const response: any = {
-    error: statusCode === 500 ? `Internal server error: ${err.message}` : err.message,
+    error:
+      statusCode === 500
+        ? debugErrors
+          ? `Internal server error: ${err.message}`
+          : 'Internal server error'
+        : err.message,
   };
 
-  if (process.env.NODE_ENV === 'development') {
+  if (debugErrors) {
     response.stack = err.stack;
   }
 
