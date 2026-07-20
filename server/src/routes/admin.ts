@@ -14,124 +14,130 @@ const updateUserSchema = z.object({
 router.use(authenticate);
 router.use(adminOnly);
 
-router.get('/stats', async (req: AuthenticatedRequest, res) => {
-  try {
-    const since = new Date();
-    since.setDate(since.getDate() - 13);
-    since.setHours(0, 0, 0, 0);
+  router.get('/stats', async (req: AuthenticatedRequest, res) => {
+    try {
+      const since = new Date();
+      since.setDate(since.getDate() - 13);
+      since.setHours(0, 0, 0, 0);
 
-    const [
-      totalUsers,
-      totalConversations,
-      totalMessages,
-      costAggregate,
-      activeSpecialists,
-      totalTeams,
-      totalDocuments,
-      totalConnections,
-      recentUsage,
-      modelGroups,
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.conversation.count(),
-      prisma.message.count(),
-      prisma.usageLog.aggregate({ _sum: { cost: true } }),
-      prisma.specialist.count({ where: { active: true } }),
-      prisma.team.count(),
-      prisma.document.count(),
-      prisma.connection.count(),
-      prisma.usageLog.findMany({
-        where: { createdAt: { gte: since } },
-        select: { createdAt: true, cost: true },
-      }),
-      prisma.usageLog.groupBy({
-        by: ['model'],
-        where: { model: { not: null } },
-        _count: { _all: true },
-      }),
-    ]);
+      const results = await Promise.allSettled([
+        prisma.user.count(),
+        prisma.conversation.count(),
+        prisma.message.count(),
+        prisma.usageLog.aggregate({ _sum: { cost: true } }),
+        prisma.specialist.count({ where: { active: true } }),
+        prisma.team.count(),
+        prisma.document.count(),
+        prisma.connection.count(),
+        prisma.usageLog.findMany({
+          where: { createdAt: { gte: since } },
+          select: { createdAt: true, cost: true },
+        }),
+        prisma.usageLog.groupBy({
+          by: ['model'],
+          where: { model: { not: null } },
+          _count: { _all: true },
+        }),
+      ]);
 
-    const activityByDay = new Map<string, number>();
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(since);
-      d.setDate(d.getDate() + i);
-      activityByDay.set(d.toISOString().slice(0, 10), 0);
+      const totalUsers = results[0].status === 'fulfilled' ? results[0].value : 0;
+      const totalConversations = results[1].status === 'fulfilled' ? results[1].value : 0;
+      const totalMessages = results[2].status === 'fulfilled' ? results[2].value : 0;
+      const costAggregate = results[3].status === 'fulfilled' ? results[3].value : { _sum: { cost: null } };
+      const activeSpecialists = results[4].status === 'fulfilled' ? results[4].value : 0;
+      const totalTeams = results[5].status === 'fulfilled' ? results[5].value : 0;
+      const totalDocuments = results[6].status === 'fulfilled' ? results[6].value : 0;
+      const totalConnections = results[7].status === 'fulfilled' ? results[7].value : 0;
+      const recentUsage = results[8].status === 'fulfilled' ? results[8].value : [];
+      const modelGroups = results[9].status === 'fulfilled' ? results[9].value : [];
+
+      const activityByDay = new Map<string, number>();
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(since);
+        d.setDate(d.getDate() + i);
+        activityByDay.set(d.toISOString().slice(0, 10), 0);
+      }
+      for (const log of recentUsage) {
+        const day = log.createdAt.toISOString().slice(0, 10);
+        activityByDay.set(day, (activityByDay.get(day) ?? 0) + (log.cost ?? 0));
+      }
+
+      res.json({
+        totalUsers,
+        totalConversations,
+        totalMessages,
+        totalCost: costAggregate._sum?.cost ?? 0,
+        activeSpecialists,
+        totalTeams,
+        totalDocuments,
+        totalConnections,
+        recentActivity: Array.from(activityByDay.entries()).map(([date, cost]) => ({ date, cost })),
+        modelDistribution: modelGroups.map((g) => ({
+          model: g.model as string,
+          count: g._count?._all ?? 0,
+        })),
+      });
+    } catch (error) {
+      throw error;
     }
-    for (const log of recentUsage) {
-      const day = log.createdAt.toISOString().slice(0, 10);
-      activityByDay.set(day, (activityByDay.get(day) ?? 0) + log.cost);
-    }
+  });
 
-    res.json({
-      totalUsers,
-      totalConversations,
-      totalMessages,
-      totalCost: costAggregate._sum.cost ?? 0,
-      activeSpecialists,
-      totalTeams,
-      totalDocuments,
-      totalConnections,
-      recentActivity: Array.from(activityByDay.entries()).map(([date, cost]) => ({ date, cost })),
-      modelDistribution: modelGroups.map((g) => ({ model: g.model as string, count: g._count._all })),
-    });
-  } catch (error) {
-    throw error;
-  }
-});
+  router.get('/users', async (req: AuthenticatedRequest, res) => {
+    try {
+      const page = typeof req.query.page === 'string' ? parseInt(req.query.page) : 1;
+      const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit) : 20;
+      const search = typeof req.query.search === 'string' ? req.query.search : '';
+      const role = typeof req.query.role === 'string' ? req.query.role : '';
 
-router.get('/users', async (req: AuthenticatedRequest, res) => {
-  try {
-    const page = typeof req.query.page === 'string' ? parseInt(req.query.page) : 1;
-    const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit) : 20;
-    const search = typeof req.query.search === 'string' ? req.query.search : '';
-    const role = typeof req.query.role === 'string' ? req.query.role : '';
+      const where: any = {};
+      if (search) {
+        where.OR = [
+          { email: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+      if (role) {
+        where.role = role;
+      }
 
-    const where: any = {};
-    if (search) {
-      where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { name: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-    if (role) {
-      where.role = role;
-    }
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              conversations: true,
-              usageLogs: true,
+      const [usersResult, totalResult] = await Promise.allSettled([
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: {
+              select: {
+                conversations: true,
+                usageLogs: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.user.count({ where }),
-    ]);
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.user.count({ where }),
+      ]);
 
-    res.json({
-      users,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    });
-  } catch (error) {
-    throw error;
-  }
-});
+      const users = usersResult.status === 'fulfilled' ? usersResult.value : [];
+      const total = totalResult.status === 'fulfilled' ? totalResult.value : 0;
+
+      res.json({
+        users,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      });
+    } catch (error) {
+      throw error;
+    }
+  });
 
 router.patch('/users/:id', async (req: AuthenticatedRequest, res) => {
   try {

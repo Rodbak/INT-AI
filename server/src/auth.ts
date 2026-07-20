@@ -12,7 +12,8 @@ export interface SupabaseJWTPayload {
 
 export function verifySupabaseToken(token: string): SupabaseJWTPayload | null {
   try {
-    return jwt.verify(token, env.SUPABASE_JWT_SECRET) as SupabaseJWTPayload;
+    if (!env.SUPABASE_JWT_SECRET) return null;
+    return jwt.verify(token, env.SUPABASE_JWT_SECRET, { algorithms: ['HS256'] }) as SupabaseJWTPayload;
   } catch {
     return null;
   }
