@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authManager } from '../lib/auth';
 import { navGroups, defaultActiveNavId } from '../data/workspace';
+import { BUILD_VERSION } from '../version';
 import './Sidebar.css';
 
 export default function Sidebar() {
@@ -98,11 +99,12 @@ export default function Sidebar() {
             authManager.logout();
             window.location.href = '/login';
           }}
-          title="Sign out"
+          title={`Sign out · build ${BUILD_VERSION}`}
         >
           Sign out
         </button>
       </div>
+      <div className="sidebar__version">build {BUILD_VERSION}</div>
     </aside>
   );
 }
