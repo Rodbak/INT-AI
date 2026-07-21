@@ -5,6 +5,7 @@ import ConversationPage from './pages/ConversationPage';
 import SpecialistsPage from './pages/SpecialistsPage';
 import AITeamsPage from './pages/AITeamsPage';
 import AutomationsPage from './pages/AutomationsPage';
+import ComparePage from './pages/ComparePage';
 import KnowledgePage from './pages/KnowledgePage';
 import PromptsPage from './pages/PromptsPage';
 import ConnectionsPage from './pages/ConnectionsPage';
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: 'specialists', element: <SpecialistsPage /> },
       { path: 'ai-teams', element: <AITeamsPage /> },
       { path: 'automations', element: <AutomationsPage /> },
+      { path: 'compare', element: <ComparePage /> },
       { path: 'company-knowledge', element: <KnowledgePage /> },
       { path: 'prompt-library', element: <PromptsPage /> },
       { path: 'connections', element: <ConnectionsPage /> },

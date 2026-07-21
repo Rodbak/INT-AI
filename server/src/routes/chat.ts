@@ -29,6 +29,8 @@ const chatSchema = z.object({
   specialistId: z.string().optional(),
   regenerate: z.boolean().optional(),
   stream: z.boolean().optional(),
+  // Image data URLs (data:image/...;base64,...) for vision.
+  images: z.array(z.string()).max(4).optional(),
 });
 
 router.use(requestLogger);
@@ -78,6 +80,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
     }
 
     let ragContext: string | undefined;
+    let sources: { n: number; title: string; documentId?: string }[] = [];
     if (req.user?.id) {
       try {
         const workspaceIds = await prisma.workspaceUser.findMany({
@@ -86,14 +89,21 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
         });
 
         const allChunks = await Promise.all(
-          workspaceIds.map((w) => retrieveRelevantChunks(input.message, w.workspaceId, 2)),
+          workspaceIds.map((w) => retrieveRelevantChunks(input.message, w.workspaceId, 3)),
         );
 
         const flattened = allChunks.flat().slice(0, 5);
         if (flattened.length > 0) {
+          // Number the sources so the model can cite them as [1], [2], … and the
+          // UI can list them under the answer.
           ragContext = flattened
-            .map((c) => `[${c.metadata.documentTitle || 'Document'}]: ${c.content}`)
+            .map((c, i) => `[${i + 1}] (${c.metadata.documentTitle || 'Document'}):\n${c.content}`)
             .join('\n\n');
+          sources = flattened.map((c, i) => ({
+            n: i + 1,
+            title: c.metadata.documentTitle || 'Document',
+            documentId: c.metadata.documentId,
+          }));
         }
       } catch {
         // RAG is optional, continue without context
@@ -154,6 +164,14 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
     }
     const systemPrompt = systemParts.join('\n\n');
 
+    // Images require a vision-capable model. If the user didn't explicitly pick
+    // one, route the turn through an OpenRouter vision model.
+    const hasImages = Array.isArray(input.images) && input.images.length > 0;
+    if (hasImages && !input.model && providers.includes('openrouter')) {
+      preferredProvider = 'openrouter';
+      preferredModel = 'openai/gpt-4o';
+    }
+
     const context = {
       message: input.message,
       history: messages.slice(0, -1),
@@ -163,6 +181,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       preferredModel,
       ragContext,
       systemPrompt,
+      images: hasImages ? input.images : undefined,
     };
 
     const { chunks, decision } = await routingEngine.execute(context);
@@ -178,8 +197,13 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
           specialist: specialist ? { id: specialist.id, name: specialist.name } : null,
           provider: decision.provider,
           model: decision.model,
+          reasoning: decision.reasoning,
         })}\n\n`,
       );
+
+      if (sources.length > 0) {
+        res.write(`data: ${JSON.stringify({ type: 'sources', sources })}\n\n`);
+      }
 
       let fullContent = '';
       let promptTokens = 0;

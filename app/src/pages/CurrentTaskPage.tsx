@@ -11,9 +11,9 @@ import type { Specialist } from '../types/index';
 import CostBadge from '../components/CostBadge';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import HandsFreeView from '../components/HandsFreeView';
-import { MicIcon, PlusIcon, CopyIcon, CheckIcon, RegenerateIcon, EditIcon } from '../components/icons';
+import { MicIcon, PlusIcon, CopyIcon, CheckIcon, RegenerateIcon, EditIcon, SpeakerIcon } from '../components/icons';
 import { getPreference } from '../lib/preferences';
-import { drainSentences } from '../lib/speech';
+import { drainSentences, speakText, stopSpeaking } from '../lib/speech';
 import type { Message } from '../types/index';
 import '../components/Composer.css';
 import './CurrentTaskPage.css';
@@ -28,6 +28,8 @@ export default function CurrentTaskPage() {
   const [selectedSpecialist, setSelectedSpecialist] = useState('auto');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [composerValue, setComposerValue] = useState('');
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>('type');
   const [displayedMode, setDisplayedMode] = useState<Mode>('type');
   const [transitioning, setTransitioning] = useState(false);
@@ -117,14 +119,40 @@ export default function CurrentTaskPage() {
   );
 
   const handleSend = useCallback(
-    async (text: string) => {
-      if (!text.trim()) return;
-      const conversationId = activeId || (await handleNewConversation(deriveTitle(text))).id;
-      titleFromFirstMessage(conversationId, text);
-      send(text, selectedModel === 'auto' ? undefined : selectedModel, selectedProvider, conversationId, specialistId);
+    async (text: string, images?: string[]) => {
+      if (!text.trim() && !(images && images.length)) return;
+      const seed = text.trim() || 'Image';
+      const conversationId = activeId || (await handleNewConversation(deriveTitle(seed))).id;
+      titleFromFirstMessage(conversationId, seed);
+      send(
+        text,
+        selectedModel === 'auto' ? undefined : selectedModel,
+        selectedProvider,
+        conversationId,
+        specialistId,
+        undefined,
+        images,
+      );
     },
     [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage, specialistId],
   );
+
+  const handleAttachImages = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    Array.from(files)
+      .slice(0, 4)
+      .forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            setAttachedImages((prev) => (prev.length >= 4 ? prev : [...prev, reader.result as string]));
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  }, []);
 
   const handleVoiceTranscript = useCallback(
     async (text: string, speak: (sentence: string) => void) => {
@@ -205,9 +233,10 @@ export default function CurrentTaskPage() {
   }, [messages]);
 
   const submitComposer = () => {
-    if (!composerValue.trim() || sending) return;
-    handleSend(composerValue.trim());
+    if ((!composerValue.trim() && attachedImages.length === 0) || sending) return;
+    handleSend(composerValue.trim(), attachedImages.length ? attachedImages : undefined);
     setComposerValue('');
+    setAttachedImages([]);
   };
 
   // Ids of the last user / last assistant messages — regenerate and edit only
@@ -324,10 +353,24 @@ export default function CurrentTaskPage() {
                 const isStreamingHere = m.id === lastAssistantId && sending;
                 return (
                   <div key={m.id} className={`message message--${m.role}`}>
-                    {m.role === 'assistant' && m.specialist && (
-                      <div className="message__specialist">
-                        <span className="message__specialist-node" aria-hidden="true" />
-                        {m.specialist.name}
+                    {m.role === 'assistant' && (m.specialist || m.routing?.provider) && (
+                      <div className="message__trace">
+                        {m.specialist && (
+                          <span className="message__specialist" title="Specialist that handled this turn">
+                            <span className="message__specialist-node" aria-hidden="true" />
+                            {m.specialist.name}
+                          </span>
+                        )}
+                        {m.routing?.provider && (
+                          <span
+                            className="message__route"
+                            title={m.routing.reasoning || 'Routing decision'}
+                          >
+                            <span className="message__route-dot" aria-hidden="true" />
+                            {m.routing.provider}
+                            {m.routing.model ? ` · ${m.routing.model}` : ''}
+                          </span>
+                        )}
                       </div>
                     )}
                     <div className="message__bubble">
@@ -339,6 +382,17 @@ export default function CurrentTaskPage() {
                       )}
                       {m.role === 'assistant' && m.text && <MarkdownRenderer content={m.text} />}
                       {m.role === 'user' && <span>{m.text}</span>}
+                      {m.role === 'assistant' && m.sources && m.sources.length > 0 && (
+                        <div className="message__sources">
+                          <div className="message__sources-label">Sources</div>
+                          {m.sources.map((s) => (
+                            <div key={s.n} className="message__source">
+                              <span className="message__source-n">{s.n}</span>
+                              {s.title}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {m.role === 'assistant' && m.cost !== undefined && (
                         <CostBadge tokens={m.tokens} cost={m.cost} />
                       )}
@@ -348,6 +402,7 @@ export default function CurrentTaskPage() {
                         text={m.text}
                         canEdit={m.role === 'user' && m.id === lastUserId && !sending}
                         canRegenerate={m.role === 'assistant' && m.id === lastAssistantId && !sending}
+                        canSpeak={m.role === 'assistant'}
                         onEdit={handleEditLast}
                         onRegenerate={handleRegenerate}
                       />
@@ -365,12 +420,37 @@ export default function CurrentTaskPage() {
               <div className="composer">
                 <div className="composer__inner">
                   <div className="composer__box">
+                    {attachedImages.length > 0 && (
+                      <div className="composer__attachments">
+                        {attachedImages.map((src, i) => (
+                          <div key={i} className="composer__thumb">
+                            <img src={src} alt={`attachment ${i + 1}`} />
+                            <button
+                              type="button"
+                              className="composer__thumb-remove"
+                              onClick={() => setAttachedImages((prev) => prev.filter((_, j) => j !== i))}
+                              aria-label="Remove image"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <ComposerInput
                       value={composerValue}
                       onChange={setComposerValue}
                       onSubmit={submitComposer}
                       disabled={sending}
                       inputRef={composerRef}
+                    />
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleAttachImages}
+                      style={{ display: 'none' }}
                     />
                     <div className="composer__row">
                       <div className="composer__controls">
@@ -380,7 +460,13 @@ export default function CurrentTaskPage() {
                             requestAnimationFrame(() => composerRef.current?.focus());
                           }}
                         />
-                        <button type="button" className="composer__icon-button" aria-label="Add attachment" title="Add attachment">
+                        <button
+                          type="button"
+                          className="composer__icon-button"
+                          aria-label="Attach image"
+                          title="Attach image (vision)"
+                          onClick={() => imageInputRef.current?.click()}
+                        >
                           <PlusIcon className="composer__icon" />
                         </button>
                         <button
@@ -405,7 +491,10 @@ export default function CurrentTaskPage() {
                             Cancel
                           </button>
                         )}
-                        <SendButton disabled={sending || !composerValue.trim()} onClick={submitComposer} />
+                        <SendButton
+                          disabled={sending || (!composerValue.trim() && attachedImages.length === 0)}
+                          onClick={submitComposer}
+                        />
                       </div>
                     </div>
                   </div>
@@ -463,16 +552,19 @@ function MessageActions({
   text,
   canEdit,
   canRegenerate,
+  canSpeak,
   onEdit,
   onRegenerate,
 }: {
   text: string;
   canEdit: boolean;
   canRegenerate: boolean;
+  canSpeak?: boolean;
   onEdit: () => void;
   onRegenerate: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -482,6 +574,23 @@ function MessageActions({
     } catch {
       /* clipboard unavailable — ignore */
     }
+  };
+
+  const handleSpeak = () => {
+    if (speaking) {
+      stopSpeaking();
+      setSpeaking(false);
+      return;
+    }
+    speakText(text);
+    setSpeaking(true);
+    // Poll for end so the icon resets when playback finishes.
+    const iv = window.setInterval(() => {
+      if (typeof window !== 'undefined' && !window.speechSynthesis?.speaking) {
+        setSpeaking(false);
+        window.clearInterval(iv);
+      }
+    }, 400);
   };
 
   return (
@@ -495,6 +604,17 @@ function MessageActions({
       >
         {copied ? <CheckIcon className="message__action-icon" /> : <CopyIcon className="message__action-icon" />}
       </button>
+      {canSpeak && (
+        <button
+          type="button"
+          className={`message__action${speaking ? ' message__action--active' : ''}`}
+          onClick={handleSpeak}
+          aria-label={speaking ? 'Stop reading' : 'Read aloud'}
+          title={speaking ? 'Stop' : 'Read aloud'}
+        >
+          <SpeakerIcon className="message__action-icon" />
+        </button>
+      )}
       {canRegenerate && (
         <button
           type="button"

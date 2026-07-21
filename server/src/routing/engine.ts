@@ -26,6 +26,8 @@ export interface RoutingContext {
   ragContext?: string;
   /** A specialist's persona/system prompt, prepended to the conversation. */
   systemPrompt?: string;
+  /** Image data URLs to attach to the user's turn (vision). */
+  images?: string[];
 }
 
 export class RoutingEngine {
@@ -59,12 +61,20 @@ export class RoutingEngine {
     const systemParts: string[] = [];
     if (context.systemPrompt) systemParts.push(context.systemPrompt);
     if (context.ragContext) {
-      systemParts.push(`Use the following context to answer the user's question:\n\n${context.ragContext}`);
+      systemParts.push(
+        `Answer using the following numbered sources from the user's knowledge base. ` +
+          `Cite the sources you rely on inline as [1], [2], etc. If the answer isn't ` +
+          `contained in them, say so and answer from general knowledge.\n\n${context.ragContext}`,
+      );
     }
     const messages: ChatMessage[] = [
       ...(systemParts.length ? [{ role: 'system' as const, content: systemParts.join('\n\n') }] : []),
       ...context.history,
-      { role: 'user', content: context.message },
+      {
+        role: 'user',
+        content: context.message,
+        ...(context.images && context.images.length ? { images: context.images } : {}),
+      },
     ];
 
     // The provider actually used isn't known until streaming begins — a

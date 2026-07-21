@@ -31,10 +31,19 @@ export class OpenRouterProvider implements Provider {
     model: string,
     config: ProviderConfig,
   ): AsyncGenerator<StreamChunk, void, unknown> {
-    const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = messages.map((m) => ({
-      role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content,
-    }));
+    const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = messages.map((m) => {
+      // Vision: attach image data URLs alongside the text for this turn.
+      if (m.images && m.images.length > 0 && m.role === 'user') {
+        return {
+          role: 'user',
+          content: [
+            ...(m.content ? [{ type: 'text' as const, text: m.content }] : []),
+            ...m.images.map((url) => ({ type: 'image_url' as const, image_url: { url } })),
+          ],
+        };
+      }
+      return { role: m.role as 'user' | 'assistant' | 'system', content: m.content };
+    });
 
     try {
       const controller = new AbortController();

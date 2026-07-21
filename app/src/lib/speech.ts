@@ -1,5 +1,36 @@
 // Helpers for turning streamed markdown into natural spoken text.
 
+const synthAvailable = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+/**
+ * Speak a block of (markdown) text aloud once, cleaning markdown first. Used by
+ * the "read aloud" button on assistant messages in typed mode. Calling again
+ * cancels the previous utterance (toggle-off is handled by the caller).
+ */
+export function speakText(text: string): void {
+  if (!synthAvailable) return;
+  try {
+    window.speechSynthesis.cancel();
+    const clean = cleanForSpeech(text.replace(/```[\s\S]*?```/g, ' (code block) '));
+    if (!clean) return;
+    const u = new SpeechSynthesisUtterance(clean);
+    u.rate = 1.05;
+    window.speechSynthesis.speak(u);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function stopSpeaking(): void {
+  if (synthAvailable) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 /**
  * Strip markdown so text-to-speech reads clean prose instead of literally
  * voicing "asterisk asterisk", "hash", backticks, list bullets, etc.

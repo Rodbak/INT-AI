@@ -22,6 +22,7 @@ export const navGroups: NavGroup[] = [
       { id: 'specialists', label: 'Specialists' },
       { id: 'ai-teams', label: 'AI Teams' },
       { id: 'automations', label: 'Automations' },
+      { id: 'compare', label: 'Model Face-off' },
     ],
   },
   {

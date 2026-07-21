@@ -1,4 +1,6 @@
 .sidebar {
+  position: relative;
+  z-index: 1;
   width: 224px;
   flex-shrink: 0;
   background: linear-gradient(180deg, rgba(10, 16, 26, 0.72), rgba(6, 10, 17, 0.72));

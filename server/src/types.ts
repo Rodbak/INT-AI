@@ -21,6 +21,8 @@ export interface ApiError extends Error {
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  /** Optional image data URLs for vision models (handled by OpenRouter). */
+  images?: string[];
 }
 
 export interface ChatRequest {

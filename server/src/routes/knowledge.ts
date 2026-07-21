@@ -2,16 +2,20 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { indexDocumentContent } from '../rag/retriever.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();
 
 const createDocumentSchema = z.object({
   title: z.string().min(1),
-  filename: z.string().min(1),
-  mimeType: z.string().min(1),
-  size: z.number().int().positive(),
-  url: z.string().min(1),
+  // Raw text to make searchable. When present the document is chunked + indexed
+  // for retrieval; other fields are optional so the client can just send text.
+  content: z.string().optional(),
+  filename: z.string().min(1).optional(),
+  mimeType: z.string().min(1).optional(),
+  size: z.number().int().nonnegative().optional(),
+  url: z.string().optional(),
   workspaceId: z.string().min(1),
 });
 
@@ -48,18 +52,24 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
 router.post('/', async (req: AuthenticatedRequest, res) => {
   try {
     const input = createDocumentSchema.parse(req.body);
+    const content = input.content?.trim() || '';
 
     const document = await prisma.document.create({
       data: {
         title: input.title,
-        filename: input.filename,
-        mimeType: input.mimeType,
-        size: input.size,
-        url: input.url,
+        filename: input.filename || `${input.title}.txt`,
+        mimeType: input.mimeType || 'text/plain',
+        size: input.size ?? content.length,
+        url: input.url || '',
         workspaceId: input.workspaceId,
         uploadedBy: req.user!.id,
       },
     });
+
+    // Chunk + index the text so it can be retrieved and cited in chat.
+    if (content) {
+      await indexDocumentContent(document.id, content).catch(() => {});
+    }
 
     res.status(201).json(document);
   } catch (error) {

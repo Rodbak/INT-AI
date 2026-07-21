@@ -141,6 +141,30 @@ button {
 .admin-dashboard__stat,
 .billing__card,
 .billing__plan {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Spatial-depth glass: deeper blur, a soft cast shadow so the panel floats,
+     and a 1px top sheen so it reads as a lit pane of glass. */
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  box-shadow: 0 22px 55px -26px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Cards lift toward the viewer on hover — a light spatial cue. */
+.prompts__card,
+.specialists__card,
+.ai-teams__card,
+.connections__card,
+.admin-dashboard__card,
+.billing__plan {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.prompts__card:hover,
+.specialists__card:hover,
+.ai-teams__card:hover,
+.connections__card:hover,
+.admin-dashboard__card:hover,
+.billing__plan:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.75), 0 0 24px var(--accent-glow-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }

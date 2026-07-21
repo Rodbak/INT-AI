@@ -14,11 +14,64 @@
   overflow: hidden;
 }
 
+/* --- Spatial-depth substrate (parallax strata behind everything) --- */
+.layout__depth {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.layout__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  will-change: transform;
+  transition: transform 0.12s linear;
+}
+
+/* Cyan stratum, upper-left, drifts WITH the pointer (near layer). */
+.layout__glow--1 {
+  top: -12%;
+  left: -6%;
+  width: 46vw;
+  height: 46vw;
+  background: radial-gradient(circle, rgba(var(--rgb-accent), 0.16), transparent 66%);
+  transform: translate3d(calc(var(--mx, 0) * 26px), calc(var(--my, 0) * 26px), 0);
+}
+
+/* Violet stratum, lower-right, drifts AGAINST the pointer (far layer). */
+.layout__glow--2 {
+  bottom: -18%;
+  right: -10%;
+  width: 52vw;
+  height: 52vw;
+  background: radial-gradient(circle, rgba(var(--rgb-synapse), 0.14), transparent 66%);
+  transform: translate3d(calc(var(--mx, 0) * -40px), calc(var(--my, 0) * -40px), 0);
+}
+
+/* Faint holographic grid, deepest layer, barely parallaxes. */
+.layout__grid {
+  position: absolute;
+  inset: -40px;
+  background-image:
+    linear-gradient(rgba(var(--rgb-accent), 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--rgb-accent), 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  transform: translate3d(calc(var(--mx, 0) * 10px), calc(var(--my, 0) * 10px), 0);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 80%);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 80%);
+  opacity: 0.6;
+}
+
 .layout__main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .layout__content {

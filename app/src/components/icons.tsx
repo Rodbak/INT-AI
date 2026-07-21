@@ -45,6 +45,16 @@ export function StopIcon({ className }: IconProps) {
   );
 }
 
+export function SpeakerIcon({ className }: IconProps) {
+  return (
+    <svg {...common} className={className} aria-hidden="true">
+      <path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor" stroke="none" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M18 6a8 8 0 0 1 0 12" />
+    </svg>
+  );
+}
+
 export function PlusIcon({ className }: IconProps) {
   return (
     <svg {...common} className={className} aria-hidden="true">

@@ -2,17 +2,28 @@
    It has its own gutter so it never sits behind readable content. */
 .neural-spine {
   position: relative;
+  z-index: 1;
   width: 64px;
   flex-shrink: 0;
   align-self: stretch;
   overflow: hidden;
+  /* A touch of dimensionality: the console column drifts opposite the pointer
+     and carries a beveled front edge. */
+  transform: translate3d(calc(var(--mx, 0) * -6px), 0, 0);
+  transition: transform 0.12s linear;
   /* A faint vertical channel the trunk lives in, brighter at the top where the
      core sits, plus a hairline luminous edge dividing it from the workspace. */
   background:
-    linear-gradient(180deg, rgba(var(--rgb-accent), 0.06) 0%, rgba(var(--rgb-synapse), 0.03) 60%, transparent 100%),
-    linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.25));
-  border-right: 1px solid rgba(var(--rgb-accent), 0.1);
-  box-shadow: inset -14px 0 26px -18px rgba(var(--rgb-accent), 0.4);
+    linear-gradient(180deg, rgba(var(--rgb-accent), 0.08) 0%, rgba(var(--rgb-synapse), 0.04) 60%, transparent 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent 30%, rgba(0, 0, 0, 0.28));
+  border-right: 1px solid rgba(var(--rgb-accent), 0.14);
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
+  /* Beveled console column: inner right glow, a left shadow lip, and a top
+     sheen so the pillar reads as a raised, lit surface with depth. */
+  box-shadow:
+    inset -14px 0 26px -18px rgba(var(--rgb-accent), 0.45),
+    inset 16px 0 26px -22px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .neural-spine__canvas {

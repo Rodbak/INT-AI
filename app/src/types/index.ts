@@ -38,6 +38,10 @@ export interface Message {
   model?: string;
   status?: 'error';
   specialist?: { id: string; name: string } | null;
+  /** How this turn was routed — provider that answered + why. */
+  routing?: { provider?: string; model?: string; reasoning?: string } | null;
+  /** Retrieved knowledge sources cited in this answer. */
+  sources?: { n: number; title: string; documentId?: string }[];
 }
 
 export interface ModelOption {

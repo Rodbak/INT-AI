@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabaseClient';
-import { neural, CORE, specialistNode } from './neural';
+import { neural, CORE, specialistNode, providerNode } from './neural';
 import type {
   User,
   Conversation,
@@ -147,6 +147,7 @@ export async function sendMessage(
   provider?: string,
   specialistId?: string,
   regenerate?: boolean,
+  images?: string[],
 ): Promise<{ message: Message; usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -155,7 +156,16 @@ export async function sendMessage(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${sessionData.session?.access_token ?? ''}`,
     },
-    body: JSON.stringify({ message: text, conversationId, model, provider, specialistId, regenerate, stream: true }),
+    body: JSON.stringify({
+      message: text,
+      conversationId,
+      model,
+      provider,
+      specialistId,
+      regenerate,
+      stream: true,
+      ...(images && images.length ? { images } : {}),
+    }),
     signal,
   });
 
@@ -178,6 +188,8 @@ export async function sendMessage(
   let usage: { promptTokens: number; completionTokens: number; totalTokens: number; cost: number } | undefined;
   let streamError: string | undefined;
   let specialist: { id: string; name: string } | null = null;
+  let routing: { provider?: string; model?: string; reasoning?: string } | null = null;
+  let sources: { n: number; title: string; documentId?: string }[] = [];
   let usedModel = model;
 
   if (reader) {
@@ -198,11 +210,23 @@ export async function sendMessage(
             } else if (parsed.type === 'meta') {
               specialist = parsed.specialist || null;
               usedModel = parsed.model || usedModel;
-              // Light up the responsible neuron in the nervous system.
+              routing = { provider: parsed.provider, model: parsed.model, reasoning: parsed.reasoning };
+              // Light up the responsible neurons in the nervous system: core →
+              // the provider that answered → the specialist (if any).
+              if (parsed.provider) {
+                neural.fire(providerNode(parsed.provider), 1);
+                neural.signal(CORE, providerNode(parsed.provider), 'accent');
+              }
               if (specialist) {
                 neural.fire(specialistNode(specialist.id), 1);
-                neural.signal(CORE, specialistNode(specialist.id), 'synapse');
+                neural.signal(
+                  parsed.provider ? providerNode(parsed.provider) : CORE,
+                  specialistNode(specialist.id),
+                  'synapse',
+                );
               }
+            } else if (parsed.type === 'sources' && Array.isArray(parsed.sources)) {
+              sources = parsed.sources;
             } else if (parsed.type === 'usage' && parsed.usage) {
               usage = parsed.usage;
             } else if (parsed.type === 'error') {
@@ -232,8 +256,33 @@ export async function sendMessage(
       tokens: usage?.totalTokens,
       cost: usage?.cost,
       specialist,
+      routing,
+      sources: sources.length ? sources : undefined,
     },
     usage,
+  };
+}
+
+/** Run one prompt against a single model (non-streaming) — used by the compare view. */
+export async function runModelOnce(
+  message: string,
+  model?: string,
+  provider?: string,
+): Promise<{
+  reply: string;
+  provider?: string;
+  model?: string;
+  usage?: { totalTokens: number; cost: number };
+  latencyMs: number;
+}> {
+  const t0 = performance.now();
+  const { data } = await api.post('/chat', { message, model, provider, stream: false });
+  return {
+    reply: data.reply || '',
+    provider: data.provider,
+    model: data.model,
+    usage: data.usage,
+    latencyMs: Math.round(performance.now() - t0),
   };
 }
 
@@ -433,6 +482,16 @@ export async function createDocument(data: {
   mimeType: string;
   size: number;
   url: string;
+  workspaceId: string;
+}) {
+  const response = await api.post('/knowledge', data);
+  return response.data;
+}
+
+/** Create a knowledge document from raw text; the server chunks + indexes it. */
+export async function createTextDocument(data: {
+  title: string;
+  content: string;
   workspaceId: string;
 }) {
   const response = await api.post('/knowledge', data);

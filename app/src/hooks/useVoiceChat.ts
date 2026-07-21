@@ -79,6 +79,18 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const mutedRef = useRef(false); // drop queued/streaming speech after an interrupt/barge-in
+
+  // --- barge-in: echo-cancelled VAD that listens WHILE the assistant speaks, so
+  // the user can talk over it to cut it off (ChatGPT-style). ---
+  const bargeStreamRef = useRef<MediaStream | null>(null);
+  const bargeCtxRef = useRef<AudioContext | null>(null);
+  const bargeRafRef = useRef<number | null>(null);
+  const bargeActiveRef = useRef(false);
+  // Indirection so the queue logic can start/stop barge-in without depending on
+  // definition order.
+  const startBargeInRef = useRef<() => void>(() => {});
+  const stopBargeInRef = useRef<() => void>(() => {});
 
   const usingBrowserSpeech = useRef<boolean>(getSpeechRecognition() !== null);
 
@@ -166,6 +178,8 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       return;
     }
     if (genRef.current || playingRef.current || queueRef.current.length) return;
+    if (recognitionRef.current) return; // already listening (e.g. after a barge-in)
+    stopBargeInRef.current();
     processingRef.current = false;
     setVoiceState('listening');
     resumeRef.current();
@@ -181,6 +195,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
     }
     playingRef.current = true;
     setVoiceState('speaking');
+    startBargeInRef.current(); // listen for the user talking over the reply
     await speakOne(next);
     playingRef.current = false;
     if (turnRef.current !== myTurn) return; // interrupted — a new turn owns playback
@@ -190,7 +205,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   const enqueueSpeech = useCallback(
     (text: string) => {
       const clean = text.trim();
-      if (!clean || !activeRef.current) return;
+      if (!clean || !activeRef.current || mutedRef.current) return;
       queueRef.current.push(clean);
       if (!playingRef.current) playNext();
     },
@@ -199,8 +214,10 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
 
   const stopPlayback = useCallback(() => {
     turnRef.current += 1; // invalidate any in-flight speakOne continuation
+    mutedRef.current = true; // drop any still-streaming speech for this turn
     queueRef.current = [];
     playingRef.current = false;
+    stopBargeInRef.current();
     if (speechSynthesisAvailable) window.speechSynthesis.cancel();
     utteranceRef.current = null;
     if (playerRef.current) {
@@ -208,6 +225,92 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       playerRef.current = null;
     }
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Barge-in detection: while the assistant is speaking, run an echo-cancelled
+  // mic VAD. If the user's voice rises above the (AEC-suppressed) TTS, cut the
+  // assistant off and start listening — so you can just talk over it.
+  // ---------------------------------------------------------------------------
+  const stopBargeIn = useCallback(() => {
+    bargeActiveRef.current = false;
+    if (bargeRafRef.current !== null) {
+      cancelAnimationFrame(bargeRafRef.current);
+      bargeRafRef.current = null;
+    }
+    if (bargeStreamRef.current) {
+      bargeStreamRef.current.getTracks().forEach((t) => t.stop());
+      bargeStreamRef.current = null;
+    }
+    if (bargeCtxRef.current) {
+      bargeCtxRef.current.close().catch(() => {});
+      bargeCtxRef.current = null;
+    }
+  }, []);
+
+  const startBargeIn = useCallback(async () => {
+    // Only for the browser-speech path (the server path already holds the mic).
+    if (bargeActiveRef.current || !usingBrowserSpeech.current) return;
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
+    bargeActiveRef.current = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      if (!bargeActiveRef.current || !activeRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      bargeStreamRef.current = stream;
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new Ctx();
+      bargeCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      source.connect(analyser);
+      const buf = new Uint8Array(analyser.fftSize);
+      const startedAt = performance.now();
+      let loud = 0;
+
+      const tick = () => {
+        if (!bargeActiveRef.current) return;
+        analyser.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const n = (buf[i] - 128) / 128;
+          sum += n * n;
+        }
+        const rms = Math.sqrt(sum / buf.length);
+        // Reflect real user energy on the orb during playback.
+        audioLevelRef.current = Math.max(audioLevelRef.current * 0.8, rms);
+        // Give TTS a moment to ramp, then treat *sustained, loud* energy as the
+        // user talking over it. Thresholds are conservative on purpose: echo
+        // cancellation suppresses most of the assistant's own voice, and we'd
+        // rather need a clear interruption than have the reply cut itself off.
+        if (performance.now() - startedAt > 450) {
+          if (rms > 0.09) loud += 1;
+          else loud = Math.max(0, loud - 2);
+          if (loud >= 8) {
+            // Barge-in: cut the assistant off and listen for the new utterance.
+            stopPlayback();
+            processingRef.current = false;
+            genRef.current = false;
+            setVoiceState('listening');
+            resumeRef.current();
+            return;
+          }
+        }
+        bargeRafRef.current = requestAnimationFrame(tick);
+      };
+      bargeRafRef.current = requestAnimationFrame(tick);
+    } catch {
+      // No mic / denied — silently fall back to the tap-to-interrupt button.
+      bargeActiveRef.current = false;
+    }
+  }, [stopPlayback]);
+
+  startBargeInRef.current = startBargeIn;
+  stopBargeInRef.current = stopBargeIn;
 
   // ---------------------------------------------------------------------------
   // Browser Web Speech recognition path
@@ -286,9 +389,11 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       }
 
       // New turn: reset speech pipeline and stream the reply into the queue.
+      stopBargeIn();
       processingRef.current = true;
       genRef.current = true;
       turnRef.current += 1;
+      mutedRef.current = false;
       queueRef.current = [];
       setInterimText('');
       setVoiceState('thinking');
@@ -402,6 +507,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
           processingRef.current = true;
           genRef.current = true;
           turnRef.current += 1;
+          mutedRef.current = false;
           queueRef.current = [];
           setVoiceState('thinking');
           await onTranscript(text, enqueueSpeech);
@@ -474,6 +580,7 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
     activeRef.current = true;
     processingRef.current = false;
     genRef.current = false;
+    mutedRef.current = false;
     queueRef.current = [];
     sttNetworkFailRef.current = 0;
     setActive(true);
@@ -544,8 +651,9 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
       }
       if (speechSynthesisAvailable) window.speechSynthesis.cancel();
       teardownCapture();
+      stopBargeIn();
     };
-  }, [teardownCapture]);
+  }, [teardownCapture, stopBargeIn]);
 
   return {
     voiceState,
