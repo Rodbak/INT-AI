@@ -65,6 +65,11 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
   // --- browser Web Speech refs (primary path) ---
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const processingRef = useRef(false); // a turn (generation + speech) is in flight
+  // Some privacy browsers (notably Brave) ship webkitSpeechRecognition but block
+  // the speech-to-text backend, so it enters "listening" and only ever emits a
+  // 'network' error. Count those so we can surface a clear message instead of
+  // silently retrying forever.
+  const sttNetworkFailRef = useRef(0);
 
   // --- TTS queue (streamed sentence playback) ---
   const queueRef = useRef<string[]>([]);
@@ -228,13 +233,30 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
         if (result.isFinal) finalText += result[0].transcript;
         else interim += result[0].transcript;
       }
+      if (finalText || interim) sttNetworkFailRef.current = 0; // STT is working
       setInterimText((finalText + interim).trim());
       audioLevelRef.current = Math.min(0.12 + (finalText.length + interim.length) * 0.004, 0.45);
     };
 
     recognition.onerror = (event: any) => {
       const err = event?.error;
-      if (err === 'no-speech' || err === 'aborted' || err === 'network') return;
+      if (err === 'no-speech' || err === 'aborted') return; // benign — self-recovers
+      if (err === 'network') {
+        // Transient in Chrome/Edge, but permanent in browsers that block the STT
+        // backend (Brave). Retry once, then explain instead of hanging silently.
+        sttNetworkFailRef.current += 1;
+        if (sttNetworkFailRef.current >= 2) {
+          setVoiceError(
+            'This browser is blocking speech-to-text. Brave and some privacy browsers ' +
+              'disable the Web Speech API, so hands-free voice can’t hear you. Use Chrome ' +
+              'or Edge for voice, or type your message here.',
+          );
+          activeRef.current = false;
+          setActive(false);
+          setVoiceState('idle');
+        }
+        return;
+      }
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         setVoiceError('Microphone access was blocked. Allow mic access to use hands-free mode.');
         activeRef.current = false;
@@ -453,9 +475,23 @@ export function useVoiceChat({ onTranscript }: UseVoiceChatOptions) {
     processingRef.current = false;
     genRef.current = false;
     queueRef.current = [];
+    sttNetworkFailRef.current = 0;
     setActive(true);
     setVoiceError(null);
     setInterimText('');
+    // Unlock speech synthesis *within the user gesture*. Many browsers (and iOS
+    // Safari especially) stay silent unless the first speak() is user-triggered,
+    // so prime it here with a near-silent utterance and a resume().
+    if (speechSynthesisAvailable) {
+      try {
+        window.speechSynthesis.resume();
+        const warm = new SpeechSynthesisUtterance(' ');
+        warm.volume = 0;
+        window.speechSynthesis.speak(warm);
+      } catch {
+        /* ignore */
+      }
+    }
     resumeRef.current();
   }, []);
 

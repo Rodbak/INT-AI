@@ -163,29 +163,23 @@ export default function CurrentTaskPage() {
     wasMicActiveRef.current = voiceChat.active;
   }, [voiceChat.active]);
 
-  const handleToggleVoice = useCallback(async () => {
-    if (!voiceChat.active) {
-      if (!activeId) {
-        await handleNewConversation();
-      }
-      voiceChat.toggle();
-    } else {
-      voiceChat.toggle();
-    }
-  }, [voiceChat, activeId, handleNewConversation]);
+  // IMPORTANT: mic permission and speech-synthesis unlock only work when
+  // start()/toggle() run synchronously inside the click gesture. Do NOT await
+  // anything (e.g. conversation creation) first — handleVoiceTranscript already
+  // lazily creates a conversation when the first utterance arrives.
+  const handleToggleVoice = useCallback(() => {
+    voiceChat.toggle();
+  }, [voiceChat]);
 
   const switchToType = useCallback(() => {
     if (voiceChat.active) voiceChat.stop();
     setMode('type');
   }, [voiceChat]);
 
-  const switchToVoice = useCallback(async () => {
-    if (!activeId) {
-      await handleNewConversation();
-    }
+  const switchToVoice = useCallback(() => {
     setMode('voice');
     voiceChat.start();
-  }, [activeId, handleNewConversation, voiceChat]);
+  }, [voiceChat]);
 
   // Leaving the page entirely should release the mic, even if the user
   // never explicitly switched to type mode first.
