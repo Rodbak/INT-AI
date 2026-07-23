@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import BizSheet from '../components/BizSheet';
+import { SkeletonRows } from '../components/Skeleton';
 import { cedis } from '../lib/money';
 import { getProducts, addProduct, updateProduct, deleteProduct, type CooProduct } from '../lib/api';
 import './Business.css';
@@ -112,7 +113,7 @@ export default function StockPage() {
         <input className="biz__search" placeholder="Search products…" value={query} onChange={(e) => setQuery(e.target.value)} />
       )}
       {loading ? (
-        <div className="biz__empty">Loading…</div>
+        <SkeletonRows />
       ) : filtered.length === 0 ? (
         <div className="biz__list"><div className="biz__empty">{query ? 'No products match your search.' : 'No products yet. Add the things you sell to track stock.'}</div></div>
       ) : (

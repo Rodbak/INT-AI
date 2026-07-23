@@ -51,6 +51,16 @@ const envSchema = z.object({
   // Supabase auth.users row (profiles has a foreign key to it).
   DEMO_USER_ID: z.preprocess(blankToUndefined, z.string().uuid().default("00000000-0000-0000-0000-000000000000")),
   DEMO_USER_EMAIL: z.preprocess(blankToUndefined, z.string().email().default("demo@example.com")),
+  // Web-push (daily briefing to the owner's phone). Generate a keypair once
+  // with `node -e "console.log(require('web-push').generateVAPIDKeys())"` and
+  // set both. When unset, push is simply disabled (the app still works).
+  VAPID_PUBLIC_KEY: z.preprocess(blankToUndefined, z.string().optional()),
+  VAPID_PRIVATE_KEY: z.preprocess(blankToUndefined, z.string().optional()),
+  VAPID_SUBJECT: z.string().default("mailto:owner@example.com"),
+  // Shared secret that guards the scheduled briefing endpoint. On Vercel, set
+  // CRON_SECRET and Vercel automatically sends it as a Bearer token on cron
+  // requests. When unset, the cron endpoint is disabled (returns 503).
+  CRON_SECRET: z.preprocess(blankToUndefined, z.string().optional()),
 });
 
 const parsed = envSchema.safeParse(process.env);

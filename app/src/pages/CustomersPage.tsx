@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import BizSheet from '../components/BizSheet';
+import { SkeletonRows } from '../components/Skeleton';
 import { cedis } from '../lib/money';
 import { getCustomers, addCustomer, updateCustomer, deleteCustomer, recordPayment, type CooCustomer } from '../lib/api';
 import './Business.css';
@@ -118,7 +119,7 @@ export default function CustomersPage() {
         <input className="biz__search" placeholder="Search by name or phone…" value={query} onChange={(e) => setQuery(e.target.value)} />
       )}
       {loading ? (
-        <div className="biz__empty">Loading…</div>
+        <SkeletonRows />
       ) : filtered.length === 0 ? (
         <div className="biz__list"><div className="biz__empty">{query ? 'No customers match your search.' : 'No customers yet. Add the people you sell to often.'}</div></div>
       ) : (

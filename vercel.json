@@ -8,6 +8,10 @@
       "maxDuration": 60
     }
   },
+  "crons": [
+    { "path": "/api/cron/briefing?slot=morning", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/briefing?slot=evening", "schedule": "0 19 * * *" }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }

@@ -1,7 +1,7 @@
 // INT Till service worker — makes the app shell load offline so the till keeps
 // working with no internet. API calls are never cached (the app handles offline
 // selling itself via IndexedDB).
-const CACHE = 'int-till-v1';
+const CACHE = 'int-till-v2';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -11,6 +11,36 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
+  );
+});
+
+// ── Push notifications (the daily briefing INT sends to the owner's phone) ──
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data && event.data.text() }; }
+  const title = data.title || 'INT';
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: data.tag || 'int',
+    data: { url: data.url || '/home' },
+    renotify: true,
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Tapping a notification focuses an open tab (or opens one) at the target page.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/home';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) { client.navigate(target); return client.focus(); }
+      }
+      return self.clients.openWindow(target);
+    }),
   );
 });
 

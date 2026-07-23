@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCooBrief, getSetupStatus, getInsight, approveCooAction, type CooBrief } from '../lib/api';
+import { getCooBrief, getSetupStatus, getInsight, type CooBrief } from '../lib/api';
 import Onboarding from '../components/Onboarding';
 import InsightCard from '../components/InsightCard';
+import ProactiveFeed from '../components/ProactiveFeed';
+import NotifyToggle from '../components/NotifyToggle';
+import CountUp from '../components/CountUp';
+import Skeleton from '../components/Skeleton';
 import './CooHomePage.css';
 
 const cedis = (n: number) => `GH₵ ${Math.round(n).toLocaleString()}`;
@@ -26,8 +30,6 @@ export default function CooHomePage() {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [ask, setAsk] = useState('');
-  const [doneActions, setDoneActions] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const navigate = useNavigate();
@@ -57,19 +59,25 @@ export default function CooHomePage() {
     navigate(`/current-task?ask=${encodeURIComponent(ask.trim())}`);
   };
 
-  const approve = async (a: CooBrief['actions'][number]) => {
-    setBusy(a.title);
-    try {
-      const r = await approveCooAction({ kind: a.kind, title: a.title, detail: a.detail, payload: a.payload });
-      setDoneActions((p) => ({ ...p, [a.title]: r.message }));
-    } catch {
-      setDoneActions((p) => ({ ...p, [a.title]: 'Could not complete — try again.' }));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  if (loading) return <div className="coo"><div className="coo__loading">Loading your business…</div></div>;
+  if (loading) return (
+    <div className="coo">
+      <div className="coo__head"><div style={{ width: '100%' }}>
+        <Skeleton w={220} h={26} r={8} />
+        <div style={{ height: 10 }} />
+        <Skeleton w={280} h={14} r={6} />
+      </div></div>
+      <div style={{ height: 18 }} />
+      <div className="coo__kpis">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="coo__kpi" style={{ cursor: 'default' }}>
+            <Skeleton w={90} h={12} r={6} />
+            <div style={{ height: 12 }} />
+            <Skeleton w={130} h={24} r={7} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   if (needsSetup) return <Onboarding onDone={loadHome} />;
   if (!brief || brief.empty) {
     return (
@@ -115,17 +123,17 @@ export default function CooHomePage() {
       <div className="coo__kpis">
         <button className="coo__kpi" onClick={() => navigate('/money')}>
           <div className="coo__kpi-label">Cash on hand</div>
-          <div className="coo__kpi-value">{cedis(brief.cashOnHand)}</div>
+          <div className="coo__kpi-value"><CountUp value={brief.cashOnHand} format={cedis} /></div>
           {brief.cashRunwayWeeks != null && <div className="coo__kpi-note">~{brief.cashRunwayWeeks} weeks runway</div>}
         </button>
         <button className="coo__kpi" onClick={() => navigate('/customers')}>
           <div className="coo__kpi-label">Owed to you</div>
-          <div className="coo__kpi-value coo__neg">{cedis(brief.receivablesTotal)}</div>
+          <div className="coo__kpi-value coo__neg"><CountUp value={brief.receivablesTotal} format={cedis} /></div>
           <div className="coo__kpi-note">{brief.receivablesCount} customer{brief.receivablesCount === 1 ? '' : 's'}</div>
         </button>
         <button className="coo__kpi" onClick={() => navigate('/reports')}>
           <div className="coo__kpi-label">Sales this week</div>
-          <div className="coo__kpi-value">{cedis(brief.salesThisWeek)}</div>
+          <div className="coo__kpi-value"><CountUp value={brief.salesThisWeek} format={cedis} /></div>
           {trend != null && (
             <div className={`coo__kpi-note ${trend >= 0 ? 'coo__pos' : 'coo__neg'}`}>
               {trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}% vs last week
@@ -141,30 +149,11 @@ export default function CooHomePage() {
         )}
       </div>
 
-      {/* Decision cards */}
-      {brief.actions.length > 0 && (
-        <div className="coo__section">
-          <div className="coo__section-title">INT recommends</div>
-          <div className="coo__cards">
-            {brief.actions.map((a) => (
-              <div key={a.title} className="coo__card">
-                <div className="coo__card-title">{a.title}</div>
-                <div className="coo__card-detail">{a.detail}</div>
-                {doneActions[a.title] ? (
-                  <div className="coo__card-done">✓ {doneActions[a.title]}</div>
-                ) : (
-                  <div className="coo__card-actions">
-                    <button className="coo__btn coo__btn--pri" disabled={busy === a.title} onClick={() => approve(a)}>
-                      {busy === a.title ? 'Working…' : a.cta}
-                    </button>
-                    <button className="coo__btn" onClick={() => setDoneActions((p) => ({ ...p, [a.title]: 'Dismissed.' }))}>Not now</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Proactive INT — briefing + nudges INT wants to raise, with drafted actions */}
+      <ProactiveFeed />
+
+      {/* Offer to send the daily summary to this phone */}
+      <NotifyToggle />
 
       <div className="coo__cols">
         {/* Who owes you */}

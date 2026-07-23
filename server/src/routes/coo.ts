@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../db.js';
 import { optionalAuth } from '../middleware/auth.js';
 import { generateText } from '../ai/insight.js';
+import { computeNudges, computeBriefing } from '../coo/signals.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();
@@ -336,6 +337,63 @@ router.get('/insights', async (req: AuthenticatedRequest, res) => {
 
   const narrative = (await generateText(system, `Here are today's figures:\n${data}\n\nWrite the note.`)) || fallback;
   res.json({ narrative, generated: narrative !== fallback, currency: 'GH₵' });
+});
+
+// Proactive feed: the short cards INT wants to raise, most pressing first.
+router.get('/nudges', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.json({ nudges: [] });
+  try {
+    res.json({ nudges: await computeNudges(ws), currency: 'GH₵' });
+  } catch {
+    res.json({ nudges: [] });
+  }
+});
+
+// The morning / end-of-day stand-up (also what the push cron sends).
+router.get('/briefing', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.json({ empty: true });
+  const slot = req.query.slot === 'evening' ? 'evening' : 'morning';
+  const briefing = await computeBriefing(ws, slot);
+  res.json({ ...briefing, currency: 'GH₵' });
+});
+
+// Draft a short, ready-to-send message for a proactive action (a WhatsApp
+// reminder to a debtor, or a supplier restock request). INT writes it warmly;
+// a deterministic template is used when no model key is set.
+router.post('/draft', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.status(400).json({ error: 'No business' });
+  const b = req.body || {};
+  const purpose = String(b.purpose || '');
+  const workspace = await prisma.workspace.findUnique({ where: { id: ws }, select: { name: true } });
+  const shop = workspace?.name && !/^(my |default )?workspace$/i.test(workspace.name) ? workspace.name : 'my shop';
+
+  if (purpose === 'reminder') {
+    const customer = String(b.customer || 'there').trim();
+    const amount = num(b.amount) || 0;
+    const fallback = `Hello ${customer}, this is a gentle reminder from ${shop} that you have a balance of GH₵ ${amount.toLocaleString()}. Whenever you're able, you can pay by MoMo or cash. Thank you so much! 🙏`;
+    const text = (await generateText(
+      `You are INT, writing on behalf of a small Ghanaian shop owner. Write a SHORT, warm, respectful WhatsApp message reminding a customer of an unpaid balance. Never be harsh. Mention MoMo or cash. One short paragraph, in Ghana cedis. Output only the message text.`,
+      `Shop: ${shop}. Customer: ${customer}. Balance owed: GH₵ ${amount}. Write the reminder.`,
+    )) || fallback;
+    return res.json({ text, generated: text !== fallback });
+  }
+
+  if (purpose === 'restock') {
+    const name = String(b.name || 'stock').trim();
+    const qty = int(b.qty) || 0;
+    const unit = String(b.unit || 'unit').trim();
+    const fallback = `Hello, this is ${shop}. Please I'd like to reorder ${qty} ${unit}${qty === 1 ? '' : 's'} of ${name}. Kindly let me know the price and when you can deliver. Thank you!`;
+    const text = (await generateText(
+      `You are INT, writing on behalf of a small Ghanaian shop owner to their supplier. Write a SHORT, polite WhatsApp message requesting a restock, asking for price and delivery time. One short paragraph. Output only the message text.`,
+      `Shop: ${shop}. Item: ${name}. Quantity: ${qty} ${unit}. Write the supplier message.`,
+    )) || fallback;
+    return res.json({ text, generated: text !== fallback });
+  }
+
+  return res.status(400).json({ error: 'Unknown draft purpose' });
 });
 
 router.get('/inventory', async (req: AuthenticatedRequest, res) => {

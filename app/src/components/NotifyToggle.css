@@ -1,0 +1,39 @@
+/* "Get your daily summary on this phone" card on Home. */
+.notify {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 0 0 18px;
+}
+.notify--on { border-color: var(--accent-border, var(--border-strong)); background: linear-gradient(135deg, var(--accent-dim), transparent 90%), var(--bg-raised); }
+.notify__icon { font-size: 22px; line-height: 1.3; flex-shrink: 0; }
+.notify__body { flex: 1; min-width: 0; }
+.notify__title { font-size: 14.5px; font-weight: 700; margin-bottom: 3px; }
+.notify__text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.notify__msg { font-size: 12.5px; color: var(--accent-strong); margin-top: 8px; font-weight: 600; }
+.notify__actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.notify__btn {
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.notify__btn:hover { border-color: var(--accent-border); }
+.notify__btn--pri { border-color: transparent; background: var(--accent); color: var(--on-accent); }
+.notify__btn--pri:hover { background: var(--accent-strong); }
+.notify__btn--ghost { border-color: transparent; background: transparent; color: var(--text-muted); }
+
+@media (max-width: 560px) {
+  .notify { flex-wrap: wrap; }
+  .notify__actions { flex-direction: row; width: 100%; }
+  .notify__btn { flex: 1; text-align: center; }
+}

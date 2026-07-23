@@ -334,6 +334,61 @@ export async function getInsight(): Promise<CooInsight> {
   return data;
 }
 
+// --- Proactive INT: nudges, briefing, drafted messages ---
+export interface NudgeAction { type: 'restock' | 'remind' | 'navigate'; label: string; payload: Record<string, any> }
+export interface Nudge {
+  id: string;
+  kind: 'low_stock' | 'debt' | 'cash' | 'win' | 'quiet';
+  severity: 'urgent' | 'warning' | 'info' | 'good';
+  emoji: string;
+  title: string;
+  body: string;
+  action?: NudgeAction;
+}
+export async function getNudges(): Promise<Nudge[]> {
+  const { data } = await api.get<{ nudges: Nudge[] }>('/coo/nudges');
+  return data.nudges;
+}
+
+export interface Briefing {
+  empty?: boolean;
+  slot: 'morning' | 'evening';
+  title: string;
+  yesterday: { sales: number; count: number };
+  today: { sales: number; count: number };
+  cashOnHand: number;
+  focus: string[];
+  watch: string | null;
+}
+export async function getBriefing(slot: 'morning' | 'evening'): Promise<Briefing> {
+  const { data } = await api.get<Briefing>(`/coo/briefing?slot=${slot}`);
+  return data;
+}
+
+export async function draftMessage(input:
+  | { purpose: 'reminder'; customer: string; amount: number }
+  | { purpose: 'restock'; name: string; qty: number; unit: string }
+): Promise<{ text: string; generated: boolean }> {
+  const { data } = await api.post<{ text: string; generated: boolean }>('/coo/draft', input);
+  return data;
+}
+
+// --- Phone push notifications ---
+export async function getPushKey(): Promise<{ publicKey: string | null; enabled: boolean }> {
+  const { data } = await api.get<{ publicKey: string | null; enabled: boolean }>('/push/key');
+  return data;
+}
+export async function savePushSubscription(subscription: PushSubscriptionJSON): Promise<void> {
+  await api.post('/push/subscribe', { subscription });
+}
+export async function removePushSubscription(endpoint: string): Promise<void> {
+  await api.post('/push/unsubscribe', { endpoint });
+}
+export async function sendTestPush(): Promise<{ sent: number }> {
+  const { data } = await api.post<{ sent: number }>('/push/test', {});
+  return data;
+}
+
 export interface SetupStatus { needsSetup: boolean; shopName: string }
 export async function getSetupStatus(): Promise<SetupStatus> {
   const { data } = await api.get<SetupStatus>('/coo/setup');

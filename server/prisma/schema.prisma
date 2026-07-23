@@ -470,3 +470,17 @@ model CooAction {
 
   @@index([workspaceId])
 }
+
+// A browser/phone that has opted in to push notifications (the daily briefing).
+// One row per device (endpoint). Removed automatically when the push service
+// reports the subscription is gone (410/404).
+model PushSubscription {
+  id          String   @id @default(uuid())
+  workspaceId String
+  endpoint    String   @unique
+  p256dh      String
+  auth        String
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+}

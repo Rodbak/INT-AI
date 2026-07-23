@@ -1,0 +1,20 @@
+.sk {
+  display: block;
+  background: var(--bg-active, rgba(127, 127, 127, 0.10));
+  position: relative;
+  overflow: hidden;
+}
+.sk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--bg-raised, rgba(255, 255, 255, 0.14)), transparent);
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes sk-shimmer {
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk::after { animation: none; }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import BizSheet from '../components/BizSheet';
+import { SkeletonRows } from '../components/Skeleton';
 import { cedis } from '../lib/money';
 import { getExpenses, recordExpense, updateExpense, deleteExpense, getCooBrief, type CooExpense } from '../lib/api';
 import './Business.css';
@@ -105,7 +106,7 @@ export default function MoneyPage() {
 
       <p className="biz__section-label">Recent expenses</p>
       {loading ? (
-        <div className="biz__empty">Loading…</div>
+        <SkeletonRows />
       ) : expenses.length === 0 ? (
         <div className="biz__list"><div className="biz__empty">No expenses yet. Record what you spend to keep your cash accurate.</div></div>
       ) : (

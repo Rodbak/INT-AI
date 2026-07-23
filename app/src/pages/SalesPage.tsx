@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import BizSheet from '../components/BizSheet';
+import { SkeletonRows } from '../components/Skeleton';
 import { cedis } from '../lib/money';
 import {
   getSales, recordSale, deleteSale, getCustomers, getProducts,
@@ -123,7 +124,7 @@ export default function SalesPage() {
         <input className="biz__search" placeholder="Search by customer or number…" value={query} onChange={(e) => setQuery(e.target.value)} />
       )}
       {loading ? (
-        <div className="biz__empty">Loading…</div>
+        <SkeletonRows />
       ) : filtered.length === 0 ? (
         <div className="biz__list"><div className="biz__empty">{query ? 'No sales match your search.' : 'No sales yet. Tap “Record a sale” to add your first one.'}</div></div>
       ) : (
