@@ -48,6 +48,32 @@
 .biz__primary:hover { background: var(--accent-strong); }
 .biz__primary-plus { font-size: 18px; line-height: 1; }
 
+/* Secondary (outline) variant of the primary button, e.g. "Scan a photo" */
+.biz__primary--ghost {
+  background: var(--bg-raised);
+  color: var(--accent-strong);
+  border: 1px solid var(--accent-border, var(--border-strong));
+}
+.biz__primary--ghost:hover { background: var(--accent-dim); }
+.biz__primary--ghost:disabled { opacity: 0.7; cursor: default; }
+.biz__head-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Photo-to-inventory review rows */
+.scan__row { display: flex; gap: 8px; align-items: center; margin-bottom: 9px; }
+.scan__name { flex: 1; }
+.scan__qty { width: 74px; text-align: center; }
+.scan__x {
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 18px; line-height: 1;
+  cursor: pointer;
+}
+.scan__x:hover { color: var(--danger); border-color: var(--danger); }
+
 /* Summary strip (e.g. cash on hand on the Money page) */
 .biz__summary {
   display: grid;
@@ -293,6 +319,18 @@
   font-size: 13px;
   margin-top: 12px;
 }
+
+/* Inline INT warning (e.g. selling on credit to a slow payer) */
+.biz__warn {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 11px 13px;
+  border-radius: 11px;
+  margin-top: 4px;
+}
+.biz__warn--risky { color: var(--danger); background: var(--danger-dim, rgba(239,68,68,0.12)); }
+.biz__warn--okay { color: var(--warning, #b45309); background: rgba(245,158,11,0.12); }
+.biz__warn b { font-weight: 800; }
 
 /* Delete affordance inside an edit sheet */
 .biz__delete-row {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import BizSheet from '../components/BizSheet';
 import { SkeletonRows } from '../components/Skeleton';
+import MoneyCapture from '../components/MoneyCapture';
 import { cedis } from '../lib/money';
 import { getExpenses, recordExpense, updateExpense, deleteExpense, getCooBrief, type CooExpense } from '../lib/api';
 import './Business.css';
@@ -86,9 +87,12 @@ export default function MoneyPage() {
           <h1 className="biz__title">Money</h1>
           <p className="biz__sub">Record money you spend so your cash figure stays right.</p>
         </div>
-        <button className="biz__primary" onClick={openAdd}>
-          <span className="biz__primary-plus">＋</span> Record an expense
-        </button>
+        <div className="biz__head-actions">
+          <MoneyCapture onDone={(msg) => { flash(msg); load(); }} />
+          <button className="biz__primary" onClick={openAdd}>
+            <span className="biz__primary-plus">＋</span> Record an expense
+          </button>
+        </div>
       </div>
 
       <div className="biz__summary">

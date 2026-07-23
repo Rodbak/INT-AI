@@ -54,6 +54,25 @@ CRON_SECRET=c0b2bcae4ae76038e0a289eeef6adf8701ec0d602cba2053
 Everything else in `server/.env.example` (Google/Slack/Stripe/OpenAI/Anthropic/Redis)
 is **optional** — the app runs without them.
 
+### New in `trust-vision-1`
+- **Customer trust score** is automatic — no setup, no keys. It reads existing
+  payment history and shows a badge on each customer + a gentle warning when you
+  sell on credit to a slow payer.
+- **Photo-to-inventory** (Stock → "Scan a photo") uses your `OPENROUTER_API_KEY`.
+  The button only appears when that key is set. To pick a specific vision model,
+  set `OPENROUTER_VISION_MODEL` (defaults to `anthropic/claude-3.5-sonnet`).
+
+### New in `money-capture-1`
+- **Log from a MoMo/bank message** (Money → "From a MoMo message"): paste an SMS
+  and INT reads the amount, direction and sender. Works **without any key** (a
+  deterministic parser handles MTN/Telecel/AirtelTigo/bank formats); your
+  `OPENROUTER_API_KEY` is only a fallback for unusual messages. Money **in** always
+  asks how to file it (debt payment / sale / other cash-in) — money taken at the
+  till stays a normal cash-in and doesn't go through here. Money **out** is
+  proposed as an expense with a suggested category to confirm.
+- This is phase 1 of money automation. Phase 2 (a payment-provider API for
+  hands-free ingestion) and phase 3 (an Android SMS companion) are planned next.
+
 ### About the daily briefing schedule
 `vercel.json` already declares two cron jobs (Vercel → your project runs them automatically):
 - **07:00 Accra** → morning stand-up push

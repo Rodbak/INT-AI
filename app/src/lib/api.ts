@@ -389,6 +389,38 @@ export async function sendTestPush(): Promise<{ sent: number }> {
   return data;
 }
 
+// --- Photo-to-inventory ---
+export interface ScannedItem { name: string; qty: number; unit?: string; price?: number | null }
+export async function getVisionAvailable(): Promise<boolean> {
+  try { const { data } = await api.get<{ available: boolean }>('/coo/vision/available'); return data.available; }
+  catch { return false; }
+}
+export async function scanStockPhoto(image: string): Promise<ScannedItem[]> {
+  const { data } = await api.post<{ items: ScannedItem[] }>('/coo/vision/stock', { image });
+  return data.items;
+}
+export async function bulkAddProducts(items: ScannedItem[]): Promise<{ created: number; updated: number; message: string }> {
+  const { data } = await api.post<{ created: number; updated: number; message: string }>('/coo/products/bulk', { items });
+  return data;
+}
+
+// --- Money capture (paste a MoMo/bank message) ---
+export interface ParsedMoney {
+  direction: 'in' | 'out' | 'unknown';
+  amount: number | null;
+  counterparty: string | null;
+  phone: string | null;
+  reference: string | null;
+  category: string | null;
+  matchedCustomerId: string | null;
+  matchedCustomerName: string | null;
+  matchedOwed: number;
+}
+export async function parseMoneyMessage(text: string): Promise<ParsedMoney> {
+  const { data } = await api.post<ParsedMoney>('/coo/money/parse', { text });
+  return data;
+}
+
 export interface SetupStatus { needsSetup: boolean; shopName: string }
 export async function getSetupStatus(): Promise<SetupStatus> {
   const { data } = await api.get<SetupStatus>('/coo/setup');
@@ -409,7 +441,18 @@ export async function approveCooAction(action: { kind: string; title: string; de
 }
 
 // --- Business management (customers, products, sales, payments, expenses) ---
-export interface CooCustomer { id: string; name: string; phone?: string | null; owed: number }
+export interface Trust {
+  score: number;
+  band: 'new' | 'reliable' | 'okay' | 'risky';
+  label: string;
+  reason: string;
+  creditSales: number;
+  onTimeRate: number | null;
+  avgDaysToPay: number | null;
+  outstanding: number;
+  maxOverdueDays: number;
+}
+export interface CooCustomer { id: string; name: string; phone?: string | null; owed: number; trust?: Trust | null }
 export interface CooProduct { id: string; name: string; sku?: string | null; price: number; cost: number; stock: number; reorderPoint: number; unit: string; low: boolean }
 export interface CooSale { id: string; number: string; customer: string; amount: number; status: string; outstanding: number; issuedAt: string }
 export interface CooExpense { id: string; category: string; amount: number; note?: string | null; spentAt: string }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import BizSheet from '../components/BizSheet';
 import { SkeletonRows } from '../components/Skeleton';
+import TrustBadge from '../components/TrustBadge';
 import { cedis } from '../lib/money';
 import { getCustomers, addCustomer, updateCustomer, deleteCustomer, recordPayment, type CooCustomer } from '../lib/api';
 import './Business.css';
@@ -20,6 +21,7 @@ export default function CustomersPage() {
   // add / edit customer
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTrust, setEditingTrust] = useState<CooCustomer['trust']>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
@@ -43,8 +45,8 @@ export default function CustomersPage() {
     return q ? visible.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || '').includes(q)) : visible;
   }, [visible, query]);
 
-  const openAdd = () => { setEditingId(null); setName(''); setPhone(''); setConfirmDel(false); setError(''); setOpen(true); };
-  const openEdit = (c: CooCustomer) => { setEditingId(c.id); setName(c.name); setPhone(c.phone || ''); setConfirmDel(false); setError(''); setOpen(true); };
+  const openAdd = () => { setEditingId(null); setEditingTrust(null); setName(''); setPhone(''); setConfirmDel(false); setError(''); setOpen(true); };
+  const openEdit = (c: CooCustomer) => { setEditingId(c.id); setEditingTrust(c.trust ?? null); setName(c.name); setPhone(c.phone || ''); setConfirmDel(false); setError(''); setOpen(true); };
 
   const saveCustomer = async () => {
     setError('');
@@ -129,6 +131,9 @@ export default function CustomersPage() {
               <div>
                 <div className="biz__row-main">{c.name}</div>
                 <div className="biz__row-sub">{c.phone || 'No phone saved'}</div>
+                {c.trust && c.trust.band !== 'new' && (
+                  <div style={{ marginTop: 6 }}><TrustBadge trust={c.trust} /></div>
+                )}
               </div>
               <div className="biz__row-right">
                 {c.owed > 0
@@ -154,6 +159,15 @@ export default function CustomersPage() {
             <label className="biz__label" htmlFor="cust-phone">Phone (optional)</label>
             <input id="cust-phone" className="biz__input" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. 024 555 0101" />
           </div>
+          {editingId && editingTrust && (
+            <div className="biz__field">
+              <span className="biz__label">How they pay back</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <TrustBadge trust={editingTrust} showScore />
+              </div>
+              <p className="biz__row-sub">{editingTrust.reason}</p>
+            </div>
+          )}
           {error && <div className="biz__error">{error}</div>}
           <div className="biz__sheet-actions">
             <button className="biz__cancel" onClick={() => setOpen(false)}>Cancel</button>

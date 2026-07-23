@@ -3,6 +3,9 @@ import { prisma } from '../db.js';
 import { optionalAuth } from '../middleware/auth.js';
 import { generateText } from '../ai/insight.js';
 import { computeNudges, computeBriefing } from '../coo/signals.js';
+import { computeTrust } from '../coo/trust.js';
+import { extractStockFromImage, visionAvailable } from '../ai/vision.js';
+import { parseMoneyMessage, guessCategory } from '../coo/momo.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();
@@ -463,9 +466,10 @@ async function refreshInvoiceStatus(invoiceId: string) {
 router.get('/customers', async (req: AuthenticatedRequest, res) => {
   const ws = await resolveWorkspaceId(req);
   if (!ws) return res.json({ customers: [] });
-  const [customers, invoices] = await Promise.all([
+  const [customers, invoices, trust] = await Promise.all([
     prisma.customer.findMany({ where: { workspaceId: ws }, orderBy: { name: 'asc' } }),
     prisma.salesInvoice.findMany({ where: { workspaceId: ws }, select: { customerId: true, amount: true, status: true, payments: { select: { amount: true } } } }),
+    computeTrust(ws),
   ]);
   const owedBy = new Map<string, number>();
   for (const inv of invoices) {
@@ -475,7 +479,11 @@ router.get('/customers', async (req: AuthenticatedRequest, res) => {
     owedBy.set(inv.customerId, (owedBy.get(inv.customerId) || 0) + out);
   }
   res.json({
-    customers: customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone, owed: Math.round(owedBy.get(c.id) || 0) })),
+    customers: customers.map((c) => ({
+      id: c.id, name: c.name, phone: c.phone,
+      owed: Math.round(owedBy.get(c.id) || 0),
+      trust: trust.get(c.id) || null,
+    })),
   });
 });
 
@@ -523,6 +531,55 @@ router.get('/products', async (req: AuthenticatedRequest, res) => {
   if (!ws) return res.json({ products: [] });
   const products = await prisma.product.findMany({ where: { workspaceId: ws }, orderBy: { name: 'asc' } });
   res.json({ products: products.map((p) => ({ ...p, low: p.stock <= p.reorderPoint })) });
+});
+
+// Is photo-to-inventory available (i.e. is a model key configured)?
+router.get('/vision/available', (_req, res) => res.json({ available: visionAvailable() }));
+
+// Read a photo of stock / a shelf / an invoice and propose products to add.
+router.post('/vision/stock', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.status(400).json({ error: 'No business' });
+  if (!visionAvailable()) return res.status(400).json({ error: 'Photo scanning needs an OpenRouter key.', code: 'no_key' });
+  const image = String(req.body?.image || '');
+  if (!image.startsWith('data:image')) return res.status(400).json({ error: 'No image received.' });
+  const items = await extractStockFromImage(image);
+  if (!items) return res.status(502).json({ error: "INT couldn't read that photo. Try a clearer, well-lit picture." });
+  res.json({ items });
+});
+
+// Add several products at once (from photo-to-inventory). Matches existing
+// products by name (case-insensitive) and tops up their stock; otherwise creates.
+router.post('/products/bulk', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.status(400).json({ error: 'No business' });
+  const items: any[] = Array.isArray(req.body?.items) ? req.body.items : [];
+  let created = 0;
+  let updated = 0;
+  for (const it of items) {
+    const name = String(it?.name || '').trim();
+    if (!name) continue;
+    const qty = int(it.qty) || 0;
+    const existing = await prisma.product.findFirst({ where: { workspaceId: ws, name: { equals: name, mode: 'insensitive' } } });
+    if (existing) {
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: { stock: existing.stock + qty, ...(num(it.price) > 0 ? { price: num(it.price) } : {}) },
+      });
+      updated++;
+    } else {
+      await prisma.product.create({
+        data: {
+          workspaceId: ws, name,
+          price: num(it.price) || 0, cost: num(it.cost) || 0,
+          stock: qty, reorderPoint: int(it.reorderPoint) || 0,
+          unit: String(it.unit || 'unit').trim() || 'unit',
+        },
+      });
+      created++;
+    }
+  }
+  res.status(201).json({ created, updated, message: `Added ${created} new item${created === 1 ? '' : 's'}${updated ? `, updated ${updated}` : ''}.` });
 });
 
 router.post('/products', async (req: AuthenticatedRequest, res) => {
@@ -722,6 +779,68 @@ router.post('/payments', async (req: AuthenticatedRequest, res) => {
   if (!(amount > 0)) return res.status(400).json({ error: 'Enter an amount' });
   await prisma.payment.create({ data: { workspaceId: ws, invoiceId: null, customerId: null, amount, method, receivedAt: now } });
   res.status(201).json({ message: `Payment of GH₵ ${amount.toLocaleString()} recorded.` });
+});
+
+// ── Money capture: parse a pasted MoMo / bank message ────────────────────────
+// Returns a proposal only; the client confirms and then calls the normal
+// /payments, /sales or /expenses endpoints. Money entered at the till is a plain
+// cash-in already — this is for messages that arrive outside a sale.
+router.post('/money/parse', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.status(400).json({ error: 'No business' });
+  const text = String(req.body?.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Paste the message first.' });
+
+  const parsed = parseMoneyMessage(text);
+
+  // LLM fallback only when the deterministic parser is unsure.
+  if (parsed.amount == null || parsed.direction === 'unknown') {
+    const ai = await generateText(
+      `You extract ONE money movement from a Ghanaian mobile-money or bank SMS. ` +
+      `Reply with ONLY JSON: {"direction":"in|out","amount":number,"counterparty":string|null}. ` +
+      `"in" = money received into the account; "out" = money sent, paid, or withdrawn.`,
+      text,
+    );
+    if (ai) {
+      try {
+        const j = JSON.parse(ai.slice(ai.indexOf('{'), ai.lastIndexOf('}') + 1));
+        if (parsed.amount == null && Number(j.amount) > 0) parsed.amount = Number(j.amount);
+        if (parsed.direction === 'unknown' && (j.direction === 'in' || j.direction === 'out')) parsed.direction = j.direction;
+        if (!parsed.counterparty && j.counterparty) parsed.counterparty = String(j.counterparty).trim();
+      } catch { /* ignore bad JSON */ }
+    }
+    if (parsed.direction === 'out' && !parsed.category) parsed.category = guessCategory(text);
+  }
+
+  // For money in, try to match a customer who owes (by phone, then name).
+  let matchedCustomerId: string | null = null;
+  let matchedCustomerName: string | null = null;
+  let matchedOwed = 0;
+  if (parsed.direction === 'in') {
+    const [customers, invoices] = await Promise.all([
+      prisma.customer.findMany({ where: { workspaceId: ws }, select: { id: true, name: true, phone: true } }),
+      prisma.salesInvoice.findMany({ where: { workspaceId: ws, status: { not: 'paid' } }, select: { customerId: true, amount: true, payments: { select: { amount: true } } } }),
+    ]);
+    const owedBy = new Map<string, number>();
+    for (const inv of invoices) {
+      const out = Math.max(0, inv.amount - inv.payments.reduce((s, p) => s + p.amount, 0));
+      if (out > 0.5) owedBy.set(inv.customerId, (owedBy.get(inv.customerId) || 0) + out);
+    }
+    const wantPhone = (parsed.phone || '').replace(/\D/g, '').replace(/^233/, '0');
+    const wantName = (parsed.counterparty || '').toLowerCase();
+    let best: { id: string; name: string; owed: number } | null = null;
+    for (const c of customers) {
+      const owed = owedBy.get(c.id) || 0;
+      if (owed <= 0.5) continue;
+      const cPhone = (c.phone || '').replace(/\D/g, '').replace(/^233/, '0');
+      const phoneHit = Boolean(wantPhone && cPhone && cPhone === wantPhone);
+      const nameHit = Boolean(wantName && c.name.toLowerCase().split(/\s+/).some((w) => w.length > 2 && wantName.includes(w)));
+      if (phoneHit || nameHit) { if (!best || owed > best.owed) best = { id: c.id, name: c.name, owed }; }
+    }
+    if (best) { matchedCustomerId = best.id; matchedCustomerName = best.name; matchedOwed = Math.round(best.owed); }
+  }
+
+  res.json({ ...parsed, matchedCustomerId, matchedCustomerName, matchedOwed, currency: 'GH₵' });
 });
 
 // ── Expenses ─────────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import BizSheet from '../components/BizSheet';
 import { SkeletonRows } from '../components/Skeleton';
+import StockScan from '../components/StockScan';
 import { cedis } from '../lib/money';
 import { getProducts, addProduct, updateProduct, deleteProduct, type CooProduct } from '../lib/api';
 import './Business.css';
@@ -94,9 +95,12 @@ export default function StockPage() {
           <h1 className="biz__title">Stock</h1>
           <p className="biz__sub">Keep track of what you have. INT warns you before you run out.</p>
         </div>
-        <button className="biz__primary" onClick={openAdd}>
-          <span className="biz__primary-plus">＋</span> Add product
-        </button>
+        <div className="biz__head-actions">
+          <StockScan onDone={(msg) => { flash(msg); load(); }} />
+          <button className="biz__primary" onClick={openAdd}>
+            <span className="biz__primary-plus">＋</span> Add product
+          </button>
+        </div>
       </div>
 
       {lowCount > 0 && (

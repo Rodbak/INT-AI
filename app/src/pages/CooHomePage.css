@@ -103,6 +103,14 @@
 .coo__quick-btn span { font-size: 16px; line-height: 1; }
 .coo__quick-btn:hover { border-color: var(--accent); }
 
+/* The till is the main POS action — give it a solid accent so it stands out. */
+.coo__quick-btn--till {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+.coo__quick-btn--till:hover { background: var(--accent-strong); border-color: transparent; }
+
 .coo__kpi-label {
   font-size: 12px;
   color: var(--text-muted);

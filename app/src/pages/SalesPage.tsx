@@ -214,7 +214,17 @@ export default function SalesPage() {
             </div>
           )}
 
-          {!paid && <p className="biz__row-sub">This will be added to what the customer owes you.</p>}
+          {!paid && (() => {
+            const c = customers.find((x) => x.id === customerId);
+            if (c?.trust && (c.trust.band === 'risky' || c.trust.band === 'okay')) {
+              return (
+                <div className={`biz__warn biz__warn--${c.trust.band}`}>
+                  <b>⚠️ INT: </b>{c.trust.reason} {c.trust.band === 'risky' ? 'Maybe ask for part-payment now?' : ''}
+                </div>
+              );
+            }
+            return <p className="biz__row-sub">This will be added to what the customer owes you.</p>;
+          })()}
           {error && <div className="biz__error">{error}</div>}
 
           <div className="biz__sheet-actions">
