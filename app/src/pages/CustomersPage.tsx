@@ -67,6 +67,17 @@ export default function CustomersPage() {
     finally { setSaving(false); }
   };
 
+  // Open WhatsApp with a friendly, pre-filled reminder. Formats a Ghana number
+  // (leading 0 → +233) so wa.me opens the right chat; no phone → share sheet.
+  const remindOnWhatsApp = (c: CooCustomer) => {
+    const digits = (c.phone || '').replace(/\D/g, '');
+    const intl = digits.startsWith('233') ? digits : digits.startsWith('0') ? `233${digits.slice(1)}` : digits;
+    const shop = (() => { try { return localStorage.getItem('int-shop') || 'my shop'; } catch { return 'my shop'; } })();
+    const msg = `Hello ${c.name}, this is a friendly reminder that you have a balance of ${cedis(c.owed)} at ${shop}. Whenever you're able, you can pay by MoMo or cash. Thank you! 🙏`;
+    const base = intl ? `https://wa.me/${intl}` : 'https://wa.me/';
+    window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   const openPay = (c: CooCustomer) => { setPayFor(c); setPayAmount(String(c.owed)); setMethod('momo'); setError(''); };
   const savePayment = async () => {
     if (!payFor) return;
@@ -121,7 +132,10 @@ export default function CustomersPage() {
               <div className="biz__row-right">
                 {c.owed > 0
                   ? <><div className="biz__row-amt biz__neg">Owes {cedis(c.owed)}</div>
-                      <span className="biz__mini" onClick={(e) => { e.stopPropagation(); openPay(c); }}>Record payment</span></>
+                      <div className="biz__row-btns">
+                        <span className="biz__mini biz__mini--wa" onClick={(e) => { e.stopPropagation(); remindOnWhatsApp(c); }}>Remind</span>
+                        <span className="biz__mini" onClick={(e) => { e.stopPropagation(); openPay(c); }}>Record payment</span>
+                      </div></>
                   : <span className="biz__pill biz__pill--paid">Paid up</span>}
               </div>
             </button>

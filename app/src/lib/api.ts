@@ -321,9 +321,16 @@ export interface CooReport {
   topProducts: { name: string; revenue: number; profit: number }[];
   weekday: { day: string; sales: number }[];
   busiestDay: string | null;
+  dailySales: { date: string; label: string; sales: number }[];
 }
 export async function getReport(): Promise<CooReport> {
   const { data } = await api.get<CooReport>('/coo/reports');
+  return data;
+}
+
+export interface CooInsight { narrative: string | null; generated: boolean }
+export async function getInsight(): Promise<CooInsight> {
+  const { data } = await api.get<CooInsight>('/coo/insights');
   return data;
 }
 

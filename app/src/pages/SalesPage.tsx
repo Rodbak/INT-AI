@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import BizSheet from '../components/BizSheet';
 import { cedis } from '../lib/money';
 import {
@@ -34,11 +35,19 @@ export default function SalesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const load = async () => {
     const [s, c, p] = await Promise.all([getSales(), getCustomers(), getProducts()]);
     setSales(s); setCustomers(c); setProducts(p); setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  // Deep-link from Home's "Record a sale" quick action opens the sheet.
+  useEffect(() => {
+    if (searchParams.get('new') != null) { reset(); setOpen(true); setSearchParams({}, { replace: true }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3200); };
 

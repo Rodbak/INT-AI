@@ -41,10 +41,20 @@ export default function CurrentTaskPage() {
     useStreamingChat(activeId);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
+  // Restore the exact conversation you were in across a page reload: remember
+  // the active id, and on load pick it back up (falling back to the newest).
   useEffect(() => {
-    if (conversations.length > 0 && !activeId) {
-      setActiveId(conversations[0].id);
+    if (activeId) {
+      try { localStorage.setItem('int-active-conv', activeId); } catch { /* ignore */ }
     }
+  }, [activeId]);
+
+  useEffect(() => {
+    if (activeId || conversations.length === 0) return;
+    let saved: string | null = null;
+    try { saved = localStorage.getItem('int-active-conv'); } catch { /* ignore */ }
+    const restore = saved && conversations.some((c) => c.id === saved) ? saved : conversations[0].id;
+    setActiveId(restore);
   }, [conversations, activeId]);
 
   useEffect(() => {
@@ -356,7 +366,20 @@ export default function CurrentTaskPage() {
                 <div className="current-task__empty">
                   <div className="current-task__empty-icon">I</div>
                   <h2>Ask me anything about your business</h2>
-                  <p>Try “Who hasn’t paid me?”, “Should I restock anything?”, or “How much cash do I have?” — I use your real figures to answer.</p>
+                  <p>I use your real figures to answer. Tap a question to start:</p>
+                  <div className="current-task__chips">
+                    {[
+                      'Who hasn’t paid me?',
+                      'How much cash do I have?',
+                      'What sold best this week?',
+                      'Should I restock anything?',
+                      'How is my business doing?',
+                    ].map((q) => (
+                      <button key={q} type="button" className="current-task__chip" onClick={() => handleSend(q)}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

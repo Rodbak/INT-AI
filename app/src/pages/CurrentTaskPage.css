@@ -120,6 +120,30 @@
   max-width: 400px;
 }
 
+.current-task__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 18px;
+  max-width: 460px;
+}
+.current-task__chip {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.current-task__chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
 .current-task__error {
   padding: 12px 16px;
   background: var(--danger-bg);

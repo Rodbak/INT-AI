@@ -76,7 +76,32 @@
   border-radius: 14px;
   padding: 16px 18px;
   box-shadow: 0 8px 22px -18px rgba(15, 23, 42, 0.3);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s, transform 0.1s;
 }
+.coo__kpi:hover { border-color: var(--accent-border); }
+.coo__kpi:active { transform: scale(0.99); }
+
+/* Quick actions */
+.coo__quick { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.coo__quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.coo__quick-btn span { font-size: 16px; line-height: 1; }
+.coo__quick-btn:hover { border-color: var(--accent); }
 
 .coo__kpi-label {
   font-size: 12px;

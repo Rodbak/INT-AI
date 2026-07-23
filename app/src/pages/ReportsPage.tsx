@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { cedis } from '../lib/money';
-import { getReport, type CooReport } from '../lib/api';
+import { getReport, getInsight, type CooReport } from '../lib/api';
+import InsightCard from '../components/InsightCard';
 import './Business.css';
 import './ReportsPage.css';
 
 export default function ReportsPage() {
   const [r, setR] = useState<CooReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [insight, setInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(true);
 
   useEffect(() => { getReport().then(setR).catch(() => {}).finally(() => setLoading(false)); }, []);
+  useEffect(() => { getInsight().then((i) => setInsight(i.narrative)).catch(() => {}).finally(() => setInsightLoading(false)); }, []);
 
   if (loading) return <div className="biz"><div className="biz__empty">Loading…</div></div>;
   if (!r || r.empty) {
@@ -33,6 +37,8 @@ export default function ReportsPage() {
           <p className="biz__sub">How your business is doing — {r.monthLabel}.</p>
         </div>
       </div>
+
+      <InsightCard text={insight} loading={insightLoading} />
 
       {/* Money in / out / net */}
       <div className="biz__summary rep__flow">
@@ -65,6 +71,28 @@ export default function ReportsPage() {
           <div className="rep__hint">what’s left after the cost of the items</div>
         </div>
       </div>
+
+      {/* Daily sales (last 14 days) */}
+      <p className="biz__section-label">Sales — last 14 days</p>
+      {r.dailySales.some((d) => d.sales > 0) ? (
+        <div className="rep__chart-card">
+          <div className="rep__bars rep__bars--daily">
+            {r.dailySales.map((d, i) => {
+              const maxD = Math.max(1, ...r.dailySales.map((x) => x.sales));
+              return (
+                <div key={d.date} className="rep__bar-col">
+                  <div className="rep__bar-track">
+                    <div className="rep__bar" style={{ height: `${Math.max(3, (d.sales / maxD) * 100)}%` }} title={`${d.label}: ${cedis(d.sales)}`} />
+                  </div>
+                  {i % 2 === 0 && <div className="rep__bar-label rep__bar-label--sm">{d.label.split(' ')[0]}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="biz__list"><div className="biz__empty">No sales recorded in the last two weeks yet.</div></div>
+      )}
 
       {/* Busiest days */}
       <p className="biz__section-label">Your busiest days</p>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import BizSheet from '../components/BizSheet';
 import { cedis } from '../lib/money';
 import { getExpenses, recordExpense, updateExpense, deleteExpense, getCooBrief, type CooExpense } from '../lib/api';
@@ -32,6 +33,13 @@ export default function MoneyPage() {
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 3200); };
 
   const openAdd = () => { setEditingId(null); setAmount(''); setCategory(CATEGORIES[0]); setNote(''); setConfirmDel(false); setError(''); setOpen(true); };
+
+  // Deep-link from Home's "Record an expense" quick action opens the sheet.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('new') != null) { openAdd(); setSearchParams({}, { replace: true }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const openEdit = (e: CooExpense) => {
     setEditingId(e.id); setAmount(String(e.amount));
     setCategory(e.category); // keep whatever it was, even if not a preset

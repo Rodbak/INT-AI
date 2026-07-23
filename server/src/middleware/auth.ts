@@ -1,6 +1,7 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthenticatedRequest, UserRole } from '../types.js';
 import { env } from '../env.js';
+import { ensureDemoContext } from '../bootstrap.js';
 
 // Real per-request auth is disabled — every request is attached to this one
 // user. It must match a real row in Supabase's auth.users (profiles has a
@@ -13,14 +14,16 @@ const DEMO_USER = {
 };
 
 export async function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
-  // Auth is disabled - attach demo user
+  // Auth is disabled - attach demo user (self-healing its profile/workspace).
   req.user = DEMO_USER;
+  await ensureDemoContext().catch(() => {});
   next();
 }
 
 export async function optionalAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
-  // Auth is disabled - attach demo user
+  // Auth is disabled - attach demo user (self-healing its profile/workspace).
   req.user = DEMO_USER;
+  await ensureDemoContext().catch(() => {});
   next();
 }
 

@@ -1,13 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCooBrief, getSetupStatus, approveCooAction, type CooBrief } from '../lib/api';
+import { getCooBrief, getSetupStatus, getInsight, approveCooAction, type CooBrief } from '../lib/api';
 import Onboarding from '../components/Onboarding';
+import InsightCard from '../components/InsightCard';
 import './CooHomePage.css';
 
 const cedis = (n: number) => `GH₵ ${Math.round(n).toLocaleString()}`;
 
+// Hour of day in the shop's timezone (Accra) so the greeting is right even if
+// the device clock/timezone is off.
+function accraHour(): number {
+  try {
+    return Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Africa/Accra' }).format(new Date()));
+  } catch {
+    return new Date().getHours();
+  }
+}
 function greeting() {
-  const h = new Date().getHours();
+  const h = accraHour();
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 }
 
@@ -18,6 +28,8 @@ export default function CooHomePage() {
   const [ask, setAsk] = useState('');
   const [doneActions, setDoneActions] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [insight, setInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(true);
   const navigate = useNavigate();
 
   const loadHome = () => {
@@ -29,6 +41,12 @@ export default function CooHomePage() {
         // Hand the shop name to the TopBar (which doesn't fetch the brief itself).
         const shop = b?.shopName || setup.shopName;
         if (shop) { try { localStorage.setItem('int-shop', shop); } catch { /* ignore */ } }
+        // A warm AI note about the day (only once we know the shop isn't empty).
+        if (b && !b.empty && !setup.needsSetup) {
+          getInsight().then((i) => setInsight(i.narrative)).catch(() => {}).finally(() => setInsightLoading(false));
+        } else {
+          setInsightLoading(false);
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -84,19 +102,28 @@ export default function CooHomePage() {
         <button className="coo__ask-btn" onClick={submitAsk}>Ask</button>
       </div>
 
-      {/* KPI tiles */}
+      {/* Quick actions */}
+      <div className="coo__quick">
+        <button className="coo__quick-btn" onClick={() => navigate('/sales?new=1')}><span>＋</span> Record a sale</button>
+        <button className="coo__quick-btn" onClick={() => navigate('/money?new=1')}><span>－</span> Record an expense</button>
+      </div>
+
+      {/* Warm AI note about today */}
+      <InsightCard text={insight} loading={insightLoading} />
+
+      {/* KPI tiles (tap to dig in) */}
       <div className="coo__kpis">
-        <div className="coo__kpi">
+        <button className="coo__kpi" onClick={() => navigate('/money')}>
           <div className="coo__kpi-label">Cash on hand</div>
           <div className="coo__kpi-value">{cedis(brief.cashOnHand)}</div>
           {brief.cashRunwayWeeks != null && <div className="coo__kpi-note">~{brief.cashRunwayWeeks} weeks runway</div>}
-        </div>
-        <div className="coo__kpi">
+        </button>
+        <button className="coo__kpi" onClick={() => navigate('/customers')}>
           <div className="coo__kpi-label">Owed to you</div>
           <div className="coo__kpi-value coo__neg">{cedis(brief.receivablesTotal)}</div>
           <div className="coo__kpi-note">{brief.receivablesCount} customer{brief.receivablesCount === 1 ? '' : 's'}</div>
-        </div>
-        <div className="coo__kpi">
+        </button>
+        <button className="coo__kpi" onClick={() => navigate('/reports')}>
           <div className="coo__kpi-label">Sales this week</div>
           <div className="coo__kpi-value">{cedis(brief.salesThisWeek)}</div>
           {trend != null && (
@@ -104,13 +131,13 @@ export default function CooHomePage() {
               {trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}% vs last week
             </div>
           )}
-        </div>
+        </button>
         {brief.bestSeller && (
-          <div className="coo__kpi">
+          <button className="coo__kpi" onClick={() => navigate('/stock')}>
             <div className="coo__kpi-label">Best seller</div>
             <div className="coo__kpi-value coo__kpi-value--sm">{brief.bestSeller.name}</div>
             <div className="coo__kpi-note coo__pos">{brief.bestSeller.marginPct}% margin</div>
-          </div>
+          </button>
         )}
       </div>
 

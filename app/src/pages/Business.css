@@ -147,6 +147,13 @@
   white-space: nowrap;
 }
 .biz__mini:hover { background: var(--accent-dim); border-color: var(--accent); }
+.biz__row-btns { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.biz__mini--wa {
+  border-color: rgba(37, 211, 102, 0.5);
+  background: rgba(37, 211, 102, 0.14);
+  color: #1eae54;
+}
+.biz__mini--wa:hover { border-color: #25d366; background: rgba(37, 211, 102, 0.2); }
 
 /* ── Toast ── */
 .biz__toast {

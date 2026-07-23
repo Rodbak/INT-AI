@@ -166,24 +166,26 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
     // Ground INT as the owner's COO with the live business snapshot, so
     // questions like "who hasn't paid?" are answered from real records.
     try {
-      const wsId = req.user?.id
-        ? (await prisma.workspaceUser.findFirst({ where: { userId: req.user.id }, select: { workspaceId: true } }))?.workspaceId
-        : (await prisma.workspace.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } }))?.id;
-      if (wsId) {
-        const b = await computeBrief(wsId);
+      const ws = req.user?.id
+        ? await prisma.workspaceUser.findFirst({ where: { userId: req.user.id }, select: { workspace: { select: { id: true, name: true } } } }).then((m) => m?.workspace)
+        : await prisma.workspace.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true, name: true } });
+      if (ws?.id) {
+        const b = await computeBrief(ws.id);
+        const shop = ws.name && !/^(my |default )?workspace$/i.test(ws.name) ? ws.name : null;
         const owes = b.receivables
           .map((r) => `${r.customer} GH₵${r.outstanding}${r.daysOverdue > 0 ? ` (${r.daysOverdue}d overdue)` : ''}`)
           .join('; ');
         systemParts.push(
-          `# The owner's business right now (real figures — money is Ghana cedis, GH₵)\n` +
+          `# ${shop ? `${shop} — the` : 'The'} owner's business right now (real figures, GH₵)\n` +
+            (shop ? `The shop is called "${shop}". Greet the owner warmly by this name when it fits.\n` : '') +
             `Cash on hand: GH₵ ${b.cashOnHand}. Runway: ${b.cashRunwayWeeks ?? '—'} weeks. ` +
             `Owed to you: GH₵ ${b.receivablesTotal} across ${b.receivablesCount} customers. ` +
             `Sales this week: GH₵ ${b.salesThisWeek}${b.trendPct != null ? ` (${b.trendPct >= 0 ? '+' : ''}${b.trendPct}% vs last week)` : ''}. ` +
             (b.bestSeller ? `Best seller: ${b.bestSeller.name} (${b.bestSeller.marginPct}% margin). ` : '') +
             (b.lowStock.length ? `Low stock: ${b.lowStock.map((p) => `${p.name} (${p.stock} left)`).join(', ')}. ` : '') +
             `\nWho owes: ${owes || 'nobody'}.\n` +
-            `You are INT, the owner's experienced AI COO. Answer from these figures, plainly and briefly, in cedis, ` +
-            `and recommend the next action. Never invent numbers; if it's not here, say you'll need the record.`,
+            `Answer from these real figures only, warmly and briefly, in cedis, and finish with one friendly next step. ` +
+            `Never invent numbers; if something isn't here, say so kindly and point them to where to add it.`,
         );
       }
     } catch {

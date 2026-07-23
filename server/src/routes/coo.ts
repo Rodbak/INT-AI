@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../db.js';
 import { optionalAuth } from '../middleware/auth.js';
+import { generateText } from '../ai/insight.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();
@@ -277,6 +278,20 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
   const weekday = order.map((d, idx) => ({ day: labels[idx], sales: Math.round(byDow.get(d) || 0) }));
   const busiest = [...weekday].sort((a, b) => b.sales - a.sales)[0];
 
+  // Daily sales for the last 14 days (for a trend chart).
+  const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+  const dailyMap = new Map<string, number>();
+  for (let k = 13; k >= 0; k--) dailyMap.set(dayKey(new Date(now.getTime() - k * DAY)), 0);
+  for (const i of invoices) {
+    const key = dayKey(new Date(i.issuedAt));
+    if (dailyMap.has(key)) dailyMap.set(key, (dailyMap.get(key) || 0) + i.amount);
+  }
+  const dailySales = [...dailyMap.entries()].map(([date, sales]) => ({
+    date,
+    label: new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    sales: Math.round(sales),
+  }));
+
   res.json({
     monthLabel: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
     thisMonth,
@@ -285,8 +300,42 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
     topProducts,
     weekday,
     busiestDay: busiest && busiest.sales > 0 ? busiest.day : null,
+    dailySales,
     currency: 'GH₵',
   });
+});
+
+// AI-written narrative + observations from the real figures (powers Reports and
+// Home). Falls back to deterministic text when no model key is configured.
+router.get('/insights', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.json({ narrative: null, generated: false });
+  const b = await computeBrief(ws);
+  const workspace = await prisma.workspace.findUnique({ where: { id: ws }, select: { name: true } });
+  const shop = workspace?.name && !/^(my |default )?workspace$/i.test(workspace.name) ? workspace.name : 'your shop';
+
+  // Deterministic fallback so the card is never empty.
+  const netUp = b.salesThisWeek >= b.salesPrevWeek;
+  const fallback =
+    `Cash on hand is GH₵ ${b.cashOnHand.toLocaleString()} and ${shop} made GH₵ ${b.salesThisWeek.toLocaleString()} this week` +
+    `${b.trendPct != null ? ` (${b.trendPct >= 0 ? 'up' : 'down'} ${Math.abs(b.trendPct)}% vs last week)` : ''}. ` +
+    (b.receivablesTotal > 0 ? `GH₵ ${b.receivablesTotal.toLocaleString()} is still owed to you by ${b.receivablesCount} customer${b.receivablesCount === 1 ? '' : 's'}. ` : `Everyone has paid up — nice. `) +
+    (b.lowStock.length ? `Keep an eye on stock: ${b.lowStock.slice(0, 3).map((p) => p.name).join(', ')} running low.` : `Stock levels look healthy.`);
+
+  const data =
+    `Shop: ${shop}. Cash on hand: GH₵ ${b.cashOnHand}. Runway: ${b.cashRunwayWeeks ?? '—'} weeks. ` +
+    `Sales this week: GH₵ ${b.salesThisWeek} (last week GH₵ ${b.salesPrevWeek}). ` +
+    `Owed to you: GH₵ ${b.receivablesTotal} from ${b.receivablesCount} customers. ` +
+    (b.bestSeller ? `Best seller: ${b.bestSeller.name} at ${b.bestSeller.marginPct}% margin. ` : '') +
+    (b.lowStock.length ? `Low stock: ${b.lowStock.map((p) => `${p.name} (${p.stock})`).join(', ')}. ` : '');
+
+  const system =
+    `You are INT, the owner's warm AI business partner for a small shop in Ghana. ` +
+    `Write a short, friendly note (2–3 sentences) about how the business is doing, based ONLY on the figures given. ` +
+    `Be encouraging, plain, in Ghana cedis (GH₵), and end with one helpful suggestion. No lists, no headings — just a warm little paragraph. Never invent numbers.`;
+
+  const narrative = (await generateText(system, `Here are today's figures:\n${data}\n\nWrite the note.`)) || fallback;
+  res.json({ narrative, generated: narrative !== fallback, currency: 'GH₵' });
 });
 
 router.get('/inventory', async (req: AuthenticatedRequest, res) => {
