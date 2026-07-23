@@ -5,9 +5,12 @@ import './index.css'
 import { router } from './router'
 import { BUILD_VERSION, BUILD_DATE } from './version'
 import { initTheme } from './lib/theme'
+import { initDisplay } from './lib/display'
 
 // Apply the saved light/dark/auto preference before first paint.
 initTheme();
+// Apply saved big-text / high-contrast preferences before first paint.
+initDisplay();
 
 // Logged on boot so you can confirm the deployed build is the latest code.
 console.log(`%cINT build: ${BUILD_VERSION} (${BUILD_DATE})`, 'color:#7c3aed;font-weight:600');

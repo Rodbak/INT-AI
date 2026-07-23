@@ -98,3 +98,35 @@ export function EditIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+// Receipt / till
+export function TillIcon({ className }: IconProps) {
+  return (
+    <svg {...common} width="18" height="18" className={className} aria-hidden="true">
+      <path d="M6 2.5h12v19l-2.2-1.5-2.3 1.5-2.2-1.5-2.3 1.5-2.2-1.5-2.5 1.5z" />
+      <line x1="9" y1="7.5" x2="15" y2="7.5" />
+      <line x1="9" y1="11" x2="15" y2="11" />
+      <line x1="9" y1="14.5" x2="13" y2="14.5" />
+    </svg>
+  );
+}
+
+// Message / envelope (paste a MoMo/bank SMS)
+export function MessageIcon({ className }: IconProps) {
+  return (
+    <svg {...common} width="18" height="18" className={className} aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="M3.5 6.5 12 12.5l8.5-6" />
+    </svg>
+  );
+}
+
+// Camera (scan a photo)
+export function CameraIcon({ className }: IconProps) {
+  return (
+    <svg {...common} width="18" height="18" className={className} aria-hidden="true">
+      <path d="M3 8.5A2 2 0 0 1 5 6.5h1.5l1.3-2h8.4l1.3 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <circle cx="12" cy="13" r="3.4" />
+    </svg>
+  );
+}

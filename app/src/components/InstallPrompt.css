@@ -1,0 +1,57 @@
+.install {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(74px + env(safe-area-inset-bottom, 0));
+  z-index: 180;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--accent-border, var(--border-strong));
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.5);
+  animation: install-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 520px;
+  margin: 0 auto;
+}
+.install__icon {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; letter-spacing: 0.5px;
+}
+.install__body { flex: 1; min-width: 0; }
+.install__title { font-size: 14.5px; font-weight: 700; }
+.install__text { font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; margin-top: 2px; }
+.install__btn {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13.5px; font-weight: 700;
+  cursor: pointer;
+}
+.install__btn:hover { background: var(--accent-strong); }
+.install__x {
+  flex-shrink: 0;
+  background: none; border: none;
+  color: var(--text-muted);
+  font-size: 22px; line-height: 1;
+  cursor: pointer; padding: 2px 4px;
+}
+.install__x:hover { color: var(--text); }
+
+@keyframes install-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .install { animation: none; } }
+
+/* Only surface it on phones (where installing makes sense). */
+@media (min-width: 761px) { .install { display: none; } }

@@ -1,15 +1,18 @@
 {
-  "name": "INT — Till",
-  "short_name": "INT Till",
-  "description": "INT point-of-sale till for your shop.",
-  "start_url": "/pos",
+  "name": "INT — Your shop's AI partner",
+  "short_name": "INT",
+  "description": "Run your shop with INT: sell, track money, and get a daily briefing from your AI business partner.",
+  "start_url": "/home",
   "scope": "/",
   "display": "standalone",
-  "orientation": "landscape",
-  "background_color": "#0f1115",
+  "orientation": "any",
+  "background_color": "#faf7ff",
   "theme_color": "#7C3AED",
+  "categories": ["business", "finance", "productivity"],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

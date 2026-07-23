@@ -504,3 +504,6 @@
 @media (max-width: 560px) and (prefers-reduced-motion: reduce) {
   .biz__sheet { animation: none; }
 }
+
+/* Inline icons inside primary/ghost buttons */
+.biz__btn-ic { width: 18px; height: 18px; flex-shrink: 0; }

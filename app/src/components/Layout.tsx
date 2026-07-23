@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
+import InstallPrompt from './InstallPrompt';
 import './Layout.css';
 
 export default function Layout() {
@@ -20,6 +21,7 @@ export default function Layout() {
         </div>
       </div>
       <BottomNav />
+      <InstallPrompt />
     </div>
   );
 }

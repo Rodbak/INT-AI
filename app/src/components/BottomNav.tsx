@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authManager } from '../lib/auth';
 import ThemeToggle from './ThemeToggle';
+import DisplayControls from './DisplayControls';
 import './BottomNav.css';
 
 // Plain, finger-sized icons (stroke-based, inherit currentColor).
@@ -92,6 +93,11 @@ export default function BottomNav() {
               {MORE_LINKS.map((l) => (
                 <button key={l.route} className="bottomnav__link" onClick={() => go(l.route)}>{l.label}</button>
               ))}
+            </div>
+
+            <div className="bottomnav__display">
+              <div className="bottomnav__display-label">Display</div>
+              <DisplayControls />
             </div>
 
             <div className="bottomnav__drawer-footer">

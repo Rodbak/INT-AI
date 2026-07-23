@@ -8,9 +8,20 @@ interface VoiceOrbProps {
   powerUpTrigger?: number;
 }
 
-const RING_COUNT = 3;
-const FIBER_COUNT = 56;
 const BURST_DURATION_MS = 750;
+
+// Siri-style globe: several soft, coloured light "lobes" orbit inside a sphere
+// and blend additively into a luminous, morphing ball with a glassy sheen.
+// Brand-violet leaning, but with the pink/blue/cyan spectrum that reads as a
+// modern voice assistant. Reacts to the voice state + live mic level.
+type Lobe = { color: [number, number, number]; orbit: number; size: number; speed: number; phase: number; wob: number };
+const LOBES: Lobe[] = [
+  { color: [236, 72, 153], orbit: 0.34, size: 0.82, speed: 0.55, phase: 0.0, wob: 1.3 }, // magenta/pink
+  { color: [139, 92, 246], orbit: 0.30, size: 0.95, speed: -0.42, phase: 1.7, wob: 0.9 }, // violet (brand)
+  { color: [59, 130, 246], orbit: 0.36, size: 0.80, speed: 0.63, phase: 3.1, wob: 1.6 }, // blue
+  { color: [34, 211, 238], orbit: 0.28, size: 0.70, speed: -0.7, phase: 4.6, wob: 1.1 }, // cyan
+  { color: [168, 85, 247], orbit: 0.22, size: 0.90, speed: 0.36, phase: 5.9, wob: 0.7 }, // purple
+];
 
 export default function VoiceOrb({ voiceState, getAudioLevel, powerUpTrigger }: VoiceOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,6 +29,8 @@ export default function VoiceOrb({ voiceState, getAudioLevel, powerUpTrigger }: 
   stateRef.current = voiceState;
   const burstAtRef = useRef<number | null>(null);
   const lastTriggerRef = useRef(powerUpTrigger);
+  // Smoothed level so the orb eases rather than jitters with the raw mic.
+  const levelRef = useRef(0);
 
   if (powerUpTrigger !== undefined && powerUpTrigger !== lastTriggerRef.current) {
     lastTriggerRef.current = powerUpTrigger;
@@ -33,23 +46,11 @@ export default function VoiceOrb({ voiceState, getAudioLevel, powerUpTrigger }: 
     let frame = 0;
     let raf = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    // Read the brand accent from CSS so the orb matches the active theme.
-    const accentVar = getComputedStyle(document.documentElement).getPropertyValue('--rgb-accent').trim();
-    const ACCENT: [number, number, number] = accentVar
-      ? (accentVar.split(',').map((n) => parseInt(n, 10)) as [number, number, number])
-      : [124, 58, 237];
-
-    // Precomputed per-fiber jitter so the iris texture doesn't reshuffle every frame.
-    const fibers = Array.from({ length: FIBER_COUNT }, (_, i) => ({
-      angle: (i / FIBER_COUNT) * Math.PI * 2,
-      lengthJitter: 0.75 + Math.random() * 0.5,
-      opacityJitter: 0.4 + Math.random() * 0.6,
-    }));
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      canvas.width = Math.max(1, rect.width * dpr);
+      canvas.height = Math.max(1, rect.height * dpr);
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -62,126 +63,133 @@ export default function VoiceOrb({ voiceState, getAudioLevel, powerUpTrigger }: 
       const h = canvas.height;
       const cx = w / 2;
       const cy = h / 2;
-      const outer = Math.min(w, h) * 0.28;
-      const [r, g, b] = ACCENT;
+      const state = stateRef.current;
+
+      // Smooth the mic level toward its target.
+      const target = Math.min(getAudioLevel() * 6, 1);
+      levelRef.current += (target - levelRef.current) * 0.15;
+      const level = levelRef.current;
+
+      // Per-state feel: how fast it swirls, how much it breathes, how bright.
+      let speed: number;
+      let breathe: number;
+      let bright: number;
+      switch (state) {
+        case 'listening':
+          speed = 0.9 + level * 1.2;
+          breathe = 0.05 + level * 0.16 + 0.02 * Math.sin(t * 2);
+          bright = 0.9 + level * 0.5;
+          break;
+        case 'transcribing':
+          speed = 1.7;
+          breathe = 0.05 + 0.03 * Math.sin(t * 10);
+          bright = 1.05;
+          break;
+        case 'thinking':
+          speed = 2.2;
+          breathe = 0.06 + 0.05 * Math.sin(t * 3.2);
+          bright = 0.85 + 0.2 * (0.5 + 0.5 * Math.sin(t * 3.2));
+          break;
+        case 'speaking':
+          speed = 1.2 + level * 0.8;
+          breathe = 0.08 + level * 0.2 + 0.04 * Math.sin(t * 7);
+          bright = 1.1 + level * 0.4;
+          break;
+        default:
+          speed = 0.4;
+          breathe = 0.03 + 0.025 * Math.sin(t * 0.8);
+          bright = 0.8;
+      }
+
+      const R = Math.min(w, h) * 0.28 * (1 + breathe);
 
       ctx.clearRect(0, 0, w, h);
 
-      const state = stateRef.current;
-      const level = Math.min(getAudioLevel() * 6, 1);
+      // 1) Ambient outer glow (source-over, soft violet halo).
+      const halo = ctx.createRadialGradient(cx, cy, R * 0.4, cx, cy, R * 2.3);
+      halo.addColorStop(0, `rgba(139,92,246,${0.22 * bright})`);
+      halo.addColorStop(0.5, 'rgba(99,102,241,0.06)');
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, w, h);
 
-      let pulse: number;
-      let pupilScale: number;
-      let rotSpeed: number;
-      switch (state) {
-        case 'listening':
-          pulse = 0.5 + 0.5 * Math.sin(t * 2);
-          pupilScale = 1 + level * 0.7 + pulse * 0.04;
-          rotSpeed = 0.18 + level * 0.4;
-          break;
-        case 'transcribing':
-          pulse = 0.5 + 0.5 * Math.sin(t * 11);
-          pupilScale = 1 + pulse * 0.1;
-          rotSpeed = 0.55;
-          break;
-        case 'thinking':
-          pulse = 0.5 + 0.5 * Math.sin(t * 3.2);
-          pupilScale = 1 + pulse * 0.16;
-          rotSpeed = 0.85;
-          break;
-        case 'speaking':
-          pulse = 0.5 + 0.5 * Math.sin(t * 7);
-          pupilScale = 1 + pulse * 0.28;
-          rotSpeed = 0.4;
-          break;
-        default:
-          pulse = 0.5 + 0.5 * Math.sin(t * 0.8);
-          pupilScale = 1 + pulse * 0.05;
-          rotSpeed = 0.06;
-      }
-
-      const rotation = t * rotSpeed;
-
-      // outer soft glow
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, outer * 2.6);
-      glow.addColorStop(0, `rgba(${r},${g},${b},0.3)`);
-      glow.addColorStop(0.4, `rgba(${r},${g},${b},0.1)`);
-      glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(cx, cy, outer * 2.6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // radial iris fibers
+      // 2) Colour lobes — additive + blurred → luminous, blending sphere.
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(rotation);
-      for (const f of fibers) {
-        const innerR = outer * 0.42;
-        const outerR = outer * (0.95 + (f.lengthJitter - 1) * 0.3) * (1 + level * 0.15);
-        const x1 = Math.cos(f.angle) * innerR;
-        const y1 = Math.sin(f.angle) * innerR;
-        const x2 = Math.cos(f.angle) * outerR;
-        const y2 = Math.sin(f.angle) * outerR;
-        ctx.strokeStyle = `rgba(${r},${g},${b},${0.22 * f.opacityJitter + level * 0.15})`;
-        ctx.lineWidth = Math.max(0.8, outer * 0.006);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.filter = `blur(${Math.max(2, R * 0.16)}px)`;
+      for (const lobe of LOBES) {
+        const ang = t * lobe.speed * speed + lobe.phase;
+        const orbit = lobe.orbit * (1 + 0.16 * Math.sin(t * lobe.wob + lobe.phase)) * (1 + level * 0.25);
+        const lx = cx + Math.cos(ang) * R * orbit;
+        const ly = cy + Math.sin(ang) * R * orbit;
+        const lr = R * lobe.size;
+        const [r, g, b] = lobe.color;
+        const grad = ctx.createRadialGradient(lx, ly, 0, lx, ly, lr);
+        grad.addColorStop(0, `rgba(${r},${g},${b},${0.5 * bright})`);
+        grad.addColorStop(0.5, `rgba(${r},${g},${b},${0.18 * bright})`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
+        ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+        ctx.fill();
       }
       ctx.restore();
 
-      // concentric iris rings, alternating rotation direction
-      for (let i = 0; i < RING_COUNT; i++) {
-        const ringRadius = outer * (0.55 + (i / (RING_COUNT - 1)) * 0.45);
-        const dir = i % 2 === 0 ? 1 : -1;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(rotation * dir * (0.6 + i * 0.25));
-        ctx.strokeStyle = `rgba(${r},${g},${b},${0.34 - i * 0.05})`;
-        ctx.lineWidth = Math.max(1, outer * 0.008);
-        ctx.setLineDash([ringRadius * 0.18, ringRadius * 0.12]);
-        ctx.beginPath();
-        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // crisp outer boundary
-      ctx.strokeStyle = `rgba(${r},${g},${b},0.35)`;
-      ctx.lineWidth = Math.max(1, outer * 0.01);
-      ctx.beginPath();
-      ctx.arc(cx, cy, outer, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // pupil core
-      const pupilR = outer * 0.34 * pupilScale;
-      const core = ctx.createRadialGradient(
-        cx - pupilR * 0.3,
-        cy - pupilR * 0.3,
-        pupilR * 0.05,
-        cx,
-        cy,
-        pupilR,
-      );
-      core.addColorStop(0, 'rgba(255,255,255,0.98)');
-      core.addColorStop(0.35, `rgba(${r},${g},${b},0.95)`);
-      core.addColorStop(1, `rgba(${r},${g},${b},0.1)`);
+      // 3) Hot near-white core, drifting slightly — the bright heart of the orb.
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const coreX = cx + Math.cos(t * 0.5) * R * 0.06;
+      const coreY = cy + Math.sin(t * 0.7) * R * 0.06;
+      const coreR = R * (0.5 + level * 0.15);
+      const core = ctx.createRadialGradient(coreX, coreY, 0, coreX, coreY, coreR);
+      core.addColorStop(0, `rgba(255,255,255,${0.55 * bright})`);
+      core.addColorStop(0.3, `rgba(226,214,255,${0.28 * bright})`);
+      core.addColorStop(1, 'rgba(139,92,246,0)');
       ctx.fillStyle = core;
       ctx.beginPath();
-      ctx.arc(cx, cy, pupilR, 0, Math.PI * 2);
+      ctx.arc(coreX, coreY, coreR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 4) Sphere shading — darken the rim so the ball reads as round.
+      const shade = ctx.createRadialGradient(cx, cy, R * 0.55, cx, cy, R * 1.02);
+      shade.addColorStop(0, 'rgba(0,0,0,0)');
+      shade.addColorStop(0.82, 'rgba(4,6,12,0)');
+      shade.addColorStop(1, 'rgba(4,6,12,0.45)');
+      ctx.fillStyle = shade;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 1.02, 0, Math.PI * 2);
       ctx.fill();
 
-      // one-shot power-up burst ring
+      // 5) Glassy specular highlight (upper-left) for the sphere sheen.
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const hx = cx - R * 0.34;
+      const hy = cy - R * 0.4;
+      const hi = ctx.createRadialGradient(hx, hy, 0, hx, hy, R * 0.6);
+      hi.addColorStop(0, 'rgba(255,255,255,0.35)');
+      hi.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hi;
+      ctx.beginPath();
+      ctx.arc(hx, hy, R * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 6) Faint glass rim.
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.lineWidth = Math.max(1, R * 0.012);
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 0.99, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 7) One-shot power-up burst ring.
       if (burstAtRef.current !== null) {
         const elapsed = performance.now() - burstAtRef.current;
         if (elapsed < BURST_DURATION_MS) {
           const progress = elapsed / BURST_DURATION_MS;
-          const burstRadius = outer * (1 + progress * 2.6);
-          const burstOpacity = (1 - progress) * 0.6;
-          ctx.strokeStyle = `rgba(${r},${g},${b},${burstOpacity})`;
-          ctx.lineWidth = Math.max(1, outer * 0.05 * (1 - progress));
+          const burstRadius = R * (1 + progress * 2.4);
+          ctx.strokeStyle = `rgba(196,181,253,${(1 - progress) * 0.6})`;
+          ctx.lineWidth = Math.max(1, R * 0.05 * (1 - progress));
           ctx.beginPath();
           ctx.arc(cx, cy, burstRadius, 0, Math.PI * 2);
           ctx.stroke();
@@ -194,7 +202,6 @@ export default function VoiceOrb({ voiceState, getAudioLevel, powerUpTrigger }: 
     };
 
     raf = requestAnimationFrame(draw);
-
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();

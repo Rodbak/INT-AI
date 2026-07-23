@@ -165,3 +165,6 @@
 @media (max-width: 760px) {
   .bottomnav { display: flex; }
 }
+
+.bottomnav__display { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.bottomnav__display-label { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }

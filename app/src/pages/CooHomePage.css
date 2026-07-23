@@ -247,3 +247,5 @@
 .coo__row-main { font-size: 14px; font-weight: 600; }
 .coo__row-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .coo__row-amt { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.coo__quick-ic { width: 18px; height: 18px; }

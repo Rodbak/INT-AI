@@ -8,6 +8,8 @@ import NotifyToggle from '../components/NotifyToggle';
 import CountUp from '../components/CountUp';
 import Skeleton from '../components/Skeleton';
 import IntOrb from '../components/IntOrb';
+import WelcomeTips from '../components/WelcomeTips';
+import { TillIcon } from '../components/icons';
 import './CooHomePage.css';
 
 const cedis = (n: number) => `GH₵ ${Math.round(n).toLocaleString()}`;
@@ -93,6 +95,7 @@ export default function CooHomePage() {
   const hi = brief.shopName ? `${greeting()}, ${brief.shopName}` : greeting();
   return (
     <div className="coo">
+      <WelcomeTips />
       <div className="coo__head">
         <IntOrb />
         <div>
@@ -114,7 +117,7 @@ export default function CooHomePage() {
 
       {/* Quick actions */}
       <div className="coo__quick">
-        <button className="coo__quick-btn coo__quick-btn--till" onClick={() => navigate('/pos')}><span>🧾</span> Open till</button>
+        <button className="coo__quick-btn coo__quick-btn--till" onClick={() => navigate('/pos')}><TillIcon className="coo__quick-ic" /> Open till</button>
         <button className="coo__quick-btn" onClick={() => navigate('/sales?new=1')}><span>＋</span> Record a sale</button>
         <button className="coo__quick-btn" onClick={() => navigate('/money?new=1')}><span>－</span> Record an expense</button>
       </div>

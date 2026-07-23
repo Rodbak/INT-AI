@@ -1,0 +1,54 @@
+.wt__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(8, 12, 20, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: wt-fade 0.25s ease;
+}
+.wt {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 24px 22px;
+  box-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.6);
+  animation: wt-rise 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.wt__hi { font-size: 21px; font-weight: 700; }
+.wt__sub { font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 6px 0 18px; }
+.wt__tips { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+.wt__tip { display: flex; gap: 13px; align-items: flex-start; }
+.wt__tip-ic {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--accent-dim);
+  color: var(--accent-strong);
+  display: flex; align-items: center; justify-content: center;
+}
+.wt__ic { width: 20px; height: 20px; }
+.wt__emoji { font-size: 20px; line-height: 1; }
+.wt__tip-title { font-size: 15px; font-weight: 700; }
+.wt__tip-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-top: 2px; }
+.wt__go {
+  width: 100%;
+  padding: 14px;
+  border-radius: 13px;
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 15px; font-weight: 700;
+  cursor: pointer;
+}
+.wt__go:hover { background: var(--accent-strong); }
+
+@keyframes wt-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wt-rise { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .wt__overlay, .wt { animation: none; } }

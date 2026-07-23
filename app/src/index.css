@@ -281,3 +281,103 @@ button {
     transform: scale(0.97);
   }
 }
+
+/* ============================================================================
+   Audience-fit display modes: high-contrast + big text.
+   Toggled via <html data-contrast="high"> and <html data-bigtext="on">
+   (see lib/display.ts). Built for bright outdoor use and older eyes.
+   ========================================================================= */
+
+/* --- High contrast: DARK baseline --- */
+:root[data-contrast='high'] {
+  --bg: #000000;
+  --bg-raised: #14181f;
+  --bg-active: #262e3a;
+  --border: #454f5c;
+  --border-strong: #6b7683;
+  --text: #ffffff;
+  --text-secondary: #eaeef3;
+  --text-tertiary: #dbe1e8;
+  --text-muted: #c2cad3;
+  --text-faint: #aab3bd;
+  --accent: #c4b5fd;
+  --accent-strong: #ddd6fe;
+  --accent-border: rgba(196, 181, 253, 0.6);
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #ff7a68;
+}
+/* --- High contrast: LIGHT (system-light and forced-light) --- */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark'])[data-contrast='high'] {
+    --bg: #ffffff;
+    --bg-raised: #ffffff;
+    --bg-active: #e3e8ef;
+    --border: #9aa4b2;
+    --border-strong: #6b7683;
+    --text: #000000;
+    --text-secondary: #12161d;
+    --text-tertiary: #1f2630;
+    --text-muted: #333b47;
+    --text-faint: #4d5661;
+    --accent: #5b21b6;
+    --accent-strong: #4c1d95;
+    --accent-border: rgba(91, 33, 182, 0.55);
+    --success: #157347;
+    --warning: #9a6410;
+    --danger: #b42318;
+  }
+}
+:root[data-theme='light'][data-contrast='high'] {
+  --bg: #ffffff;
+  --bg-raised: #ffffff;
+  --bg-active: #e3e8ef;
+  --border: #9aa4b2;
+  --border-strong: #6b7683;
+  --text: #000000;
+  --text-secondary: #12161d;
+  --text-tertiary: #1f2630;
+  --text-muted: #333b47;
+  --text-faint: #4d5661;
+  --accent: #5b21b6;
+  --accent-strong: #4c1d95;
+  --accent-border: rgba(91, 33, 182, 0.55);
+  --success: #157347;
+  --warning: #9a6410;
+  --danger: #b42318;
+}
+/* Firmer borders everywhere in high-contrast so cards separate clearly. */
+:root[data-contrast='high'] .biz__list,
+:root[data-contrast='high'] .biz__stat,
+:root[data-contrast='high'] .coo__kpi,
+:root[data-contrast='high'] .feed__card,
+:root[data-contrast='high'] .biz__input,
+:root[data-contrast='high'] .biz__select {
+  border-width: 1.5px;
+}
+
+/* --- Big text: bump the reading-heavy, owner-facing surfaces ~15–20% --- */
+:root[data-bigtext='on'] .coo__hi { font-size: 30px; }
+:root[data-bigtext='on'] .coo__sub { font-size: 16px; }
+:root[data-bigtext='on'] .coo__kpi-value { font-size: 26px; }
+:root[data-bigtext='on'] .coo__kpi-label { font-size: 14px; }
+:root[data-bigtext='on'] .coo__kpi-note { font-size: 13px; }
+:root[data-bigtext='on'] .coo__section-title { font-size: 15px; }
+:root[data-bigtext='on'] .coo__row-main,
+:root[data-bigtext='on'] .coo__row-amt { font-size: 16px; }
+:root[data-bigtext='on'] .feed__title { font-size: 17px; }
+:root[data-bigtext='on'] .feed__text { font-size: 15px; }
+:root[data-bigtext='on'] .biz__title { font-size: 27px; }
+:root[data-bigtext='on'] .biz__sub { font-size: 16px; }
+:root[data-bigtext='on'] .biz__row-main { font-size: 17px; }
+:root[data-bigtext='on'] .biz__row-sub { font-size: 14px; }
+:root[data-bigtext='on'] .biz__row-amt { font-size: 17px; }
+:root[data-bigtext='on'] .biz__stat-value { font-size: 25px; }
+:root[data-bigtext='on'] .biz__section-label { font-size: 13px; }
+:root[data-bigtext='on'] .biz__primary,
+:root[data-bigtext='on'] .biz__save,
+:root[data-bigtext='on'] .biz__seg-btn,
+:root[data-bigtext='on'] .biz__mini { font-size: 16px; }
+:root[data-bigtext='on'] .biz__input,
+:root[data-bigtext='on'] .biz__select { font-size: 17px; }
+:root[data-bigtext='on'] .coo__quick-btn { font-size: 16px; }

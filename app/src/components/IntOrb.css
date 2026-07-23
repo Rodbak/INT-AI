@@ -11,10 +11,14 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 30%, #c4b5fd, var(--accent) 70%);
-  box-shadow: 0 0 0 0 var(--accent-glow-soft, rgba(139, 92, 246, 0.35)), 0 2px 10px -2px var(--accent);
-  animation: orb-breathe 3.6s ease-in-out infinite;
+  /* Mini Siri-style globe: white hot-spot melting through pink → violet → blue. */
+  background:
+    radial-gradient(circle at 33% 28%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 42%),
+    conic-gradient(from 210deg, #ec4899, #8b5cf6, #3b82f6, #22d3ee, #a855f7, #ec4899);
+  box-shadow: 0 0 0 0 var(--accent-glow-soft, rgba(139, 92, 246, 0.35)), 0 2px 12px -2px rgba(139, 92, 246, 0.8);
+  animation: orb-breathe 3.6s ease-in-out infinite, orb-spin 7s linear infinite;
 }
+@keyframes orb-spin { to { filter: hue-rotate(360deg); } }
 /* Halo ring */
 .intorb::before {
   content: '';

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVisionAvailable, scanStockPhoto, bulkAddProducts, type ScannedItem } from '../lib/api';
 import { fileToDataUrl } from '../lib/image';
+import { CameraIcon } from './icons';
 import BizSheet from './BizSheet';
 
 /**
@@ -60,7 +61,7 @@ export default function StockScan({ onDone }: { onDone: (msg: string) => void })
   return (
     <>
       <button className="biz__primary biz__primary--ghost" onClick={pick} disabled={busy}>
-        <span className="biz__primary-plus">📷</span> {busy ? 'Reading photo…' : 'Scan a photo'}
+        <CameraIcon className="biz__btn-ic" /> {busy ? 'Reading photo…' : 'Scan a photo'}
       </button>
       <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
 

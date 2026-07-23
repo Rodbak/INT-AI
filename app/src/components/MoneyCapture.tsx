@@ -2,6 +2,7 @@ import { useState } from 'react';
 import BizSheet from './BizSheet';
 import { parseMoneyMessage, recordPayment, recordSale, recordExpense, getCustomers, type ParsedMoney, type CooCustomer } from '../lib/api';
 import { cedis } from '../lib/money';
+import { MessageIcon } from './icons';
 
 const CATEGORIES = ['Restock / buying stock', 'Rent', 'Transport', 'Salaries', 'Utilities (light, water)', 'Airtime / data', 'Other'];
 
@@ -90,7 +91,7 @@ export default function MoneyCapture({ onDone }: { onDone: (msg: string) => void
   return (
     <>
       <button className="biz__primary biz__primary--ghost" onClick={openSheet}>
-        <span className="biz__primary-plus">📩</span> From a MoMo message
+        <MessageIcon className="biz__btn-ic" /> From a MoMo message
       </button>
 
       {open && (
