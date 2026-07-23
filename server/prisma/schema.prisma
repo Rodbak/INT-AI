@@ -315,3 +315,158 @@ model Invoice {
 
   @@index([userId])
 }
+
+// ============================================================================
+// AI COO — business domain (a Workspace is the business). Scalar workspaceId
+// (no back-relation) so existing models are untouched.
+// ============================================================================
+model Product {
+  id           String        @id @default(uuid())
+  workspaceId  String
+  name         String
+  sku          String?
+  barcode      String?
+  category     String?
+  price        Float         @default(0)
+  cost         Float         @default(0)
+  stock        Int           @default(0)
+  reorderPoint Int           @default(0)
+  unit         String             @default("unit")
+  createdAt    DateTime           @default(now())
+  items        SalesInvoiceItem[]
+
+  @@index([workspaceId])
+}
+
+model Customer {
+  id          String    @id @default(uuid())
+  workspaceId String
+  name        String
+  phone       String?
+  createdAt   DateTime       @default(now())
+  invoices    SalesInvoice[]
+  payments    Payment[]
+
+  @@index([workspaceId])
+}
+
+model SalesInvoice {
+  id          String             @id @default(uuid())
+  workspaceId String
+  customerId  String
+  number      String
+  amount      Float              @default(0)
+  status      String             @default("unpaid") // unpaid | partial | paid
+  issuedAt    DateTime           @default(now())
+  dueAt       DateTime
+  createdAt   DateTime           @default(now())
+  // POS fields
+  channel     String             @default("manual") // manual | pos
+  discount    Float              @default(0)
+  tax         Float              @default(0)
+  tendered    Float?             // cash given by customer (for change)
+  change      Float?             // change returned
+  cashierId   String?
+  shiftId     String?
+  clientId    String?            @unique // idempotency key for offline sync
+  customer    Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items       SalesInvoiceItem[]
+  payments    Payment[]
+
+  @@index([workspaceId])
+  @@index([shiftId])
+}
+
+// Per-store POS configuration: tax, hardware toggles, receipt text.
+model StoreSettings {
+  id             String   @id @default(uuid())
+  workspaceId    String   @unique
+  taxEnabled     Boolean  @default(false)
+  taxRates       Json?    // [{ name: "VAT", rate: 15 }, ...]
+  taxInclusive   Boolean  @default(false) // prices already include tax
+  barcodeEnabled Boolean  @default(false)
+  printerEnabled Boolean  @default(false)
+  cashDrawer     Boolean  @default(false)
+  receiptHeader  String?
+  receiptFooter  String?  @default("Thank you! Come again.")
+  updatedAt      DateTime @updatedAt
+}
+
+// A person who operates the till, signs in with a short PIN.
+model Cashier {
+  id          String   @id @default(uuid())
+  workspaceId String
+  name        String
+  pinHash     String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  shifts      Shift[]
+
+  @@index([workspaceId])
+}
+
+// A till session: opened with a cash float, closed with a counted total.
+model Shift {
+  id           String    @id @default(uuid())
+  workspaceId  String
+  cashierId    String
+  openingFloat Float     @default(0)
+  openedAt     DateTime  @default(now())
+  closedAt     DateTime?
+  countedCash  Float?    // what the cashier counted at close
+  status       String    @default("open") // open | closed
+  cashier      Cashier   @relation(fields: [cashierId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model SalesInvoiceItem {
+  id        String       @id @default(uuid())
+  invoiceId String
+  productId String
+  qty       Int          @default(1)
+  unitPrice Float        @default(0)
+  invoice   SalesInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  workspaceId String
+  invoiceId   String?
+  customerId  String?
+  amount      Float         @default(0)
+  method      String        @default("momo") // momo | cash | bank
+  receivedAt  DateTime      @default(now())
+  invoice     SalesInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  customer    Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  workspaceId String
+  category    String
+  amount      Float    @default(0)
+  note        String?
+  spentAt     DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+model CooAction {
+  id          String   @id @default(uuid())
+  workspaceId String
+  kind        String // reminder | restock | payroll | tax
+  title       String
+  detail      String?
+  status      String   @default("pending") // pending | approved | declined | done
+  payload     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+}

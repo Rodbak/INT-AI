@@ -19,7 +19,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   padding: 12px 14px;
-  background: rgba(13, 20, 27, 0.5);
+  background: var(--bg-raised);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 

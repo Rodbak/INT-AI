@@ -1,0 +1,50 @@
+.ts__card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px 16px;
+  margin-bottom: 8px;
+}
+.ts__opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.ts__opt:last-child { border-bottom: none; }
+.ts__opt-name { font-size: 15px; font-weight: 600; }
+.ts__opt-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+.ts__toggle {
+  width: 48px; height: 28px; border-radius: 999px; border: none;
+  background: var(--border-strong); cursor: pointer; position: relative; flex-shrink: 0;
+  transition: background 0.18s;
+}
+.ts__toggle--on { background: var(--accent); }
+.ts__knob {
+  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; transition: transform 0.18s;
+}
+.ts__toggle--on .ts__knob { transform: translateX(20px); }
+
+.ts__row-actions { display: flex; gap: 10px; align-items: center; }
+.ts__remove { background: none; border: none; color: var(--danger); font-size: 13px; font-weight: 600; cursor: pointer; }
+.ts__add {
+  background: none; border: none; color: var(--accent-strong);
+  font-size: 14px; font-weight: 700; cursor: pointer; padding: 8px 2px; margin-bottom: 20px;
+}
+.ts__add--sm { margin-bottom: 0; }
+
+.ts__rate { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.ts__rate-name { flex: 1; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; }
+.ts__rate-pct { width: 72px; padding: 10px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font-size: 14px; text-align: right; font-family: inherit; }
+.ts__pct { color: var(--text-muted); }
+.ts__rate-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0 6px; flex-wrap: wrap; }
+.ts__inline { font-size: 13.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
+.ts__label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin: 12px 0 7px; }
+.ts__input {
+  width: 100%; padding: 12px 14px; border-radius: 10px; margin-bottom: 4px;
+  border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit;
+}
+.ts__input:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-glow-soft); }
+
+.ts__save { margin-top: 18px; width: 100%; justify-content: center; }

@@ -14,7 +14,10 @@
     "prisma:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "coo:tables": "psql \"$DATABASE_URL\" -f prisma/coo-tables.sql",
+    "pos:tables": "psql \"$DATABASE_URL\" -f prisma/pos-tables.sql",
+    "coo:seed": "tsx seed-coo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

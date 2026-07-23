@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import NeuralBackground from '../components/NeuralBackground';
 import './LoginPage.css';
 
 export default function LoginPage() {
@@ -23,12 +22,11 @@ export default function LoginPage() {
 
   return (
     <div className="login">
-      <NeuralBackground />
       <div className="login__card">
         <div className="login__brand">
-          <div className="login__logo">I</div>
-          <h1 className="login__title">INT AI</h1>
-          <p className="login__subtitle">Sign in to your workspace</p>
+          <div className="login__wordmark">INT<span className="login__dot">.</span></div>
+          <h1 className="login__title">Your AI COO</h1>
+          <p className="login__subtitle">Sign in to run your business</p>
         </div>
         {error && <div className="login__error">{error}</div>}
         <button

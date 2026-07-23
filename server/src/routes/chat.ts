@@ -10,6 +10,7 @@ import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream.js'
 import { retrieveRelevantChunks } from '../rag/retriever.js';
 import { buildSpecialistPrompt, resolveModelForProviders, type SpecialistLike } from '../routing/specialist.js';
 import { buildPlatformIdentity, availableProviders, loadPlatformRoster } from '../routing/platform.js';
+import { computeBrief } from './coo.js';
 import type { AuthenticatedRequest, ChatMessage, ChatRequest, StreamChunk, TaskType } from '../types.js';
 
 const router = Router();
@@ -162,6 +163,33 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
         preferredProvider = resolved.provider;
       }
     }
+    // Ground INT as the owner's COO with the live business snapshot, so
+    // questions like "who hasn't paid?" are answered from real records.
+    try {
+      const wsId = req.user?.id
+        ? (await prisma.workspaceUser.findFirst({ where: { userId: req.user.id }, select: { workspaceId: true } }))?.workspaceId
+        : (await prisma.workspace.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } }))?.id;
+      if (wsId) {
+        const b = await computeBrief(wsId);
+        const owes = b.receivables
+          .map((r) => `${r.customer} GH₵${r.outstanding}${r.daysOverdue > 0 ? ` (${r.daysOverdue}d overdue)` : ''}`)
+          .join('; ');
+        systemParts.push(
+          `# The owner's business right now (real figures — money is Ghana cedis, GH₵)\n` +
+            `Cash on hand: GH₵ ${b.cashOnHand}. Runway: ${b.cashRunwayWeeks ?? '—'} weeks. ` +
+            `Owed to you: GH₵ ${b.receivablesTotal} across ${b.receivablesCount} customers. ` +
+            `Sales this week: GH₵ ${b.salesThisWeek}${b.trendPct != null ? ` (${b.trendPct >= 0 ? '+' : ''}${b.trendPct}% vs last week)` : ''}. ` +
+            (b.bestSeller ? `Best seller: ${b.bestSeller.name} (${b.bestSeller.marginPct}% margin). ` : '') +
+            (b.lowStock.length ? `Low stock: ${b.lowStock.map((p) => `${p.name} (${p.stock} left)`).join(', ')}. ` : '') +
+            `\nWho owes: ${owes || 'nobody'}.\n` +
+            `You are INT, the owner's experienced AI COO. Answer from these figures, plainly and briefly, in cedis, ` +
+            `and recommend the next action. Never invent numbers; if it's not here, say you'll need the record.`,
+        );
+      }
+    } catch {
+      /* business context is optional */
+    }
+
     const systemPrompt = systemParts.join('\n\n');
 
     // Images require a vision-capable model. If the user didn't explicitly pick

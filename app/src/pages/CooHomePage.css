@@ -1,0 +1,209 @@
+.coo {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 26px 30px 60px;
+}
+
+.coo__loading,
+.coo__empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 40px 0;
+}
+
+.coo__hi {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.coo__sub {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+
+.coo__ask {
+  display: flex;
+  gap: 10px;
+  margin: 22px 0 26px;
+}
+
+.coo__ask-input {
+  flex: 1;
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+.coo__ask-input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-glow-soft);
+}
+
+.coo__ask-btn {
+  padding: 0 22px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.coo__ask-btn:hover {
+  background: var(--accent-strong);
+}
+
+/* KPI tiles */
+.coo__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 26px;
+}
+@media (max-width: 820px) {
+  .coo__kpis { grid-template-columns: repeat(2, 1fr); }
+}
+
+.coo__kpi {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 22px -18px rgba(15, 23, 42, 0.3);
+}
+
+.coo__kpi-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.coo__kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
+.coo__kpi-value--sm { font-size: 17px; }
+
+.coo__kpi-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+.coo__pos { color: var(--success); }
+.coo__neg { color: var(--danger); }
+.coo__muted { color: var(--text-muted); }
+
+/* Sections */
+.coo__section { margin-bottom: 26px; }
+
+.coo__section-title {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* Decision cards */
+.coo__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.coo__card {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: 14px;
+  padding: 15px 17px;
+}
+
+.coo__card-title {
+  font-weight: 700;
+  font-size: 14.5px;
+  margin-bottom: 4px;
+}
+
+.coo__card-detail {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.coo__card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.coo__btn {
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.coo__btn:hover { border-color: var(--accent-border); }
+
+.coo__btn--pri {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--on-accent);
+}
+.coo__btn--pri:hover { background: var(--accent-strong); }
+.coo__btn--pri:disabled { opacity: 0.6; cursor: default; }
+
+.coo__card-done {
+  font-size: 13px;
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* Two-column lists */
+.coo__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+@media (max-width: 820px) {
+  .coo__cols { grid-template-columns: 1fr; }
+}
+
+.coo__list {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.coo__list-empty {
+  padding: 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.coo__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.coo__row:last-child { border-bottom: none; }
+
+.coo__row-main { font-size: 14px; font-weight: 600; }
+.coo__row-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.coo__row-amt { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }

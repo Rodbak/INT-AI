@@ -1,72 +1,178 @@
+/* ============================================================================
+   INT design tokens — fintech-minimal, warm gold/amber, light + dark.
+   Token NAMES are unchanged so every component re-themes automatically.
+   Theme resolution: default = dark; system preference applies light unless a
+   theme is forced; [data-theme] (set by the theme toggle) always wins.
+   ========================================================================= */
 :root {
-  --bg: #07090c;
-  /* Translucent so cards/panels read as glass floating on the neural field.
-     --bg-solid stays opaque for the few surfaces that need it (dropdowns,
-     code blocks) layered over content. */
-  --bg-raised: rgba(14, 21, 30, 0.72);
-  --bg-solid: #0d1117;
-  --bg-active: rgba(20, 30, 40, 0.85);
-  --bg-avatar: #131c24;
-  --border: #182028;
-  --border-strong: #24313d;
-  --text: #edf3f7;
-  --text-secondary: #c7d2da;
-  --text-tertiary: #93a4b0;
-  --text-muted: #7d8f9c;
-  --text-faint: #6b7c88;
-  --text-dim: #566573;
-  --text-label: #4b5964;
-  --text-disabled: #3a464f;
+  /* --- DARK (default) --- */
+  --bg: #0c0f14;
+  --bg-raised: #161b23;
+  --bg-solid: #1a212b;
+  --bg-active: #212a36;
+  --bg-avatar: #212a36;
+  --border: #242c37;
+  --border-strong: #323c49;
+  --text: #eef1f6;
+  --text-secondary: #cdd5de;
+  --text-tertiary: #aab4bf;
+  --text-muted: #8a95a1;
+  --text-faint: #737e8a;
+  --text-dim: #5c6672;
+  --text-label: #4d5661;
+  --text-disabled: #3a424d;
   --white: #ffffff;
-  --black: #07090c;
+  --black: #0c0f14;
 
-  /* Accent: the "Jarvis" cyan glow */
-  --accent: #3ee0ff;
-  --accent-strong: #8ff2ff;
-  --accent-soft: #1ba6c9;
-  --accent-dim: rgba(62, 224, 255, 0.16);
-  --accent-border: rgba(62, 224, 255, 0.35);
-  --accent-glow: rgba(62, 224, 255, 0.55);
-  --accent-glow-soft: rgba(62, 224, 255, 0.22);
+  --accent: #a78bfa;
+  --accent-strong: #c4b5fd;
+  --accent-soft: #8b5cf6;
+  --accent-dim: rgba(139, 92, 246, 0.18);
+  --accent-border: rgba(139, 92, 246, 0.38);
+  --accent-glow: rgba(139, 92, 246, 0.5);
+  --accent-glow-soft: rgba(139, 92, 246, 0.22);
+  --on-accent: #ffffff;
 
-  /* Synapse: the violet/magenta counter-accent that makes the palette read
-     as "neural" rather than flat cyan. Used for signals, secondary nodes,
-     and high-intensity bursts. */
-  --synapse: #a970ff;
-  --synapse-strong: #c9a2ff;
-  --synapse-soft: #7b3ff2;
-  --synapse-dim: rgba(169, 112, 255, 0.16);
-  --synapse-border: rgba(169, 112, 255, 0.34);
-  --synapse-glow: rgba(169, 112, 255, 0.55);
-  --synapse-glow-soft: rgba(169, 112, 255, 0.2);
+  /* Secondary / neutral accent (formerly the violet "synapse"). */
+  --synapse: #8b93a7;
+  --synapse-strong: #aab2c4;
+  --synapse-soft: #6b7385;
+  --synapse-dim: rgba(139, 147, 167, 0.16);
+  --synapse-border: rgba(139, 147, 167, 0.3);
+  --synapse-glow: rgba(139, 147, 167, 0.4);
+  --synapse-glow-soft: rgba(139, 147, 167, 0.18);
 
-  /* Raw RGB triplets for canvas work (NeuralField) so it can build rgba()
-     at arbitrary alpha without re-parsing hex. */
-  --rgb-accent: 62, 224, 255;
-  --rgb-synapse: 169, 112, 255;
-  --rgb-core: 120, 240, 255;
+  --rgb-accent: 139, 92, 246;
+  --rgb-synapse: 139, 147, 167;
+  --rgb-core: 167, 139, 250;
 
-  /* Deep-space background stops for the neural void. */
-  --void-0: #05070b;
-  --void-1: #070b12;
-  --void-2: #0a1220;
+  --void-0: #090c11;
+  --void-1: #0c0f14;
+  --void-2: #10161f;
 
-  --glass-bg: rgba(13, 20, 27, 0.6);
-  --glass-border: rgba(62, 224, 255, 0.16);
+  --glass-bg: rgba(22, 27, 35, 0.72);
+  --glass-border: rgba(245, 184, 75, 0.14);
 
-  /* Semantic status colors, used consistently for pills/badges everywhere
-     instead of one-off hex values per page. */
-  --success: #4ade80;
-  --success-bg: rgba(74, 222, 128, 0.14);
-  --success-border: rgba(74, 222, 128, 0.3);
-  --warning: #facc15;
-  --warning-bg: rgba(250, 204, 21, 0.14);
-  --warning-border: rgba(250, 204, 21, 0.3);
-  --danger: #f87171;
-  --danger-bg: rgba(248, 113, 113, 0.14);
-  --danger-border: rgba(248, 113, 113, 0.3);
+  --success: #34c88a;
+  --success-bg: rgba(52, 200, 138, 0.14);
+  --success-border: rgba(52, 200, 138, 0.3);
+  --warning: #e6a23c;
+  --warning-bg: rgba(230, 162, 60, 0.14);
+  --warning-border: rgba(230, 162, 60, 0.3);
+  --danger: #f0715f;
+  --danger-bg: rgba(240, 113, 95, 0.14);
+  --danger-border: rgba(240, 113, 95, 0.3);
 
   color-scheme: dark;
+}
+
+/* --- LIGHT tokens (shared by system-light and forced-light) --- */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg: #f6f7f9;
+    --bg-raised: #ffffff;
+    --bg-solid: #ffffff;
+    --bg-active: #eef1f5;
+    --bg-avatar: #eef1f5;
+    --border: #e7eaef;
+    --border-strong: #d6dbe2;
+    --text: #131720;
+    --text-secondary: #333b47;
+    --text-tertiary: #4d5661;
+    --text-muted: #5e6875;
+    --text-faint: #737d89;
+    --text-dim: #8a95a1;
+    --text-label: #97a2ae;
+    --text-disabled: #b4bcc6;
+    --white: #ffffff;
+    --black: #131720;
+    --accent: #7c3aed;
+    --accent-strong: #6d28d9;
+    --accent-soft: #8b5cf6;
+    --accent-dim: rgba(124, 58, 237, 0.10);
+    --accent-border: rgba(124, 58, 237, 0.30);
+    --accent-glow: rgba(124, 58, 237, 0.32);
+    --accent-glow-soft: rgba(124, 58, 237, 0.14);
+    --on-accent: #ffffff;
+    --synapse: #6b7385;
+    --synapse-strong: #565e6e;
+    --synapse-soft: #8b93a7;
+    --synapse-dim: rgba(107, 115, 133, 0.14);
+    --synapse-border: rgba(107, 115, 133, 0.3);
+    --synapse-glow: rgba(107, 115, 133, 0.35);
+    --synapse-glow-soft: rgba(107, 115, 133, 0.16);
+    --rgb-accent: 124, 58, 237;
+    --rgb-synapse: 107, 115, 133;
+    --rgb-core: 124, 58, 237;
+    --void-0: #eef1f5;
+    --void-1: #f6f7f9;
+    --void-2: #ffffff;
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(124, 58, 237, 0.18);
+    --success: #1e9e6a;
+    --success-bg: rgba(30, 158, 106, 0.12);
+    --success-border: rgba(30, 158, 106, 0.28);
+    --warning: #c67f16;
+    --warning-bg: rgba(198, 127, 22, 0.12);
+    --warning-border: rgba(198, 127, 22, 0.28);
+    --danger: #d0563f;
+    --danger-bg: rgba(208, 86, 63, 0.12);
+    --danger-border: rgba(208, 86, 63, 0.28);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme='light'] {
+  --bg: #f6f7f9;
+  --bg-raised: #ffffff;
+  --bg-solid: #ffffff;
+  --bg-active: #eef1f5;
+  --bg-avatar: #eef1f5;
+  --border: #e7eaef;
+  --border-strong: #d6dbe2;
+  --text: #131720;
+  --text-secondary: #333b47;
+  --text-tertiary: #4d5661;
+  --text-muted: #5e6875;
+  --text-faint: #737d89;
+  --text-dim: #8a95a1;
+  --text-label: #97a2ae;
+  --text-disabled: #b4bcc6;
+  --white: #ffffff;
+  --black: #131720;
+  --accent: #7c3aed;
+  --accent-strong: #6d28d9;
+  --accent-soft: #8b5cf6;
+  --accent-dim: rgba(124, 58, 237, 0.10);
+  --accent-border: rgba(124, 58, 237, 0.30);
+  --accent-glow: rgba(124, 58, 237, 0.32);
+  --accent-glow-soft: rgba(124, 58, 237, 0.14);
+  --on-accent: #ffffff;
+  --synapse: #6b7385;
+  --synapse-strong: #565e6e;
+  --synapse-soft: #8b93a7;
+  --synapse-dim: rgba(107, 115, 133, 0.14);
+  --synapse-border: rgba(107, 115, 133, 0.3);
+  --synapse-glow: rgba(107, 115, 133, 0.35);
+  --synapse-glow-soft: rgba(107, 115, 133, 0.16);
+  --rgb-accent: 124, 58, 237;
+  --rgb-synapse: 107, 115, 133;
+  --rgb-core: 124, 58, 237;
+  --void-0: #eef1f5;
+  --void-1: #f6f7f9;
+  --void-2: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(124, 58, 237, 0.18);
+  --success: #1e9e6a;
+  --success-bg: rgba(30, 158, 106, 0.12);
+  --success-border: rgba(30, 158, 106, 0.28);
+  --warning: #c67f16;
+  --warning-bg: rgba(198, 127, 22, 0.12);
+  --warning-border: rgba(198, 127, 22, 0.28);
+  --danger: #d0563f;
+  --danger-bg: rgba(208, 86, 63, 0.12);
+  --danger-border: rgba(208, 86, 63, 0.28);
+  color-scheme: light;
 }
 
 * {
@@ -82,10 +188,11 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(ellipse 900px 600px at 15% -10%, rgba(62, 224, 255, 0.05), transparent 60%),
+    radial-gradient(ellipse 900px 600px at 12% -12%, rgba(var(--rgb-accent), 0.05), transparent 60%),
     var(--bg);
   color: var(--text);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 ::-webkit-scrollbar {
@@ -116,13 +223,7 @@ button {
   font-family: inherit;
 }
 
-/* Page headings sit at the top of the content area, directly beneath the storm
-   cloud. A soft dark halo keeps them crisp against the brightest part of the
-   neural field without needing an opaque bar. */
-.layout__content h1,
-.layout__content h2 {
-  text-shadow: 0 2px 18px rgba(4, 6, 10, 0.7), 0 0 32px rgba(4, 6, 10, 0.45);
-}
+/* (Headings no longer sit over a neural field — no halo needed.) */
 
 /* --- Frosted-glass panels floating on the neural substrate --- */
 .prompts__card,
@@ -141,21 +242,19 @@ button {
 .admin-dashboard__stat,
 .billing__card,
 .billing__plan {
-  /* Spatial-depth glass: deeper blur, a soft cast shadow so the panel floats,
-     and a 1px top sheen so it reads as a lit pane of glass. */
-  backdrop-filter: blur(16px) saturate(135%);
-  -webkit-backdrop-filter: blur(16px) saturate(135%);
-  box-shadow: 0 22px 55px -26px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  /* Fintech-minimal surface: a soft, restrained shadow so panels sit calmly
+     above the background. No heavy glow — this is a money app, not a console. */
+  box-shadow: 0 10px 26px -18px rgba(15, 23, 42, 0.28);
 }
 
-/* Cards lift toward the viewer on hover — a light spatial cue. */
+/* Cards lift gently on hover. */
 .prompts__card,
 .specialists__card,
 .ai-teams__card,
 .connections__card,
 .admin-dashboard__card,
 .billing__plan {
-  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 
 .prompts__card:hover,
@@ -164,7 +263,7 @@ button {
 .connections__card:hover,
 .admin-dashboard__card:hover,
 .billing__plan:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.75), 0 0 24px var(--accent-glow-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  border-color: var(--accent-border);
+  box-shadow: 0 16px 34px -18px rgba(15, 23, 42, 0.35);
 }

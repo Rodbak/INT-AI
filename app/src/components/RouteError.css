@@ -16,7 +16,7 @@
   text-align: center;
   padding: 34px 30px;
   border-radius: 16px;
-  background: rgba(10, 16, 26, 0.66);
+  background: var(--bg-raised);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(var(--rgb-accent), 0.12);

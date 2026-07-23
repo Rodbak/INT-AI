@@ -8,8 +8,8 @@
   /* Deep, unmistakably-dark stage with a cool cyan core glow and a vignette so
      the orb reads as the light source rather than the page feeling washed out. */
   background:
-    radial-gradient(ellipse 60% 45% at 50% 40%, rgba(62, 224, 255, 0.10), transparent 70%),
-    radial-gradient(ellipse 120% 90% at 50% 120%, rgba(62, 224, 255, 0.05), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 50% 40%, rgba(var(--rgb-accent), 0.10), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 120%, rgba(var(--rgb-accent), 0.05), transparent 60%),
     radial-gradient(circle at 50% 42%, #0a1119 0%, #070b11 55%, #04060a 100%);
 }
 
@@ -40,7 +40,7 @@
   top: 50%;
   left: 50%;
   border-radius: 50%;
-  border: 1px solid rgba(62, 224, 255, 0.12);
+  border: 1px solid rgba(var(--rgb-accent), 0.12);
   transform: translate(-50%, -50%);
   animation: hf-breathe 6s ease-in-out infinite;
 }
@@ -52,13 +52,13 @@
 .hands-free__aura-ring--2 {
   width: 520px;
   height: 520px;
-  border-color: rgba(62, 224, 255, 0.08);
+  border-color: rgba(var(--rgb-accent), 0.08);
   animation-delay: -2s;
 }
 .hands-free__aura-ring--3 {
   width: 720px;
   height: 720px;
-  border-color: rgba(62, 224, 255, 0.05);
+  border-color: rgba(var(--rgb-accent), 0.05);
   animation-delay: -4s;
 }
 
@@ -71,11 +71,11 @@
 .hands-free--thinking .hands-free__aura-ring,
 .hands-free--transcribing .hands-free__aura-ring {
   animation-duration: 2.6s;
-  border-color: rgba(62, 224, 255, 0.2);
+  border-color: rgba(var(--rgb-accent), 0.2);
 }
 .hands-free--speaking .hands-free__aura-ring {
   animation-duration: 3.4s;
-  border-color: rgba(62, 224, 255, 0.16);
+  border-color: rgba(var(--rgb-accent), 0.16);
 }
 
 .hands-free__hud,
@@ -108,9 +108,9 @@
 .hands-free__hud-item--right {
   color: var(--text-dim);
   padding: 5px 12px;
-  border: 1px solid rgba(62, 224, 255, 0.14);
+  border: 1px solid rgba(var(--rgb-accent), 0.14);
   border-radius: 999px;
-  background: rgba(62, 224, 255, 0.04);
+  background: rgba(var(--rgb-accent), 0.04);
 }
 
 .hands-free__hud-dot {
@@ -194,7 +194,7 @@
   color: var(--text);
   font-size: 17px;
   font-weight: 500;
-  text-shadow: 0 0 18px rgba(62, 224, 255, 0.14);
+  text-shadow: 0 0 18px rgba(var(--rgb-accent), 0.14);
 }
 
 .hands-free__error {
@@ -271,7 +271,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid var(--border-strong);
-  background: rgba(62, 224, 255, 0.04);
+  background: rgba(var(--rgb-accent), 0.04);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -290,11 +290,11 @@
 .hands-free__mic--active {
   border-color: var(--accent);
   background: var(--accent-dim);
-  box-shadow: 0 0 28px var(--accent-glow-soft), inset 0 0 18px rgba(62, 224, 255, 0.08);
+  box-shadow: 0 0 28px var(--accent-glow-soft), inset 0 0 18px rgba(var(--rgb-accent), 0.08);
 }
 
 .hands-free__mic--active .hands-free__mic-halo {
-  border-color: rgba(62, 224, 255, 0.35);
+  border-color: rgba(var(--rgb-accent), 0.35);
   animation: hf-halo 2s ease-out infinite;
 }
 

@@ -6,44 +6,37 @@ export interface NavItem {
 export interface NavGroup {
   label: string;
   items: NavItem[];
+  /** Advanced groups start collapsed — they hold the technical tools most
+   *  shop owners never need, kept out of the way but still reachable. */
+  advanced?: boolean;
 }
 
 export const navGroups: NavGroup[] = [
   {
-    label: 'Workspace',
+    label: 'My business',
     items: [
-      { id: 'current-task', label: 'Current task' },
-      { id: 'history', label: 'History' },
+      { id: 'home', label: 'Home' },
+      { id: 'current-task', label: 'Ask INT' },
+      { id: 'sales', label: 'Sales' },
+      { id: 'customers', label: 'Customers' },
+      { id: 'stock', label: 'Stock' },
+      { id: 'money', label: 'Money' },
+      { id: 'reports', label: 'Reports' },
+      { id: 'pos', label: 'Open Till' },
     ],
   },
   {
-    label: 'Build',
+    label: 'Account',
     items: [
-      { id: 'specialists', label: 'Specialists' },
-      { id: 'ai-teams', label: 'AI Teams' },
-      { id: 'automations', label: 'Automations' },
-      { id: 'compare', label: 'Model Face-off' },
-    ],
-  },
-  {
-    label: 'Organize',
-    items: [
+      { id: 'till-setup', label: 'Till setup' },
       { id: 'company-knowledge', label: 'Company Knowledge' },
-      { id: 'prompt-library', label: 'Prompt Library' },
-      { id: 'connections', label: 'Connections' },
-    ],
-  },
-  {
-    label: 'Manage',
-    items: [
-      { id: 'admin-dashboard', label: 'Admin Dashboard' },
-      { id: 'billing-api-keys', label: 'Billing & API Keys' },
+      { id: 'history', label: 'History' },
       { id: 'settings', label: 'Settings' },
     ],
   },
 ];
 
-export const defaultActiveNavId = 'current-task';
+export const defaultActiveNavId = 'home';
 
 export interface RouteStep {
   role: string;

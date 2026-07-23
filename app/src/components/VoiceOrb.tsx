@@ -8,7 +8,6 @@ interface VoiceOrbProps {
   powerUpTrigger?: number;
 }
 
-const ACCENT: [number, number, number] = [62, 224, 255];
 const RING_COUNT = 3;
 const FIBER_COUNT = 56;
 const BURST_DURATION_MS = 750;
@@ -34,6 +33,11 @@ export default function VoiceOrb({ voiceState, getAudioLevel, powerUpTrigger }: 
     let frame = 0;
     let raf = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Read the brand accent from CSS so the orb matches the active theme.
+    const accentVar = getComputedStyle(document.documentElement).getPropertyValue('--rgb-accent').trim();
+    const ACCENT: [number, number, number] = accentVar
+      ? (accentVar.split(',').map((n) => parseInt(n, 10)) as [number, number, number])
+      : [124, 58, 237];
 
     // Precomputed per-fiber jitter so the iris texture doesn't reshuffle every frame.
     const fibers = Array.from({ length: FIBER_COUNT }, (_, i) => ({

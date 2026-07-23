@@ -286,6 +286,140 @@ export async function runModelOnce(
   };
 }
 
+// --- AI COO ---
+export interface CooBrief {
+  empty?: boolean;
+  currency: string;
+  cashOnHand: number;
+  receivablesTotal: number;
+  receivablesCount: number;
+  receivables: { invoiceId: string; number: string; customer: string; phone?: string; outstanding: number; daysOverdue: number }[];
+  topDebtor: { customer: string; outstanding: number; daysOverdue: number } | null;
+  lowStock: { id: string; name: string; stock: number; reorderPoint: number; unit: string }[];
+  lowStockCount: number;
+  salesThisWeek: number;
+  salesPrevWeek: number;
+  trendPct: number | null;
+  bestSeller: { name: string; revenue: number; marginPct: number } | null;
+  cashRunwayWeeks: number | null;
+  actions: { kind: string; title: string; detail: string; cta: string; payload: any }[];
+  shopName?: string;
+}
+
+export async function getCooBrief(): Promise<CooBrief> {
+  const { data } = await api.get<CooBrief>('/coo/brief');
+  return data;
+}
+
+export interface CooReport {
+  empty?: boolean;
+  currency: string;
+  monthLabel: string;
+  thisMonth: { moneyIn: number; moneyOut: number; net: number; sales: number; profit: number };
+  lastMonth: { moneyIn: number; moneyOut: number; net: number; sales: number; profit: number };
+  topCustomers: { name: string; total: number }[];
+  topProducts: { name: string; revenue: number; profit: number }[];
+  weekday: { day: string; sales: number }[];
+  busiestDay: string | null;
+}
+export async function getReport(): Promise<CooReport> {
+  const { data } = await api.get<CooReport>('/coo/reports');
+  return data;
+}
+
+export interface SetupStatus { needsSetup: boolean; shopName: string }
+export async function getSetupStatus(): Promise<SetupStatus> {
+  const { data } = await api.get<SetupStatus>('/coo/setup');
+  return data;
+}
+export async function completeSetup(input: {
+  shopName: string;
+  products?: { name: string; price: number; stock: number; cost?: number; unit?: string }[];
+  customers?: { name: string; phone?: string }[];
+}): Promise<{ ok: boolean; shopName: string }> {
+  const { data } = await api.post<{ ok: boolean; shopName: string }>('/coo/setup', input);
+  return data;
+}
+
+export async function approveCooAction(action: { kind: string; title: string; detail?: string; payload?: any }) {
+  const { data } = await api.post<{ id: string; status: string; message: string }>('/coo/actions', action);
+  return data;
+}
+
+// --- Business management (customers, products, sales, payments, expenses) ---
+export interface CooCustomer { id: string; name: string; phone?: string | null; owed: number }
+export interface CooProduct { id: string; name: string; sku?: string | null; price: number; cost: number; stock: number; reorderPoint: number; unit: string; low: boolean }
+export interface CooSale { id: string; number: string; customer: string; amount: number; status: string; outstanding: number; issuedAt: string }
+export interface CooExpense { id: string; category: string; amount: number; note?: string | null; spentAt: string }
+
+export async function getCustomers(): Promise<CooCustomer[]> {
+  const { data } = await api.get<{ customers: CooCustomer[] }>('/coo/customers');
+  return data.customers;
+}
+export async function addCustomer(input: { name: string; phone?: string }): Promise<CooCustomer> {
+  const { data } = await api.post<{ customer: CooCustomer }>('/coo/customers', input);
+  return data.customer;
+}
+
+export async function getProducts(): Promise<CooProduct[]> {
+  const { data } = await api.get<{ products: CooProduct[] }>('/coo/products');
+  return data.products;
+}
+export async function addProduct(input: { name: string; price: number; cost: number; stock: number; reorderPoint: number; unit: string; sku?: string }): Promise<CooProduct> {
+  const { data } = await api.post<{ product: CooProduct }>('/coo/products', input);
+  return data.product;
+}
+export async function updateProduct(id: string, input: Partial<{ name: string; price: number; cost: number; stock: number; addStock: number; reorderPoint: number; unit: string }>): Promise<CooProduct> {
+  const { data } = await api.patch<{ product: CooProduct }>(`/coo/products/${id}`, input);
+  return data.product;
+}
+export async function deleteProduct(id: string): Promise<{ message: string }> {
+  const { data } = await api.delete<{ message: string }>(`/coo/products/${id}`);
+  return data;
+}
+export async function updateCustomer(id: string, input: { name?: string; phone?: string }): Promise<CooCustomer> {
+  const { data } = await api.patch<{ customer: CooCustomer }>(`/coo/customers/${id}`, input);
+  return data.customer;
+}
+export async function deleteCustomer(id: string): Promise<{ message: string }> {
+  const { data } = await api.delete<{ message: string }>(`/coo/customers/${id}`);
+  return data;
+}
+
+export async function getSales(): Promise<CooSale[]> {
+  const { data } = await api.get<{ sales: CooSale[] }>('/coo/sales');
+  return data.sales;
+}
+export async function recordSale(input: { customerId?: string; items?: { productId: string; qty: number; unitPrice?: number }[]; amount?: number; paidNow: boolean; method?: string; dueInDays?: number }): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>('/coo/sales', input);
+  return data;
+}
+export async function deleteSale(id: string): Promise<{ message: string }> {
+  const { data } = await api.delete<{ message: string }>(`/coo/sales/${id}`);
+  return data;
+}
+export async function recordPayment(input: { invoiceId?: string; customerId?: string; amount?: number; method?: string }): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>('/coo/payments', input);
+  return data;
+}
+
+export async function getExpenses(): Promise<CooExpense[]> {
+  const { data } = await api.get<{ expenses: CooExpense[] }>('/coo/expenses');
+  return data.expenses;
+}
+export async function recordExpense(input: { category: string; amount: number; note?: string }): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>('/coo/expenses', input);
+  return data;
+}
+export async function updateExpense(id: string, input: { category?: string; amount?: number; note?: string }): Promise<CooExpense> {
+  const { data } = await api.patch<{ expense: CooExpense }>(`/coo/expenses/${id}`, input);
+  return data.expense;
+}
+export async function deleteExpense(id: string): Promise<{ message: string }> {
+  const { data } = await api.delete<{ message: string }>(`/coo/expenses/${id}`);
+  return data;
+}
+
 export async function transcribeAudio(blob: Blob): Promise<string> {
   const { data } = await api.post<{ text: string }>('/voice/transcribe', blob, {
     headers: { 'Content-Type': blob.type || 'audio/webm' },

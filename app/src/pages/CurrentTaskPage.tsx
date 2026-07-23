@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStreamingChat } from '../hooks/useStreamingChat';
 import { useConversations } from '../hooks/useConversations';
 import { useVoiceChat } from '../hooks/useVoiceChat';
 import ConversationList from '../components/ConversationList';
-import ModelSelector, { MODELS } from '../components/ModelSelector';
-import SpecialistSelector from '../components/SpecialistSelector';
-import PromptPicker from '../components/PromptPicker';
+import { MODELS } from '../components/ModelSelector';
 import { fetchSpecialists } from '../lib/api';
 import type { Specialist } from '../types/index';
 import CostBadge from '../components/CostBadge';
@@ -30,6 +29,8 @@ export default function CurrentTaskPage() {
   const [composerValue, setComposerValue] = useState('');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const askedRef = useRef(false);
   const [mode, setMode] = useState<Mode>('type');
   const [displayedMode, setDisplayedMode] = useState<Mode>('type');
   const [transitioning, setTransitioning] = useState(false);
@@ -136,6 +137,16 @@ export default function CurrentTaskPage() {
     },
     [send, selectedModel, selectedProvider, activeId, handleNewConversation, deriveTitle, titleFromFirstMessage, specialistId],
   );
+
+  // Deep-link from the COO Home "Ask INT" bar: /current-task?ask=…
+  useEffect(() => {
+    const q = searchParams.get('ask');
+    if (q && !askedRef.current) {
+      askedRef.current = true;
+      setSearchParams({}, { replace: true });
+      handleSend(q);
+    }
+  }, [searchParams, setSearchParams, handleSend]);
 
   const handleAttachImages = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -344,8 +355,8 @@ export default function CurrentTaskPage() {
               {messages.length === 0 && (
                 <div className="current-task__empty">
                   <div className="current-task__empty-icon">I</div>
-                  <h2>What would you like to accomplish?</h2>
-                  <p>INT AI will route your request to the best specialists and models automatically.</p>
+                  <h2>Ask me anything about your business</h2>
+                  <p>Try “Who hasn’t paid me?”, “Should I restock anything?”, or “How much cash do I have?” — I use your real figures to answer.</p>
                 </div>
               )}
 
@@ -454,17 +465,11 @@ export default function CurrentTaskPage() {
                     />
                     <div className="composer__row">
                       <div className="composer__controls">
-                        <PromptPicker
-                          onPick={(content) => {
-                            setComposerValue(content);
-                            requestAnimationFrame(() => composerRef.current?.focus());
-                          }}
-                        />
                         <button
                           type="button"
                           className="composer__icon-button"
                           aria-label="Attach image"
-                          title="Attach image (vision)"
+                          title="Attach a photo"
                           onClick={() => imageInputRef.current?.click()}
                         >
                           <PlusIcon className="composer__icon" />
@@ -473,17 +478,11 @@ export default function CurrentTaskPage() {
                           type="button"
                           className="composer__icon-button composer__mic"
                           aria-label="Switch to hands-free mode"
-                          title="Switch to hands-free mode"
+                          title="Talk to INT"
                           onClick={switchToVoice}
                         >
                           <MicIcon className="composer__icon" />
                         </button>
-                        <SpecialistSelector
-                          specialists={specialists}
-                          value={selectedSpecialist}
-                          onChange={setSelectedSpecialist}
-                        />
-                        <ModelSelector value={selectedModel} onChange={setSelectedModel} />
                       </div>
                       <div className="composer__actions">
                         {sending && (

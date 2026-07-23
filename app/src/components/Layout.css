@@ -4,12 +4,10 @@
   display: flex;
   width: 100%;
   height: 100vh;
-  /* The nervous system now lives in the Spine gutter, so the workspace itself
-     is a clean, calm dark surface — a faint cool glow up top, deep space below,
-     nothing moving behind the text. */
+  /* Fintech-minimal: a single calm surface, a whisper of warm accent up top. */
   background:
-    radial-gradient(ellipse 70% 40% at 12% -8%, rgba(var(--rgb-accent), 0.05), transparent 60%),
-    linear-gradient(180deg, var(--void-2) 0%, var(--void-1) 40%, var(--void-0) 100%);
+    radial-gradient(ellipse 60% 34% at 14% -10%, rgba(var(--rgb-accent), 0.04), transparent 60%),
+    var(--bg);
   color: var(--text);
   overflow: hidden;
 }
@@ -77,6 +75,16 @@
 .layout__content {
   flex: 1;
   overflow-y: auto;
+}
+
+/* --- Mobile: hide the sidebar, make room for the bottom tab bar --- */
+@media (max-width: 760px) {
+  .layout { height: 100dvh; }
+  .sidebar { display: none; }
+  .layout__content {
+    /* clear the fixed bottom nav (approx 60px + safe area) */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0));
+  }
 }
 
 .app-loading {
