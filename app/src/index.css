@@ -267,3 +267,17 @@ button {
   border-color: var(--accent-border);
   box-shadow: 0 16px 34px -18px rgba(15, 23, 42, 0.35);
 }
+
+/* ── Global tap feedback ──────────────────────────────────────────────────
+   A subtle press-scale on interactive controls so the app feels physical on
+   touch. Excludes the bottom-nav (which has its own icon bounce). */
+@media (prefers-reduced-motion: no-preference) {
+  button:not(.bottomnav__tab),
+  a[role='button'] {
+    transition: transform 0.09s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  button:not(.bottomnav__tab):not(:disabled):active,
+  a[role='button']:active {
+    transform: scale(0.97);
+  }
+}

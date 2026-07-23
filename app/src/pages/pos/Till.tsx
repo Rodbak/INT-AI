@@ -252,6 +252,9 @@ function Receipt({ data, catalog, cashier, onNew }: { data: ReceiptData; catalog
   return (
     <div className="till__overlay">
       <div className="till__receipt-wrap">
+        <div className="till__success" aria-hidden>
+          <svg viewBox="0 0 52 52"><circle className="till__success-circle" cx="26" cy="26" r="24" /><path className="till__success-check" d="M14 27l8 8 16-16" /></svg>
+        </div>
         <div className="receipt-paper" id="receipt">
           <div className="receipt-shop">{catalog.shopName}</div>
           {settings.receiptHeader && <div className="receipt-header">{settings.receiptHeader}</div>}

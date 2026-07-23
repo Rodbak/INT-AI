@@ -45,6 +45,8 @@ export default function ProactiveFeed() {
   useEffect(() => {
     getNudges().then((list) => {
       setNudges(list);
+      // Let the Home header orb "stir" when there are things to raise.
+      window.dispatchEvent(new CustomEvent('int:nudges', { detail: { count: list.length } }));
       // Celebrate a win once per day (record sales day, etc.).
       const win = list.find((n) => n.kind === 'win');
       if (win) {

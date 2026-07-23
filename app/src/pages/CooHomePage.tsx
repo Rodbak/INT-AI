@@ -7,6 +7,7 @@ import ProactiveFeed from '../components/ProactiveFeed';
 import NotifyToggle from '../components/NotifyToggle';
 import CountUp from '../components/CountUp';
 import Skeleton from '../components/Skeleton';
+import IntOrb from '../components/IntOrb';
 import './CooHomePage.css';
 
 const cedis = (n: number) => `GH₵ ${Math.round(n).toLocaleString()}`;
@@ -93,6 +94,7 @@ export default function CooHomePage() {
   return (
     <div className="coo">
       <div className="coo__head">
+        <IntOrb />
         <div>
           <h1 className="coo__hi">{hi} 👋</h1>
           <p className="coo__sub">Here's your business today — {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p>

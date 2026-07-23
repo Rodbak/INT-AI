@@ -11,6 +11,13 @@
   padding: 40px 0;
 }
 
+.coo__head {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 18px;
+}
+
 .coo__hi {
   font-size: 26px;
   font-weight: 700;

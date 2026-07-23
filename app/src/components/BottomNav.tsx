@@ -47,9 +47,20 @@ export default function BottomNav() {
 
   const moreActive = MORE_LINKS.some((l) => l.route === pathname);
 
+  // Which of the 5 slots is active, for the sliding indicator (−1 = none).
+  const activeIndex = moreOpen || moreActive ? TABS.length : TABS.findIndex((t) => t.route === pathname);
+  const slots = TABS.length + 1;
+
   return (
     <>
       <nav className="bottomnav" aria-label="Main">
+        {activeIndex >= 0 && (
+          <span
+            className="bottomnav__indicator"
+            style={{ width: `${100 / slots}%`, transform: `translateX(${activeIndex * 100}%)` }}
+            aria-hidden
+          />
+        )}
         {TABS.map((t) => {
           const active = pathname === t.route;
           return (
