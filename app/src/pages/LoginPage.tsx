@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { AUTH_ENABLED } from '../lib/auth';
 import './LoginPage.css';
@@ -6,8 +7,12 @@ import './LoginPage.css';
 type Mode = 'signin' | 'signup';
 
 export default function LoginPage() {
-  const { signInWithPassword, signUpWithPassword, resetPassword, signInWithGoogle } = useAuth();
-  const [mode, setMode] = useState<Mode>('signin');
+  const { signInWithPassword, signUpWithPassword, resetPassword, signInWithGoogle, status } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<Mode>(searchParams.get('signup') === '1' ? 'signup' : 'signin');
+
+  // Already signed in? Don't show the form — go straight to the dashboard.
+  if (AUTH_ENABLED && status === 'authenticated') return <Navigate to="/home" replace />;
   const [name, setName] = useState('');
   const [shopName, setShopName] = useState('');
   const [identifier, setIdentifier] = useState(''); // email or phone

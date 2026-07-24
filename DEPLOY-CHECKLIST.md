@@ -26,6 +26,48 @@ CREATE INDEX IF NOT EXISTS "PushSubscription_workspaceId_idx" ON "PushSubscripti
 Everything else in the DB is already migrated and seeded. If you skip this step the app
 still runs — only the phone-notification feature stays off.
 
+## 🚀 GO LIVE (new in `go-live-1`) — read this first
+
+This build flips INT from shared-demo mode into a real product: a public
+landing page, real per-owner accounts **on by default**, and no seeded data.
+Phone-number login, Paystack payments and a custom domain come later — email +
+password works now.
+
+**1. Turn on email accounts in Supabase.** Supabase → Authentication → Providers
+→ enable **Email**. The Email provider is on by default in new projects, so this
+is usually already done. (Leave "Confirm email" on for verification, or off for
+one-tap sign-up while you test.) `SUPABASE_JWT_SECRET` must be set (Supabase →
+Settings → API → JWT Secret).
+
+**2. Auth is ON by default now — no env flag needed.** The code defaults to real
+accounts. You only touch these to *turn accounts off* again:
+```
+# To fall back to the old shared-demo mode (optional, not for production):
+# AUTH_ENABLED=false
+# VITE_AUTH_ENABLED=false
+```
+Leave them unset for the live product.
+
+**3. Wipe the seeded demo shop** so the live database starts clean (Supabase →
+SQL Editor, or `psql "$DATABASE_URL" -f server/prisma/wipe-demo.sql`). It removes
+the demo owner and all its data; real sign-ups get their own fresh shops
+automatically. Safe to run more than once.
+
+**4. Set your support channels on the landing page.** In
+`app/src/pages/LandingPage.tsx` change the two constants at the top before you
+build:
+```
+const WHATSAPP_NUMBER = '233240000000';   // your WhatsApp, digits only, country code first
+const SUPPORT_EMAIL   = 'hello@int.app';  // your support email
+```
+
+**5. Domain — later.** The app works on the Vercel URL now. When you buy a
+domain, add it in Vercel → Settings → Domains and (if you enable phone/SMS or
+Paystack) update those callback/webhook URLs to the new domain.
+
+After sign-up, an owner lands on `/` → sees the landing page → "Create your shop"
+→ fills name + shop name + email + password → gets their own isolated shop.
+
 ## 2. Vercel → int-ai → Settings → Environment Variables
 Set these (Production). Values you must supply are marked ⟵.
 

@@ -15,19 +15,25 @@ import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout';
 import RouteError from './components/RouteError';
 import LoginPage from './pages/LoginPage';
+import PublicHome from './pages/PublicHome';
 import AuthGate from './components/AuthGate';
 
 export const router = createBrowserRouter([
+  // Public root: marketing landing page for logged-out visitors, or a redirect
+  // into the app for signed-in owners (and always the app in demo mode).
+  {
+    path: '/',
+    element: <PublicHome />,
+  },
   {
     path: '/login',
     element: <LoginPage />,
   },
+  // The app itself, gated behind login when auth is on.
   {
-    path: '/',
     element: <AuthGate><Layout /></AuthGate>,
     errorElement: <RouteError />,
     children: [
-      { index: true, element: <Navigate to="/home" replace /> },
       { path: 'home', element: <CooHomePage /> },
       { path: 'sales', element: <SalesPage /> },
       { path: 'customers', element: <CustomersPage /> },
@@ -49,6 +55,6 @@ export const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <Navigate to="/home" replace />,
+    element: <Navigate to="/" replace />,
   },
 ]);

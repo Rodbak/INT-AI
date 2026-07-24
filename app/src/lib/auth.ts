@@ -10,9 +10,9 @@ interface AuthState {
   error: string | null;
 }
 
-// Real per-user auth is on only when this build-time flag is set. Otherwise the
-// app runs in shared-demo mode (one shop, no login) exactly as before.
-export const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED === 'true';
+// Real per-user auth is ON by default now that we're live. To fall back to
+// shared-demo mode (one shop, no login) set VITE_AUTH_ENABLED=false at build time.
+export const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED !== 'false';
 
 const DEMO_USER: User = {
   id: '00000000-0000-0000-0000-000000000000',

@@ -11,10 +11,11 @@ export interface VerifiedUser {
   shopName?: string;
 }
 
-/** Whether real per-user auth is switched on. */
+/** Whether real per-user auth is switched on. On by default now we're live;
+ *  set AUTH_ENABLED=false (or 0/no) to fall back to shared-demo mode. */
 export function authEnabled(): boolean {
-  const v = (env.AUTH_ENABLED || '').toLowerCase();
-  return v === 'true' || v === '1' || v === 'yes';
+  const v = (env.AUTH_ENABLED || '').trim().toLowerCase();
+  return !(v === 'false' || v === '0' || v === 'no');
 }
 
 /**
