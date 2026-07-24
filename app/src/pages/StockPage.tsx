@@ -126,7 +126,11 @@ export default function StockPage() {
             <button key={p.id} className="biz__row biz__row--tap" onClick={() => openEdit(p)}>
               <div>
                 <div className="biz__row-main">{p.name}</div>
-                <div className="biz__row-sub">Selling at {cedis(p.price)} · warns at {p.reorderPoint} {p.unit}</div>
+                <div className="biz__row-sub">
+                  Selling at {cedis(p.price)}
+                  {p.price > 0 && p.cost > 0 && <> · <span className={p.price > p.cost ? 'biz__pos' : 'biz__neg'}>{Math.round(((p.price - p.cost) / p.price) * 100)}% margin</span></>}
+                  {' '}· warns at {p.reorderPoint} {p.unit}
+                </div>
               </div>
               <div className="biz__row-right">
                 <div className="biz__row-amt">
@@ -157,6 +161,20 @@ export default function StockPage() {
             <label className="biz__label" htmlFor="p-cost">Cost price — what it costs you (GH₵)</label>
             <input id="p-cost" className="biz__input" type="number" inputMode="decimal" value={form.cost} onChange={(e) => set('cost', e.target.value)} placeholder="0" />
           </div>
+          {(() => {
+            const price = parseFloat(form.price);
+            const cost = parseFloat(form.cost);
+            if (!(price > 0) || !(cost >= 0) || form.cost === '') return null;
+            const profit = price - cost;
+            const margin = Math.round((profit / price) * 100);
+            const cls = profit > 0 ? 'biz__margin--good' : profit < 0 ? 'biz__margin--bad' : 'biz__margin--flat';
+            return (
+              <div className={`biz__margin ${cls}`}>
+                {profit >= 0 ? 'You make' : 'You lose'} <b>{cedis(Math.abs(profit))}</b> on each {form.unit.trim() || 'unit'} · <b>{margin}%</b> margin
+                {profit < 0 && <span className="biz__margin-warn"> — you’re selling below cost!</span>}
+              </div>
+            );
+          })()}
           <div className="biz__field">
             <label className="biz__label" htmlFor="p-stock">How many do you have now?</label>
             <input id="p-stock" className="biz__input" type="number" inputMode="numeric" value={form.stock} onChange={(e) => set('stock', e.target.value)} placeholder="0" />

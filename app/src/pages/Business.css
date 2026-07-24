@@ -507,3 +507,17 @@
 
 /* Inline icons inside primary/ghost buttons */
 .biz__btn-ic { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Live profit/margin readout under the Stock cost field */
+.biz__margin {
+  margin: -6px 0 16px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.biz__margin b { font-weight: 800; }
+.biz__margin--good { background: var(--success-dim, rgba(34,197,94,0.12)); color: var(--success); }
+.biz__margin--flat { background: var(--bg-active, rgba(127,127,127,0.10)); color: var(--text-secondary); }
+.biz__margin--bad { background: var(--danger-dim, rgba(239,68,68,0.12)); color: var(--danger); }
+.biz__margin-warn { font-weight: 700; }
