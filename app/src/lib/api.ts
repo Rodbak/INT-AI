@@ -311,20 +311,47 @@ export async function getCooBrief(): Promise<CooBrief> {
   return data;
 }
 
+export type ReportRange = '7d' | '30d' | 'month' | 'lastmonth';
+export interface PeriodStats { moneyIn: number; moneyOut: number; net: number; sales: number; profit: number }
 export interface CooReport {
   empty?: boolean;
   currency: string;
-  monthLabel: string;
-  thisMonth: { moneyIn: number; moneyOut: number; net: number; sales: number; profit: number };
-  lastMonth: { moneyIn: number; moneyOut: number; net: number; sales: number; profit: number };
+  range: ReportRange;
+  periodLabel: string;
+  compareLabel: string;
+  period: PeriodStats;
+  previous: PeriodStats;
   topCustomers: { name: string; total: number }[];
   topProducts: { name: string; revenue: number; profit: number }[];
   weekday: { day: string; sales: number }[];
   busiestDay: string | null;
   dailySales: { date: string; label: string; sales: number }[];
 }
-export async function getReport(): Promise<CooReport> {
-  const { data } = await api.get<CooReport>('/coo/reports');
+export async function getReport(range: ReportRange = 'month'): Promise<CooReport> {
+  const { data } = await api.get<CooReport>(`/coo/reports?range=${range}`);
+  return data;
+}
+
+export interface SaleReceipt {
+  shopName: string;
+  receiptHeader: string | null;
+  receiptFooter: string;
+  number: string;
+  customer: string;
+  phone: string | null;
+  issuedAt: string;
+  lines: { name: string; qty: number; price: number }[];
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  method: string;
+  paid: number;
+  outstanding: number;
+  currency: string;
+}
+export async function getSaleReceipt(id: string): Promise<SaleReceipt> {
+  const { data } = await api.get<SaleReceipt>(`/coo/sales/${id}/receipt`);
   return data;
 }
 

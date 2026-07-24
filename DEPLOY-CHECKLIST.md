@@ -54,6 +54,16 @@ CRON_SECRET=c0b2bcae4ae76038e0a289eeef6adf8701ec0d602cba2053
 Everything else in `server/.env.example` (Google/Slack/Stripe/OpenAI/Anthropic/Redis)
 is **optional** — the app runs without them.
 
+### New in `demo-1`
+- **Reports date ranges** (Last 7 days / 30 days / This month / Last month) — no setup.
+- **Receipt re-send / reprint** from any past sale in Sales history — no setup.
+- **Barcode demo without hardware**: the till search box matches barcodes; type a
+  seeded code (e.g. `6001005`) or a product name and press Enter to add it.
+- **Richer demo data**: to load ~45 days of realistic daily sales (fuller charts,
+  trends, busiest-day, forecasting), re-run the seed once:
+  `npm --workspace server run coo:seed` (it resets the demo shop's data first).
+  Skip it if you'd rather keep the current data.
+
 ### New in `trust-vision-1`
 - **Customer trust score** is automatic — no setup, no keys. It reads existing
   payment history and shows a badge on each customer + a gentle warning when you

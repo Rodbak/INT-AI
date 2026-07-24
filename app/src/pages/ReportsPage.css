@@ -57,3 +57,19 @@
 .rep__bars--daily .rep__bar { width: 72%; background: var(--accent); }
 
 .rep__rank { color: var(--text-muted); font-weight: 700; margin-right: 2px; }
+
+/* Date-range selector chips */
+.rep__ranges { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 20px; }
+.rep__range {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rep__range:hover { border-color: var(--accent-border); }
+.rep__range--on { background: var(--accent); border-color: transparent; color: var(--on-accent); }

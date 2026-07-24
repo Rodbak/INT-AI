@@ -47,7 +47,7 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
     const q = query.trim().toLowerCase();
     return products.filter((p) =>
       (category === 'All' || p.category === category) &&
-      (!q || p.name.toLowerCase().includes(q)),
+      (!q || p.name.toLowerCase().includes(q) || (p.barcode || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)),
     );
   }, [products, query, category]);
 
@@ -80,7 +80,9 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
     if (e.key !== 'Enter') return;
     const code = query.trim();
     if (!code) return;
-    const hit = products.find((p) => p.barcode === code || p.sku === code);
+    // Exact barcode/SKU match (real scanner), else add the single filtered
+    // result (lets you type a code or name + Enter with no hardware).
+    const hit = products.find((p) => p.barcode === code || p.sku === code) || (filtered.length === 1 ? filtered[0] : null);
     if (hit) { add(hit); setQuery(''); }
   };
 
@@ -138,6 +140,7 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
             onKeyDown={onScan}
             placeholder={settings.barcodeEnabled ? 'Scan barcode or search…' : 'Search products…'}
           />
+          {settings.barcodeEnabled && <div className="till__scan-hint">Tip: scan a barcode, or type a code / name and press Enter to add it.</div>}
           {categories.length > 1 && (
             <div className="till__cats">
               {categories.map((c) => (

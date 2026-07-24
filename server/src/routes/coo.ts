@@ -222,6 +222,32 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const sixtyAgo = new Date(now.getTime() - 60 * DAY);
 
+  // The period the owner is looking at (defaults to this month).
+  const range = ['7d', '30d', 'month', 'lastmonth'].includes(String(req.query.range)) ? String(req.query.range) : 'month';
+  let periodStart: Date;
+  let periodEnd: Date | undefined;
+  let prevStart: Date;
+  let prevEnd: Date;
+  let periodLabel: string;
+  let compareLabel: string;
+  if (range === '7d') {
+    periodStart = new Date(now.getTime() - 7 * DAY); periodEnd = undefined;
+    prevStart = new Date(now.getTime() - 14 * DAY); prevEnd = periodStart;
+    periodLabel = 'the last 7 days'; compareLabel = 'the 7 days before';
+  } else if (range === '30d') {
+    periodStart = new Date(now.getTime() - 30 * DAY); periodEnd = undefined;
+    prevStart = new Date(now.getTime() - 60 * DAY); prevEnd = periodStart;
+    periodLabel = 'the last 30 days'; compareLabel = 'the 30 days before';
+  } else if (range === 'lastmonth') {
+    periodStart = lastMonthStart; periodEnd = monthStart;
+    prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1); prevEnd = lastMonthStart;
+    periodLabel = lastMonthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); compareLabel = 'the month before';
+  } else {
+    periodStart = monthStart; periodEnd = undefined;
+    prevStart = lastMonthStart; prevEnd = monthStart;
+    periodLabel = monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); compareLabel = 'last month';
+  }
+
   const [payments, expenses, invoices, items] = await Promise.all([
     prisma.payment.findMany({ where: { workspaceId: ws }, select: { amount: true, receivedAt: true } }),
     prisma.expense.findMany({ where: { workspaceId: ws }, select: { amount: true, spentAt: true } }),
@@ -248,21 +274,21 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
     );
     return { moneyIn: Math.round(moneyIn), moneyOut: Math.round(moneyOut), net: Math.round(moneyIn - moneyOut), sales: Math.round(sales), profit: Math.round(profit) };
   };
-  const thisMonth = periodStats(monthStart);
-  const lastMonth = periodStats(lastMonthStart, monthStart);
+  const period = periodStats(periodStart, periodEnd);
+  const previous = periodStats(prevStart, prevEnd);
 
-  // Top customers this month (by amount sold, excluding walk-ins).
+  // Top customers in the period (by amount sold, excluding walk-ins).
   const custMap = new Map<string, number>();
   for (const i of invoices) {
-    if (!inRange(i.issuedAt, monthStart) || i.customer.name === 'Walk-in customer') continue;
+    if (!inRange(i.issuedAt, periodStart, periodEnd) || i.customer.name === 'Walk-in customer') continue;
     custMap.set(i.customer.name, (custMap.get(i.customer.name) || 0) + i.amount);
   }
   const topCustomers = [...custMap.entries()].map(([name, total]) => ({ name, total: Math.round(total) })).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Top products this month (by revenue), with profit.
+  // Top products in the period (by revenue), with profit.
   const prodMap = new Map<string, { revenue: number; profit: number }>();
   for (const it of items) {
-    if (!inRange(it.invoice.issuedAt, monthStart)) continue;
+    if (!inRange(it.invoice.issuedAt, periodStart, periodEnd)) continue;
     const cur = prodMap.get(it.product.name) || { revenue: 0, profit: 0 };
     cur.revenue += it.qty * it.unitPrice;
     cur.profit += it.qty * (it.unitPrice - it.product.cost);
@@ -282,10 +308,12 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
   const weekday = order.map((d, idx) => ({ day: labels[idx], sales: Math.round(byDow.get(d) || 0) }));
   const busiest = [...weekday].sort((a, b) => b.sales - a.sales)[0];
 
-  // Daily sales for the last 14 days (for a trend chart).
+  // Daily sales across the selected period (one bar per day, capped at 31).
   const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+  const endMs = (periodEnd ? periodEnd.getTime() : now.getTime());
+  const days = Math.min(31, Math.max(1, Math.ceil((endMs - periodStart.getTime()) / DAY)));
   const dailyMap = new Map<string, number>();
-  for (let k = 13; k >= 0; k--) dailyMap.set(dayKey(new Date(now.getTime() - k * DAY)), 0);
+  for (let k = days - 1; k >= 0; k--) dailyMap.set(dayKey(new Date(endMs - k * DAY)), 0);
   for (const i of invoices) {
     const key = dayKey(new Date(i.issuedAt));
     if (dailyMap.has(key)) dailyMap.set(key, (dailyMap.get(key) || 0) + i.amount);
@@ -297,9 +325,11 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
   }));
 
   res.json({
-    monthLabel: now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
-    thisMonth,
-    lastMonth,
+    range,
+    periodLabel,
+    compareLabel,
+    period,
+    previous,
     topCustomers,
     topProducts,
     weekday,
@@ -724,6 +754,49 @@ router.delete('/sales/:id', async (req: AuthenticatedRequest, res) => {
   await prisma.payment.deleteMany({ where: { invoiceId: inv.id } }); // else cash would stay inflated
   await prisma.salesInvoice.delete({ where: { id: inv.id } });       // cascades line items
   res.json({ ok: true, message: `Sale ${inv.number} deleted.` });
+});
+
+// Full receipt for a past sale — used to re-send on WhatsApp or reprint.
+router.get('/sales/:id/receipt', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.status(400).json({ error: 'No business' });
+  const inv = await prisma.salesInvoice.findFirst({
+    where: { id: req.params.id, workspaceId: ws },
+    select: {
+      number: true, amount: true, discount: true, tax: true, issuedAt: true, status: true,
+      customer: { select: { name: true, phone: true } },
+      items: { select: { qty: true, unitPrice: true, product: { select: { name: true } } } },
+      payments: { select: { amount: true, method: true } },
+    },
+  });
+  if (!inv) return res.status(404).json({ error: 'Sale not found' });
+  const [workspace, settings] = await Promise.all([
+    prisma.workspace.findUnique({ where: { id: ws }, select: { name: true } }),
+    prisma.storeSettings.findUnique({ where: { workspaceId: ws }, select: { receiptHeader: true, receiptFooter: true } }),
+  ]);
+  const shopName = workspace?.name && !/^(my |default )?workspace$/i.test(workspace.name) ? workspace.name : 'My Shop';
+  const lines = inv.items.map((it) => ({ name: it.product.name, qty: it.qty, price: it.unitPrice }));
+  const subtotal = Math.round(lines.reduce((s, l) => s + l.qty * l.price, 0));
+  const paid = Math.round(inv.payments.reduce((s, p) => s + p.amount, 0));
+  const method = inv.payments[0]?.method || (inv.status === 'paid' ? 'cash' : 'credit');
+  res.json({
+    shopName,
+    receiptHeader: settings?.receiptHeader || null,
+    receiptFooter: settings?.receiptFooter || 'Thank you! Come again.',
+    number: inv.number,
+    customer: inv.customer.name,
+    phone: inv.customer.phone,
+    issuedAt: inv.issuedAt,
+    lines,
+    subtotal,
+    discount: Math.round(inv.discount || 0),
+    tax: Math.round(inv.tax || 0),
+    total: Math.round(inv.amount),
+    method,
+    paid,
+    outstanding: Math.max(0, Math.round(inv.amount - paid)),
+    currency: 'GH₵',
+  });
 });
 
 // ── Record a payment (also used to "mark as paid") ───────────────────────────

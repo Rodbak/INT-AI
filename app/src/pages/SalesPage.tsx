@@ -4,9 +4,11 @@ import BizSheet from '../components/BizSheet';
 import { SkeletonRows } from '../components/Skeleton';
 import { cedis } from '../lib/money';
 import {
-  getSales, recordSale, deleteSale, getCustomers, getProducts,
+  getSales, recordSale, deleteSale, getCustomers, getProducts, getSaleReceipt,
   type CooSale, type CooCustomer, type CooProduct,
 } from '../lib/api';
+import { receiptText, printReceipt } from '../lib/receipt';
+import { waLink } from '../lib/whatsapp';
 import './Business.css';
 
 const METHODS: { id: string; label: string }[] = [
@@ -25,6 +27,7 @@ export default function SalesPage() {
   const [query, setQuery] = useState('');
   const [viewSale, setViewSale] = useState<CooSale | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [receiptBusy, setReceiptBusy] = useState(false);
 
   // form state
   const [mode, setMode] = useState<'amount' | 'items'>('amount');
@@ -68,6 +71,26 @@ export default function SalesPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not delete the sale.');
     } finally { setSaving(false); }
+  };
+
+  // Re-send a past sale's receipt on WhatsApp, or reprint it.
+  const sendReceipt = async () => {
+    if (!viewSale) return;
+    setReceiptBusy(true); setError('');
+    try {
+      const rc = await getSaleReceipt(viewSale.id);
+      window.open(waLink(rc.phone, receiptText(rc)), '_blank');
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not build the receipt.'); }
+    finally { setReceiptBusy(false); }
+  };
+  const reprintReceipt = async () => {
+    if (!viewSale) return;
+    setReceiptBusy(true); setError('');
+    try {
+      const rc = await getSaleReceipt(viewSale.id);
+      printReceipt(rc);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not build the receipt.'); }
+    finally { setReceiptBusy(false); }
   };
 
   const itemsTotal = products.reduce((sum, p) => sum + (qtys[p.id] || 0) * p.price, 0);
@@ -243,6 +266,13 @@ export default function SalesPage() {
             <div className="biz__detail-row"><span>Date</span><b>{new Date(viewSale.issuedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</b></div>
           </div>
           {error && <div className="biz__error">{error}</div>}
+          <div className="biz__field">
+            <span className="biz__label">Receipt</span>
+            <div className="biz__seg">
+              <button className="biz__seg-btn" onClick={sendReceipt} disabled={receiptBusy}>{receiptBusy ? '…' : 'Send on WhatsApp'}</button>
+              <button className="biz__seg-btn" onClick={reprintReceipt} disabled={receiptBusy}>{receiptBusy ? '…' : 'Print'}</button>
+            </div>
+          </div>
           <div className="biz__sheet-actions">
             <button className="biz__save" onClick={() => setViewSale(null)}>Done</button>
           </div>

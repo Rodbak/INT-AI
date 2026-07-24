@@ -104,6 +104,39 @@ async function main() {
   await makeInvoice(yaw, [{ product: flour, qty: 1 }, { product: oil, qty: 2 }], { issued: 8, due: 4 }); // 4d overdue
   await makeInvoice(kwame, [{ product: milk, qty: 3 }], { issued: 3, due: -4, paid: 200 }); // partial, not yet due
 
+  // --- Realistic daily over-the-counter (POS) sales for the last ~45 days ---
+  // Gives the reports, trend chart, busiest-day and forecasting real texture.
+  const walkin = await C('Walk-in customer', '');
+  const catalog = [rice, cement, oil, sugar, milk, soap, flour, tomato];
+  const rand = (a: number, b: number) => a + Math.random() * (b - a);
+  let dailyCount = 0;
+  for (let d = 45; d >= 0; d--) {
+    const date = daysAgo(d);
+    const dow = date.getDay(); // 0 Sun … 6 Sat
+    const base = dow === 0 ? 1 : dow === 5 || dow === 6 ? 4 : 2; // busier Fri/Sat, quiet Sun
+    const count = Math.max(0, Math.round(base + rand(-1, 1)));
+    // Make yesterday a strong day so the "best day" celebration can fire in demos.
+    const extra = d === 1 ? 3 : 0;
+    for (let s = 0; s < count + extra; s++) {
+      const item = catalog[Math.floor(Math.random() * catalog.length)];
+      const qty = 1 + Math.floor(Math.random() * (item.price > 300 ? 2 : 4));
+      const amount = qty * item.price;
+      const issuedAt = new Date(date.getTime() + rand(8, 18) * 3600000);
+      const si = await prisma.salesInvoice.create({
+        data: {
+          workspaceId: w, customerId: walkin.id, number: `INV-${++inv}`, amount,
+          status: 'paid', channel: 'pos', issuedAt, dueAt: issuedAt,
+          items: { create: [{ productId: item.id, qty, unitPrice: item.price }] },
+        },
+      });
+      await prisma.payment.create({
+        data: { workspaceId: w, invoiceId: si.id, customerId: walkin.id, amount, method: Math.random() < 0.5 ? 'cash' : 'momo', receivedAt: issuedAt },
+      });
+      dailyCount++;
+    }
+  }
+  console.log('  seeded daily POS sales:', dailyCount);
+
   // --- Expenses (cash out) ---
   const E = async (category: string, amount: number, note: string, d: number) =>
     prisma.expense.create({ data: { workspaceId: w, category, amount, note, spentAt: daysAgo(d) } });

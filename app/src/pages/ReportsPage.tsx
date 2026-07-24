@@ -1,42 +1,68 @@
 import { useEffect, useState } from 'react';
 import { cedis } from '../lib/money';
-import { getReport, getInsight, type CooReport } from '../lib/api';
+import { getReport, getInsight, type CooReport, type ReportRange } from '../lib/api';
 import InsightCard from '../components/InsightCard';
 import './Business.css';
 import './ReportsPage.css';
 
+const RANGES: { id: ReportRange; label: string }[] = [
+  { id: '7d', label: 'Last 7 days' },
+  { id: '30d', label: 'Last 30 days' },
+  { id: 'month', label: 'This month' },
+  { id: 'lastmonth', label: 'Last month' },
+];
+
 export default function ReportsPage() {
+  const [range, setRange] = useState<ReportRange>('month');
   const [r, setR] = useState<CooReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
 
-  useEffect(() => { getReport().then(setR).catch(() => {}).finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    setLoading(true);
+    getReport(range).then(setR).catch(() => {}).finally(() => setLoading(false));
+  }, [range]);
   useEffect(() => { getInsight().then((i) => setInsight(i.narrative)).catch(() => {}).finally(() => setInsightLoading(false)); }, []);
 
-  if (loading) return <div className="biz"><div className="biz__empty">Loading…</div></div>;
+  const chips = (
+    <div className="rep__ranges">
+      {RANGES.map((rg) => (
+        <button key={rg.id} className={`rep__range${range === rg.id ? ' rep__range--on' : ''}`} onClick={() => setRange(rg.id)}>{rg.label}</button>
+      ))}
+    </div>
+  );
+
+  const header = (
+    <div className="biz__head">
+      <div>
+        <h1 className="biz__title">Reports</h1>
+        <p className="biz__sub">How your business is doing{r && !r.empty ? ` — ${r.periodLabel}` : ''}.</p>
+      </div>
+    </div>
+  );
+
+  if (loading && !r) return <div className="biz">{header}{chips}<div className="biz__empty">Loading…</div></div>;
   if (!r || r.empty) {
     return (
       <div className="biz">
-        <h1 className="biz__title">Reports</h1>
+        {header}
+        {chips}
         <p className="biz__sub">Once you record some sales and expenses, your business report will show here.</p>
       </div>
     );
   }
 
-  const tm = r.thisMonth;
-  const netUp = tm.net >= 0;
+  const p = r.period;
+  const netUp = p.net >= 0;
   const maxDay = Math.max(1, ...r.weekday.map((d) => d.sales));
   const hasSales = r.weekday.some((d) => d.sales > 0);
+  const dailyTitle = range === '7d' ? 'Sales — day by day' : 'Sales — this period';
 
   return (
     <div className="biz">
-      <div className="biz__head">
-        <div>
-          <h1 className="biz__title">Reports</h1>
-          <p className="biz__sub">How your business is doing — {r.monthLabel}.</p>
-        </div>
-      </div>
+      {header}
+      {chips}
 
       <InsightCard text={insight} loading={insightLoading} />
 
@@ -44,54 +70,55 @@ export default function ReportsPage() {
       <div className="biz__summary rep__flow">
         <div className="biz__stat">
           <div className="biz__stat-label">Money in</div>
-          <div className="biz__stat-value biz__pos">{cedis(tm.moneyIn)}</div>
+          <div className="biz__stat-value biz__pos">{cedis(p.moneyIn)}</div>
         </div>
         <div className="biz__stat">
           <div className="biz__stat-label">Money out</div>
-          <div className="biz__stat-value biz__neg">{cedis(tm.moneyOut)}</div>
+          <div className="biz__stat-value biz__neg">{cedis(p.moneyOut)}</div>
         </div>
         <div className="biz__stat">
           <div className="biz__stat-label">{netUp ? 'You’re up by' : 'You’re down by'}</div>
-          <div className={`biz__stat-value ${netUp ? 'biz__pos' : 'biz__neg'}`}>{cedis(Math.abs(tm.net))}</div>
+          <div className={`biz__stat-value ${netUp ? 'biz__pos' : 'biz__neg'}`}>{cedis(Math.abs(p.net))}</div>
         </div>
       </div>
       <p className="rep__note">
-        Last month you were {r.lastMonth.net >= 0 ? 'up' : 'down'} by {cedis(Math.abs(r.lastMonth.net))}.
+        In {r.compareLabel} you were {r.previous.net >= 0 ? 'up' : 'down'} by {cedis(Math.abs(r.previous.net))}.
       </p>
 
       {/* Profit + sales */}
       <div className="biz__summary">
         <div className="biz__stat">
-          <div className="biz__stat-label">Sales this month</div>
-          <div className="biz__stat-value">{cedis(tm.sales)}</div>
+          <div className="biz__stat-label">Sales in this period</div>
+          <div className="biz__stat-value">{cedis(p.sales)}</div>
         </div>
         <div className="biz__stat">
           <div className="biz__stat-label">Profit on goods sold</div>
-          <div className="biz__stat-value biz__pos">{cedis(tm.profit)}</div>
+          <div className="biz__stat-value biz__pos">{cedis(p.profit)}</div>
           <div className="rep__hint">what’s left after the cost of the items</div>
         </div>
       </div>
 
-      {/* Daily sales (last 14 days) */}
-      <p className="biz__section-label">Sales — last 14 days</p>
+      {/* Daily sales across the period */}
+      <p className="biz__section-label">{dailyTitle}</p>
       {r.dailySales.some((d) => d.sales > 0) ? (
         <div className="rep__chart-card">
           <div className="rep__bars rep__bars--daily">
             {r.dailySales.map((d, i) => {
               const maxD = Math.max(1, ...r.dailySales.map((x) => x.sales));
+              const step = r.dailySales.length > 20 ? 4 : 2;
               return (
                 <div key={d.date} className="rep__bar-col">
                   <div className="rep__bar-track">
                     <div className="rep__bar" style={{ height: `${Math.max(3, (d.sales / maxD) * 100)}%` }} title={`${d.label}: ${cedis(d.sales)}`} />
                   </div>
-                  {i % 2 === 0 && <div className="rep__bar-label rep__bar-label--sm">{d.label.split(' ')[0]}</div>}
+                  {i % step === 0 && <div className="rep__bar-label rep__bar-label--sm">{d.label.split(' ')[0]}</div>}
                 </div>
               );
             })}
           </div>
         </div>
       ) : (
-        <div className="biz__list"><div className="biz__empty">No sales recorded in the last two weeks yet.</div></div>
+        <div className="biz__list"><div className="biz__empty">No sales recorded in this period yet.</div></div>
       )}
 
       {/* Busiest days */}
@@ -119,9 +146,9 @@ export default function ReportsPage() {
       )}
 
       {/* Top customers */}
-      <p className="biz__section-label">Top customers this month</p>
+      <p className="biz__section-label">Top customers</p>
       {r.topCustomers.length === 0 ? (
-        <div className="biz__list"><div className="biz__empty">No named customer sales yet this month.</div></div>
+        <div className="biz__list"><div className="biz__empty">No named customer sales in this period.</div></div>
       ) : (
         <div className="biz__list">
           {r.topCustomers.map((c, i) => (
@@ -134,18 +161,18 @@ export default function ReportsPage() {
       )}
 
       {/* Top products */}
-      <p className="biz__section-label">Best-selling products this month</p>
+      <p className="biz__section-label">Best-selling products</p>
       {r.topProducts.length === 0 ? (
-        <div className="biz__list"><div className="biz__empty">No itemised sales yet this month. Use “Pick items” when recording a sale to see this.</div></div>
+        <div className="biz__list"><div className="biz__empty">No itemised sales in this period. Use “Pick items” when recording a sale to see this.</div></div>
       ) : (
         <div className="biz__list">
-          {r.topProducts.map((p, i) => (
-            <div key={p.name} className="biz__row">
+          {r.topProducts.map((prod, i) => (
+            <div key={prod.name} className="biz__row">
               <div>
-                <div className="biz__row-main"><span className="rep__rank">{i + 1}.</span> {p.name}</div>
-                <div className="biz__row-sub biz__pos">{cedis(p.profit)} profit</div>
+                <div className="biz__row-main"><span className="rep__rank">{i + 1}.</span> {prod.name}</div>
+                <div className="biz__row-sub biz__pos">{cedis(prod.profit)} profit</div>
               </div>
-              <div className="biz__row-amt">{cedis(p.revenue)}</div>
+              <div className="biz__row-amt">{cedis(prod.revenue)}</div>
             </div>
           ))}
         </div>
