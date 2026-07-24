@@ -42,21 +42,34 @@ import { env } from './env.js';
  */
 export const app = express();
 
+// CORS. On Vercel the frontend and this API are served from the SAME origin, so
+// same-origin requests must always be allowed no matter how (or whether)
+// CORS_ORIGINS is configured — otherwise the app can't call its own API. We use
+// the request-aware delegate form so we can compare the Origin's host to the
+// request Host and permit same-origin automatically. Real cross-origin callers
+// are still restricted to the CORS_ORIGINS allowlist.
 app.use(
-  cors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      const allowedOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
-      if (env.NODE_ENV === 'production' && allowedOrigins.includes('*')) {
-        callback(new Error('Wildcard CORS origin is not allowed in production'), false);
-        return;
+  cors((req: express.Request, callback: (err: Error | null, options?: import('cors').CorsOptions) => void) => {
+    const origin = req.header('Origin');
+    const allowed = env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+    // '*' is honoured only outside production (kept as a dev convenience).
+    const wildcardOk = allowed.includes('*') && env.NODE_ENV !== 'production';
+
+    let ok = false;
+    if (!origin) {
+      ok = true; // non-browser / same-origin GET with no Origin header
+    } else if (wildcardOk || allowed.includes(origin)) {
+      ok = true;
+    } else {
+      // Same-origin? Allow it — the Origin's host matches where the request landed.
+      try {
+        const host = req.header('X-Forwarded-Host') || req.header('Host');
+        ok = new URL(origin).host === host;
+      } catch {
+        ok = false;
       }
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'), false);
-      }
-    },
-    credentials: true,
+    }
+    callback(null, { origin: ok, credentials: true });
   }),
 );
 app.use(requestId);
