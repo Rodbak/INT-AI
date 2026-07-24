@@ -293,3 +293,28 @@
 }
 
 .till__scan-hint { font-size: 11.5px; color: var(--text-muted); margin: 6px 2px 2px; }
+
+/* Discount amount / percent toggle at the till */
+.till__disc-group { display: inline-flex; align-items: center; gap: 6px; }
+.till__disc-mode {
+  min-width: 40px; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid var(--border-strong); background: var(--bg);
+  color: var(--accent-strong); font-size: 13px; font-weight: 800; cursor: pointer;
+}
+.till__disc-mode:hover { border-color: var(--accent-border); }
+
+/* Search + camera-scan button row */
+.till__searchbar { display: flex; gap: 8px; align-items: stretch; }
+.till__searchbar .till__search { flex: 1; }
+.till__scan-btn {
+  flex-shrink: 0;
+  width: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--accent-strong);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.till__scan-btn svg { width: 22px; height: 22px; }
+.till__scan-btn:hover { border-color: var(--accent-border); }

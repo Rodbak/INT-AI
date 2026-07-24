@@ -3,11 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import BizSheet from '../components/BizSheet';
 import { SkeletonRows } from '../components/Skeleton';
 import MoneyCapture from '../components/MoneyCapture';
+import SupplierBills from '../components/SupplierBills';
 import { cedis } from '../lib/money';
 import { getExpenses, recordExpense, updateExpense, deleteExpense, getCooBrief, type CooExpense } from '../lib/api';
 import './Business.css';
 
-const CATEGORIES = ['Restock / buying stock', 'Rent', 'Transport', 'Salaries', 'Utilities (light, water)', 'Airtime / data', 'Other'];
+const CATEGORIES = ['Restock / buying stock', 'Rent', 'Transport', 'Salaries', 'Utilities (light, water)', 'Airtime / data', 'Miscellaneous', 'Other'];
 
 export default function MoneyPage() {
   const [expenses, setExpenses] = useState<CooExpense[]>([]);
@@ -107,6 +108,9 @@ export default function MoneyPage() {
           </div>
         )}
       </div>
+
+      {/* Supplier bills — restock invoices, paid / credit / part-paid */}
+      <SupplierBills onChange={load} />
 
       <p className="biz__section-label">Recent expenses</p>
       {loading ? (

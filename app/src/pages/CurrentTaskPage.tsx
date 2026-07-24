@@ -158,6 +158,16 @@ export default function CurrentTaskPage() {
     }
   }, [searchParams, setSearchParams, handleSend]);
 
+  // Open a specific past conversation here (from History): /current-task?conv=…
+  useEffect(() => {
+    const conv = searchParams.get('conv');
+    if (conv) {
+      setActiveId(conv);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const handleAttachImages = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;

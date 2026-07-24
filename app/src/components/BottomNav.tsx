@@ -28,7 +28,7 @@ const TABS = [
 
 // Everything reachable from the "More" drawer.
 const MORE_LINKS = [
-  { label: 'Open Till', route: '/pos' },
+  { label: 'Sell (Till)', route: '/pos' },
   { label: 'Customers', route: '/customers' },
   { label: 'Stock', route: '/stock' },
   { label: 'Reports', route: '/reports' },
@@ -44,6 +44,11 @@ export default function BottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const go = (route: string) => { setMoreOpen(false); navigate(route); };
+  const showHelp = () => {
+    try { localStorage.setItem('int-show-help', '1'); } catch { /* ignore */ }
+    setMoreOpen(false);
+    navigate('/home');
+  };
   const user = authManager.getState().user;
 
   const moreActive = MORE_LINKS.some((l) => l.route === pathname);
@@ -93,6 +98,7 @@ export default function BottomNav() {
               {MORE_LINKS.map((l) => (
                 <button key={l.route} className="bottomnav__link" onClick={() => go(l.route)}>{l.label}</button>
               ))}
+              <button className="bottomnav__link" onClick={showHelp}>How INT works</button>
             </div>
 
             <div className="bottomnav__display">

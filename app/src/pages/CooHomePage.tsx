@@ -117,7 +117,7 @@ export default function CooHomePage() {
 
       {/* Quick actions */}
       <div className="coo__quick">
-        <button className="coo__quick-btn coo__quick-btn--till" onClick={() => navigate('/pos')}><TillIcon className="coo__quick-ic" /> Open till</button>
+        <button className="coo__quick-btn coo__quick-btn--till" onClick={() => navigate('/pos')}><TillIcon className="coo__quick-ic" /> Sell</button>
         <button className="coo__quick-btn" onClick={() => navigate('/sales?new=1')}><span>＋</span> Record a sale</button>
         <button className="coo__quick-btn" onClick={() => navigate('/money?new=1')}><span>－</span> Record an expense</button>
       </div>

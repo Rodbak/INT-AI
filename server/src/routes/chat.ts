@@ -8,6 +8,7 @@ import { RoutingEngine } from '../routing/engine.js';
 import { calculateCost, countTokens, validateModelForProvider } from '../utils/cost.js';
 import { createSSEResponse, sendSSEChunk, sendSSEEnd } from '../utils/stream.js';
 import { retrieveRelevantChunks } from '../rag/retriever.js';
+import { meterAI } from '../billing/wallet.js';
 import { buildSpecialistPrompt, resolveModelForProviders, type SpecialistLike } from '../routing/specialist.js';
 import { buildPlatformIdentity, availableProviders, loadPlatformRoster } from '../routing/platform.js';
 import { computeBrief } from './coo.js';
@@ -41,6 +42,16 @@ router.use(rateLimit);
 router.post('/', async (req: AuthenticatedRequest, res) => {
   try {
     const input = chatSchema.parse(req.body);
+
+    // Reseller billing: charge one AI credit per message (no-op when billing is
+    // off). Out of credits → a clear 402 the client shows as a "top up" prompt.
+    if (req.user?.id) {
+      const wsRow = await prisma.workspaceUser.findFirst({ where: { userId: req.user.id }, select: { workspaceId: true } });
+      if (wsRow && !(await meterAI(wsRow.workspaceId, 'chat message'))) {
+        res.status(402).json({ error: 'You’re out of AI credits. Top up in Settings to keep chatting with INT.' });
+        return;
+      }
+    }
 
     // Vercel's function-builder type-check has, across several deployments,
     // inferred an overly-loose (optional role/content) shape for

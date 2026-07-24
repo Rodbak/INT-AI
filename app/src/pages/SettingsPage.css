@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  padding: 28px 24px;
+  padding: 28px 24px 96px;
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
@@ -29,9 +29,9 @@
 .settings__section {
   background: var(--bg-raised);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 16px;
+  border-radius: 14px;
+  padding: 22px 22px 24px;
+  margin-bottom: 18px;
 }
 
 .settings__section-title {
@@ -90,17 +90,18 @@
 }
 
 .settings__button {
-  padding: 9px 18px;
+  margin-top: 20px;
+  padding: 12px 22px;
   border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  background: linear-gradient(155deg, var(--accent) 0%, var(--accent-soft) 100%);
-  box-shadow: 0 0 12px var(--accent-glow-soft);
-  color: #04141a;
-  transition: opacity 0.15s;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: background 0.15s, opacity 0.15s;
 }
+.settings__button:hover:not(:disabled) { background: var(--accent-strong); }
 
 .settings__button:hover:not(:disabled) {
   opacity: 0.9;

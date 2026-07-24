@@ -54,6 +54,69 @@ CRON_SECRET=c0b2bcae4ae76038e0a289eeef6adf8701ec0d602cba2053
 Everything else in `server/.env.example` (Google/Slack/Stripe/OpenAI/Anthropic/Redis)
 is **optional** — the app runs without them.
 
+### Reseller billing — AI credits (new in `billing-1`)
+Ships **off**. Shops buy credits (Mobile Money / card via Paystack); INT meters
+each AI request against the wallet using your own model key.
+1. One-time DB step (Supabase → SQL Editor, or `psql "$DATABASE_URL" -f server/prisma/billing-tables.sql`):
+   ```sql
+   ALTER TABLE "Workspace" ADD COLUMN IF NOT EXISTS "aiCredits" double precision NOT NULL DEFAULT 0;
+   CREATE TABLE IF NOT EXISTS "CreditTransaction" (
+     "id" text PRIMARY KEY DEFAULT gen_random_uuid(),
+     "workspaceId" text NOT NULL REFERENCES "Workspace"("id") ON DELETE CASCADE,
+     "type" text NOT NULL, "amount" double precision NOT NULL,
+     "balanceAfter" double precision NOT NULL, "reference" text, "note" text,
+     "createdAt" timestamptz NOT NULL DEFAULT now()
+   );
+   CREATE INDEX IF NOT EXISTS "CreditTransaction_workspaceId_idx" ON "CreditTransaction"("workspaceId");
+   ```
+2. Env vars (add the Paystack keys whenever you're ready — the UI shows "payments being set up" until then):
+   ```
+   BILLING_ENABLED=true
+   CREDITS_PER_CEDI=100        # GH₵1 = 100 credits (tune to your margin)
+   AI_CREDIT_COST=1            # credits charged per AI request
+   SIGNUP_BONUS_CREDITS=50     # free credits for a new shop
+   PAYSTACK_SECRET_KEY=        ⟵ Paystack dashboard → Settings → API Keys (later)
+   PAYSTACK_PUBLIC_KEY=        ⟵ same screen (later)
+   ```
+   In Paystack, set the **webhook URL** to `https://<your-domain>/api/credits/paystack/webhook`.
+- With `BILLING_ENABLED` unset, all AI stays free and unmetered (current behaviour).
+  The "AI Credits" panel in Settings only appears when billing is on.
+
+### New in `supplier-1`
+- **Camera barcode scanning** at the till (tap the camera icon by the search box) —
+  uses the device camera; no hardware. Falls back to typing on unsupported browsers.
+- **Supplier bills** on Money: record a restock invoice as paid / on credit / part-paid,
+  attach a photo of the invoice, see what you owe suppliers, and pay bills down later.
+  One-time DB step (Supabase → SQL Editor, or `psql "$DATABASE_URL" -f server/prisma/purchase-tables.sql`):
+  ```sql
+  CREATE TABLE IF NOT EXISTS "Purchase" (
+    "id" text PRIMARY KEY DEFAULT gen_random_uuid(),
+    "workspaceId" text NOT NULL, "supplier" text NOT NULL,
+    "amount" double precision NOT NULL DEFAULT 0, "amountPaid" double precision NOT NULL DEFAULT 0,
+    "status" text NOT NULL DEFAULT 'paid', "note" text, "photo" text,
+    "createdAt" timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS "Purchase_workspaceId_idx" ON "Purchase" ("workspaceId");
+  ```
+  (Invoice photos are stored inline for now; moving them to Supabase Storage is a later optimization.)
+
+### Turning on real accounts (new in `auth-1`)
+Auth ships **off** so nothing breaks. To go live with real per-owner logins:
+1. In **Supabase → Authentication → Providers**, enable **Email** and **Phone**.
+   - For phone without SMS costs: turn **off** "Confirm phone" (owners sign up with
+     phone + password immediately). Add an SMS provider later to require verification.
+   - Email: leave "Confirm email" on (Supabase sends the confirmation) or off for speed.
+2. Set env vars and redeploy:
+   ```
+   AUTH_ENABLED=true          # backend: verify real logins, isolate each shop
+   VITE_AUTH_ENABLED=true     # frontend: show login, gate the app
+   ```
+   (`SUPABASE_JWT_SECRET` must be set — Supabase → Settings → API → JWT Secret.)
+3. Each new sign-up (name + shop name + email/phone + password) automatically gets
+   its **own** shop. Owners add cashiers with PINs as before.
+- Leave both unset to stay in shared-demo mode. Flip them on only once you've
+  confirmed sign-up/login works, so a deploy can't lock you out.
+
 ### New in `demo-1`
 - **Reports date ranges** (Last 7 days / 30 days / This month / Last month) — no setup.
 - **Receipt re-send / reprint** from any past sale in Sales history — no setup.

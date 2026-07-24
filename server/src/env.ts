@@ -51,6 +51,21 @@ const envSchema = z.object({
   // Supabase auth.users row (profiles has a foreign key to it).
   DEMO_USER_ID: z.preprocess(blankToUndefined, z.string().uuid().default("00000000-0000-0000-0000-000000000000")),
   DEMO_USER_EMAIL: z.preprocess(blankToUndefined, z.string().email().default("demo@example.com")),
+  // Turn on real per-user auth (Supabase Auth). When unset/false the app stays
+  // in shared-demo mode (one shop). Set AUTH_ENABLED=true only once you've
+  // confirmed sign-up/login works, so a deploy can't lock you out.
+  AUTH_ENABLED: z.preprocess(blankToUndefined, z.string().optional()),
+  // Reseller billing (AI credits wallet + Paystack). Off by default. When on,
+  // AI features check/deduct credits. Paystack keys can be added later.
+  BILLING_ENABLED: z.preprocess(blankToUndefined, z.string().optional()),
+  PAYSTACK_SECRET_KEY: z.preprocess(blankToUndefined, z.string().optional()),
+  PAYSTACK_PUBLIC_KEY: z.preprocess(blankToUndefined, z.string().optional()),
+  // Credits granted per GH₵ paid (e.g. 100 → GH₵1 buys 100 credits).
+  CREDITS_PER_CEDI: z.coerce.number().positive().default(100),
+  // Credits charged per AI request (chat message, draft, photo scan, insight).
+  AI_CREDIT_COST: z.coerce.number().nonnegative().default(1),
+  // Free credits handed to a brand-new shop so they can try INT.
+  SIGNUP_BONUS_CREDITS: z.coerce.number().nonnegative().default(50),
   // Web-push (daily briefing to the owner's phone). Generate a keypair once
   // with `node -e "console.log(require('web-push').generateVAPIDKeys())"` and
   // set both. When unset, push is simply disabled (the app still works).

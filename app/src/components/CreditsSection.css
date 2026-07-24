@@ -1,0 +1,23 @@
+.credits__balance { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.credits__balance-num { font-size: 30px; font-weight: 800; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+.credits__balance-label { font-size: 13px; color: var(--text-muted); }
+
+.credits__buy { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 4px; }
+.credits__buy-btn {
+  padding: 11px 18px;
+  border-radius: 11px;
+  border: 1px solid var(--accent-border, var(--border-strong));
+  background: var(--accent-dim);
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.credits__buy-btn:hover { border-color: var(--accent); }
+.credits__buy-btn:disabled { opacity: 0.6; cursor: default; }
+
+.credits__history { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.credits__row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 13.5px; }
+.credits__row-note { color: var(--text-secondary); }
+.credits__pos { color: var(--success); font-weight: 700; }
+.credits__neg { color: var(--text-muted); font-weight: 700; }

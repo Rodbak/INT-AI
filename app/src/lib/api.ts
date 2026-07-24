@@ -311,7 +311,7 @@ export async function getCooBrief(): Promise<CooBrief> {
   return data;
 }
 
-export type ReportRange = '7d' | '30d' | 'month' | 'lastmonth';
+export type ReportRange = '7d' | '30d' | 'month' | 'lastmonth' | 'custom';
 export interface PeriodStats { moneyIn: number; moneyOut: number; net: number; sales: number; profit: number }
 export interface CooReport {
   empty?: boolean;
@@ -327,8 +327,10 @@ export interface CooReport {
   busiestDay: string | null;
   dailySales: { date: string; label: string; sales: number }[];
 }
-export async function getReport(range: ReportRange = 'month'): Promise<CooReport> {
-  const { data } = await api.get<CooReport>(`/coo/reports?range=${range}`);
+export async function getReport(range: ReportRange = 'month', from?: string, to?: string): Promise<CooReport> {
+  const params = new URLSearchParams({ range });
+  if (range === 'custom' && from && to) { params.set('from', from); params.set('to', to); }
+  const { data } = await api.get<CooReport>(`/coo/reports?${params.toString()}`);
   return data;
 }
 
@@ -428,6 +430,54 @@ export async function scanStockPhoto(image: string): Promise<ScannedItem[]> {
 }
 export async function bulkAddProducts(items: ScannedItem[]): Promise<{ created: number; updated: number; message: string }> {
   const { data } = await api.post<{ created: number; updated: number; message: string }>('/coo/products/bulk', { items });
+  return data;
+}
+
+// --- AI credits wallet (reseller billing) ---
+export interface CreditTxn { id: string; type: string; amount: number; balanceAfter: number; note?: string | null; createdAt: string }
+export interface CreditSummary {
+  enabled: boolean;
+  paystackReady?: boolean;
+  balance: number;
+  creditsPerCedi?: number;
+  publicKey?: string | null;
+  history: CreditTxn[];
+}
+export async function getCredits(): Promise<CreditSummary> {
+  const { data } = await api.get<CreditSummary>('/credits/summary');
+  return data;
+}
+export async function topUpCredits(amountCedis: number): Promise<{ authorizationUrl: string; reference: string }> {
+  const { data } = await api.post<{ authorizationUrl: string; reference: string }>('/credits/topup', { amountCedis });
+  return data;
+}
+export async function verifyTopUp(reference: string): Promise<{ ok: boolean; balance?: number; credited?: number }> {
+  const { data } = await api.get<{ ok: boolean; balance?: number; credited?: number }>(`/credits/verify?reference=${encodeURIComponent(reference)}`);
+  return data;
+}
+
+// --- Supplier bills / purchases (restocking) ---
+export interface Purchase {
+  id: string;
+  supplier: string;
+  amount: number;
+  amountPaid: number;
+  status: 'paid' | 'partial' | 'credit';
+  note?: string | null;
+  hasPhoto?: boolean;
+  outstanding: number;
+  createdAt: string;
+}
+export async function getPurchases(): Promise<{ purchases: Purchase[]; owed: number }> {
+  const { data } = await api.get<{ purchases: Purchase[]; owed: number }>('/coo/purchases');
+  return data;
+}
+export async function addPurchase(input: { supplier: string; amount: number; amountPaid: number; note?: string; photo?: string }): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>('/coo/purchases', input);
+  return data;
+}
+export async function paySupplier(id: string, amount?: number): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>(`/coo/purchases/${id}/pay`, { amount });
   return data;
 }
 

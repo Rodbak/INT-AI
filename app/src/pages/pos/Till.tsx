@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cedis } from '../../lib/money';
 import { queueSale, type PosCatalog, type PosProduct, type QueuedSale } from '../../lib/pos';
+import BarcodeScanner from '../../components/BarcodeScanner';
+import { CameraIcon } from '../../components/icons';
 
 interface Line { product: PosProduct; qty: number }
 interface Session { cashierId: string; cashierName: string; shiftId: string }
@@ -28,10 +30,12 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [discount, setDiscount] = useState(0);
+  const [discountMode, setDiscountMode] = useState<'amount' | 'percent'>('amount');
   const [pay, setPay] = useState(false);
   const [method, setMethod] = useState('cash');
   const [tendered, setTendered] = useState('');
   const [receipt, setReceipt] = useState<null | ReceiptData>(null);
+  const [scanning, setScanning] = useState(false);
   const scanRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setProducts(catalog.products); }, [catalog]);
@@ -61,11 +65,12 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
   };
   const setQty = (id: string, qty: number) =>
     setCart((c) => (qty <= 0 ? c.filter((l) => l.product.id !== id) : c.map((l) => (l.product.id === id ? { ...l, qty } : l))));
-  const clear = () => { setCart([]); setDiscount(0); };
+  const clear = () => { setCart([]); setDiscount(0); setDiscountMode('amount'); };
 
   // ── totals ──
   const subtotal = cart.reduce((s, l) => s + l.qty * l.product.price, 0);
-  const discountAmt = Math.min(discount, subtotal);
+  const rawDiscount = discountMode === 'percent' ? subtotal * (discount / 100) : discount;
+  const discountAmt = Math.min(Math.max(0, rawDiscount), subtotal);
   const taxable = subtotal - discountAmt;
   const rates = settings.taxEnabled && Array.isArray(settings.taxRates) ? settings.taxRates : [];
   const totalRate = rates.reduce((s, r) => s + (r.rate || 0), 0);
@@ -84,6 +89,13 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
     // result (lets you type a code or name + Enter with no hardware).
     const hit = products.find((p) => p.barcode === code || p.sku === code) || (filtered.length === 1 ? filtered[0] : null);
     if (hit) { add(hit); setQuery(''); }
+  };
+
+  // Camera scan → find the product by its barcode/SKU and add it to the cart.
+  const onCameraScan = (code: string) => {
+    const hit = products.find((p) => p.barcode === code || p.sku === code);
+    if (hit) { add(hit); setScanning(false); }
+    else { setQuery(code); setScanning(false); } // no match → drop it in the search box
   };
 
   const confirmSale = async () => {
@@ -132,14 +144,21 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
       <div className="till__body">
         {/* Products */}
         <div className="till__products">
-          <input
-            ref={scanRef}
-            className="till__search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onScan}
-            placeholder={settings.barcodeEnabled ? 'Scan barcode or search…' : 'Search products…'}
-          />
+          <div className="till__searchbar">
+            <input
+              ref={scanRef}
+              className="till__search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={onScan}
+              placeholder={settings.barcodeEnabled ? 'Scan barcode or search…' : 'Search products…'}
+            />
+            {settings.barcodeEnabled && (
+              <button className="till__scan-btn" onClick={() => setScanning(true)} title="Scan with camera" aria-label="Scan with camera">
+                <CameraIcon />
+              </button>
+            )}
+          </div>
           {settings.barcodeEnabled && <div className="till__scan-hint">Tip: scan a barcode, or type a code / name and press Enter to add it.</div>}
           {categories.length > 1 && (
             <div className="till__cats">
@@ -188,8 +207,31 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
             <div className="till__trow"><span>Subtotal</span><span>{cedis(subtotal)}</span></div>
             <div className="till__trow till__trow--disc">
               <span>Discount</span>
-              <input className="till__disc" type="number" inputMode="decimal" value={discount || ''} onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))} placeholder="0" />
+              <div className="till__disc-group">
+                <button
+                  type="button"
+                  className="till__disc-mode"
+                  onClick={() => setDiscountMode((m) => (m === 'amount' ? 'percent' : 'amount'))}
+                  title="Switch between cedis and percent"
+                >
+                  {discountMode === 'amount' ? 'GH₵' : '%'}
+                </button>
+                <input
+                  className="till__disc"
+                  type="number"
+                  inputMode="decimal"
+                  value={discount || ''}
+                  onChange={(e) => {
+                    const v = Math.max(0, parseFloat(e.target.value) || 0);
+                    setDiscount(discountMode === 'percent' ? Math.min(100, v) : v);
+                  }}
+                  placeholder="0"
+                />
+              </div>
             </div>
+            {discountMode === 'percent' && discountAmt > 0 && (
+              <div className="till__trow till__muted"><span>= {discount}% off</span><span>−{cedis(discountAmt)}</span></div>
+            )}
             {taxExclusive > 0 && <div className="till__trow"><span>Tax ({totalRate}%)</span><span>{cedis(taxExclusive)}</span></div>}
             {taxIncluded > 0 && <div className="till__trow till__muted"><span>incl. tax</span><span>{cedis(taxIncluded)}</span></div>}
             <div className="till__trow till__trow--total"><span>Total</span><span>{cedis(total)}</span></div>
@@ -200,6 +242,9 @@ export default function Till({ catalog, session, online, pending, onCloseShift, 
           </button>
         </div>
       </div>
+
+      {/* Camera barcode scanner */}
+      {scanning && <BarcodeScanner onDetect={onCameraScan} onClose={() => setScanning(false)} />}
 
       {/* Payment sheet */}
       {pay && (

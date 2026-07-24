@@ -10,27 +10,48 @@ const RANGES: { id: ReportRange; label: string }[] = [
   { id: '30d', label: 'Last 30 days' },
   { id: 'month', label: 'This month' },
   { id: 'lastmonth', label: 'Last month' },
+  { id: 'custom', label: 'Custom…' },
 ];
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export default function ReportsPage() {
   const [range, setRange] = useState<ReportRange>('month');
+  const [from, setFrom] = useState(() => new Date(Date.now() - 13 * 86400000).toISOString().slice(0, 10));
+  const [to, setTo] = useState(todayISO());
   const [r, setR] = useState<CooReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
 
+  const fetchReport = () => {
+    setLoading(true);
+    getReport(range, from, to).then(setR).catch(() => {}).finally(() => setLoading(false));
+  };
+  // Auto-fetch for preset ranges; custom waits for the "Show" button.
   useEffect(() => {
+    if (range === 'custom') return;
     setLoading(true);
     getReport(range).then(setR).catch(() => {}).finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
   useEffect(() => { getInsight().then((i) => setInsight(i.narrative)).catch(() => {}).finally(() => setInsightLoading(false)); }, []);
 
   const chips = (
-    <div className="rep__ranges">
-      {RANGES.map((rg) => (
-        <button key={rg.id} className={`rep__range${range === rg.id ? ' rep__range--on' : ''}`} onClick={() => setRange(rg.id)}>{rg.label}</button>
-      ))}
-    </div>
+    <>
+      <div className="rep__ranges">
+        {RANGES.map((rg) => (
+          <button key={rg.id} className={`rep__range${range === rg.id ? ' rep__range--on' : ''}`} onClick={() => setRange(rg.id)}>{rg.label}</button>
+        ))}
+      </div>
+      {range === 'custom' && (
+        <div className="rep__custom">
+          <label>From <input type="date" max={to} value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+          <label>To <input type="date" min={from} max={todayISO()} value={to} onChange={(e) => setTo(e.target.value)} /></label>
+          <button className="rep__range rep__range--on" onClick={fetchReport} disabled={!from || !to || from > to}>Show</button>
+        </div>
+      )}
+    </>
   );
 
   const header = (

@@ -3,6 +3,7 @@ import { authManager } from '../lib/auth';
 import { supabase } from '../lib/supabaseClient';
 import { getPreferences, setPreferences } from '../lib/preferences';
 import { MODELS } from '../components/ModelSelector';
+import CreditsSection from '../components/CreditsSection';
 import './SettingsPage.css';
 
 export default function SettingsPage() {
@@ -48,6 +49,9 @@ export default function SettingsPage() {
       </div>
 
       {message && <div className="settings__message">{message}</div>}
+
+      {/* AI credits wallet (only shows when billing is switched on) */}
+      <CreditsSection />
 
       <div className="settings__section">
         <h2 className="settings__section-title">Profile</h2>

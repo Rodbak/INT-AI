@@ -73,3 +73,14 @@
 }
 .rep__range:hover { border-color: var(--accent-border); }
 .rep__range--on { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+
+/* Custom date range row */
+.rep__custom { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin: 0 0 20px; }
+.rep__custom label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); }
+.rep__custom input[type="date"] {
+  padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border-strong);
+  background: var(--bg-raised); color: var(--text); font-size: 14px; font-family: inherit;
+}
+.rep__custom input[type="date"]:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-glow-soft); }
+.rep__custom .rep__range { align-self: flex-end; }
+.rep__range:disabled { opacity: 0.5; cursor: default; }

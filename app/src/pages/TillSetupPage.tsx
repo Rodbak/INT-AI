@@ -86,7 +86,7 @@ export default function TillSetupPage() {
           <h1 className="biz__title">Till setup</h1>
           <p className="biz__sub">Set up your point-of-sale: cashiers, hardware, tax and receipts.</p>
         </div>
-        <button className="biz__primary" onClick={() => navigate('/pos')}>Open Till →</button>
+        <button className="biz__primary" onClick={() => navigate('/pos')}>Start selling →</button>
       </div>
 
       {/* Cashiers */}

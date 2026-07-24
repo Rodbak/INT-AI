@@ -521,3 +521,7 @@
 .biz__margin--flat { background: var(--bg-active, rgba(127,127,127,0.10)); color: var(--text-secondary); }
 .biz__margin--bad { background: var(--danger-dim, rgba(239,68,68,0.12)); color: var(--danger); }
 .biz__margin-warn { font-weight: 700; }
+
+/* Supplier invoice photo preview */
+.sb__photo { display: flex; align-items: center; gap: 12px; }
+.sb__photo img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }

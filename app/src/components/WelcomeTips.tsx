@@ -5,16 +5,20 @@ import './WelcomeTips.css';
 const SEEN_KEY = 'int-welcome-seen';
 
 const TIPS = [
-  { icon: <TillIcon className="wt__ic" />, title: 'Open the till to sell', text: 'Tap “Open till” to ring up sales fast — even with no internet. Everything syncs later.' },
+  { icon: <TillIcon className="wt__ic" />, title: 'Sell from the till', text: 'Tap “Sell” to ring up sales fast — even with no internet. Everything syncs later.' },
   { icon: <span className="wt__emoji">💬</span>, title: 'Ask INT anything', text: '“Who hasn’t paid me?”, “How’s my cash?” — INT answers from your real numbers.' },
   { icon: <CameraIcon className="wt__ic" />, title: 'Snap to add stock', text: 'On the Stock page, take a photo of a shelf or delivery and INT lists the items for you.' },
   { icon: <MessageIcon className="wt__ic" />, title: 'Log a MoMo message', text: 'Paste a MoMo or bank SMS and INT records it as cash-in or an expense.' },
 ];
 
-/** A one-time, friendly "here's what INT can do" card shown on first visit. */
+/** A friendly "here's what INT can do" card — shown on first visit, and any time
+ *  the owner taps "How INT works" (which sets int-show-help then lands here). */
 export default function WelcomeTips() {
   const [open, setOpen] = useState(() => {
-    try { return localStorage.getItem(SEEN_KEY) !== '1'; } catch { return false; }
+    try {
+      if (localStorage.getItem('int-show-help') === '1') { localStorage.removeItem('int-show-help'); return true; }
+      return localStorage.getItem(SEEN_KEY) !== '1';
+    } catch { return false; }
   });
   if (!open) return null;
 

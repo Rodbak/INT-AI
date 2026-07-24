@@ -14,11 +14,17 @@ import KnowledgePage from './pages/KnowledgePage';
 import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout';
 import RouteError from './components/RouteError';
+import LoginPage from './pages/LoginPage';
+import AuthGate from './components/AuthGate';
 
 export const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
     path: '/',
-    element: <Layout />,
+    element: <AuthGate><Layout /></AuthGate>,
     errorElement: <RouteError />,
     children: [
       { index: true, element: <Navigate to="/home" replace /> },
@@ -38,7 +44,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/pos',
-    element: <PosPage />,
+    element: <AuthGate><PosPage /></AuthGate>,
     errorElement: <RouteError />,
   },
   {

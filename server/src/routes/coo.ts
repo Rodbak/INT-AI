@@ -6,6 +6,8 @@ import { computeNudges, computeBriefing } from '../coo/signals.js';
 import { computeTrust } from '../coo/trust.js';
 import { extractStockFromImage, visionAvailable } from '../ai/vision.js';
 import { parseMoneyMessage, guessCategory } from '../coo/momo.js';
+import { authEnabled } from '../auth/verify.js';
+import { meterAI } from '../billing/wallet.js';
 import type { AuthenticatedRequest } from '../types.js';
 
 const router = Router();
@@ -20,6 +22,9 @@ export async function resolveWorkspaceId(req: AuthenticatedRequest): Promise<str
     const m = await prisma.workspaceUser.findFirst({ where: { userId: req.user.id }, select: { workspaceId: true } });
     if (m) return m.workspaceId;
   }
+  // With real auth on, never fall back to another shop's workspace (would leak
+  // data across tenants). In demo mode, use the single shared workspace.
+  if (authEnabled()) return null;
   const first = await prisma.workspace.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } });
   return first?.id ?? null;
 }
@@ -223,14 +228,26 @@ router.get('/reports', async (req: AuthenticatedRequest, res) => {
   const sixtyAgo = new Date(now.getTime() - 60 * DAY);
 
   // The period the owner is looking at (defaults to this month).
-  const range = ['7d', '30d', 'month', 'lastmonth'].includes(String(req.query.range)) ? String(req.query.range) : 'month';
+  const range = ['7d', '30d', 'month', 'lastmonth', 'custom'].includes(String(req.query.range)) ? String(req.query.range) : 'month';
   let periodStart: Date;
   let periodEnd: Date | undefined;
   let prevStart: Date;
   let prevEnd: Date;
   let periodLabel: string;
   let compareLabel: string;
-  if (range === '7d') {
+  if (range === 'custom') {
+    const from = new Date(String(req.query.from || ''));
+    const to = new Date(String(req.query.to || ''));
+    const validTo = !isNaN(to.getTime());
+    periodStart = isNaN(from.getTime()) ? new Date(now.getTime() - 30 * DAY) : from;
+    periodEnd = validTo ? new Date(to.getTime() + DAY) : undefined; // include the whole "to" day
+    const span = (periodEnd ? periodEnd.getTime() : now.getTime()) - periodStart.getTime();
+    prevStart = new Date(periodStart.getTime() - span);
+    prevEnd = periodStart;
+    const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    periodLabel = `${fmt(periodStart)} – ${validTo ? fmt(to) : fmt(now)}`;
+    compareLabel = 'the period before';
+  } else if (range === '7d') {
     periodStart = new Date(now.getTime() - 7 * DAY); periodEnd = undefined;
     prevStart = new Date(now.getTime() - 14 * DAY); prevEnd = periodStart;
     periodLabel = 'the last 7 days'; compareLabel = 'the 7 days before';
@@ -368,8 +385,27 @@ router.get('/insights', async (req: AuthenticatedRequest, res) => {
     `Write a short, friendly note (2–3 sentences) about how the business is doing, based ONLY on the figures given. ` +
     `Be encouraging, plain, in Ghana cedis (GH₵), and end with one helpful suggestion. No lists, no headings — just a warm little paragraph. Never invent numbers.`;
 
-  const narrative = (await generateText(system, `Here are today's figures:\n${data}\n\nWrite the note.`)) || fallback;
-  res.json({ narrative, generated: narrative !== fallback, currency: 'GH₵' });
+  // Reuse a recent AI note instead of paying for a new one on every refresh.
+  // The AI prose is cached per workspace for 2 hours; all the KPIs above are
+  // still computed live — only this narrative is cached to cut token usage.
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  const cached = await prisma.cooAction.findFirst({ where: { workspaceId: ws, kind: 'insight_cache' }, orderBy: { createdAt: 'desc' } }).catch(() => null);
+  if (cached && Date.now() - new Date(cached.createdAt).getTime() < TWO_HOURS) {
+    const payload = (cached.payload as any) || {};
+    return res.json({ narrative: payload.narrative || fallback, generated: payload.generated ?? false, currency: 'GH₵', cached: true });
+  }
+
+  // Meter this AI generation; if out of credits, quietly use the deterministic
+  // note so Home never breaks (no charge, no error).
+  const allowed = await meterAI(ws, 'insight');
+  const narrative = allowed ? ((await generateText(system, `Here are today's figures:\n${data}\n\nWrite the note.`)) || fallback) : fallback;
+  const generated = narrative !== fallback;
+  // Only cache real AI output, so a key-less fallback keeps retrying next time.
+  if (generated) {
+    await prisma.cooAction.deleteMany({ where: { workspaceId: ws, kind: 'insight_cache' } }).catch(() => {});
+    await prisma.cooAction.create({ data: { workspaceId: ws, kind: 'insight_cache', title: 'insight', status: 'done', payload: { narrative, generated } } }).catch(() => {});
+  }
+  res.json({ narrative, generated, currency: 'GH₵' });
 });
 
 // Proactive feed: the short cards INT wants to raise, most pressing first.
@@ -398,6 +434,7 @@ router.get('/briefing', async (req: AuthenticatedRequest, res) => {
 router.post('/draft', async (req: AuthenticatedRequest, res) => {
   const ws = await resolveWorkspaceId(req);
   if (!ws) return res.status(400).json({ error: 'No business' });
+  if (!(await meterAI(ws, 'draft message'))) return res.status(402).json({ error: 'You’re out of AI credits — top up in Settings to let INT write messages for you.' });
   const b = req.body || {};
   const purpose = String(b.purpose || '');
   const workspace = await prisma.workspace.findUnique({ where: { id: ws }, select: { name: true } });
@@ -571,6 +608,7 @@ router.post('/vision/stock', async (req: AuthenticatedRequest, res) => {
   const ws = await resolveWorkspaceId(req);
   if (!ws) return res.status(400).json({ error: 'No business' });
   if (!visionAvailable()) return res.status(400).json({ error: 'Photo scanning needs an OpenRouter key.', code: 'no_key' });
+  if (!(await meterAI(ws, 'photo scan'))) return res.status(402).json({ error: 'You’re out of AI credits — top up in Settings to scan photos.' });
   const image = String(req.body?.image || '');
   if (!image.startsWith('data:image')) return res.status(400).json({ error: 'No image received.' });
   const items = await extractStockFromImage(image);
@@ -914,6 +952,61 @@ router.post('/money/parse', async (req: AuthenticatedRequest, res) => {
   }
 
   res.json({ ...parsed, matchedCustomerId, matchedCustomerName, matchedOwed, currency: 'GH₵' });
+});
+
+// ── Supplier bills / purchases (restocking) ─────────────────────────────────
+// Record a supplier invoice: paid, on credit, or part-paid. The paid part also
+// becomes an Expense so cash-on-hand stays correct; the rest is owed to the
+// supplier. An optional photo of the invoice is stored (data URL).
+router.post('/purchases', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.status(400).json({ error: 'No business' });
+  const b = req.body || {};
+  const supplier = String(b.supplier || '').trim() || 'Supplier';
+  const amount = num(b.amount);
+  if (!(amount > 0)) return res.status(400).json({ error: 'Enter the bill amount' });
+  const amountPaid = Math.min(Math.max(0, num(b.amountPaid)), amount);
+  const status = amountPaid >= amount ? 'paid' : amountPaid <= 0 ? 'credit' : 'partial';
+  const note = String(b.note || '').trim() || null;
+  const photo = typeof b.photo === 'string' && b.photo.startsWith('data:image') ? b.photo : null;
+
+  const purchase = await prisma.purchase.create({ data: { workspaceId: ws, supplier, amount, amountPaid, status, note, photo } });
+  // The money that left the till now → an expense so cash reflects it.
+  if (amountPaid > 0) {
+    await prisma.expense.create({
+      data: { workspaceId: ws, category: 'Restock / buying stock', amount: amountPaid, note: `Supplier: ${supplier}${note ? ` — ${note}` : ''}`, spentAt: new Date() },
+    });
+  }
+  res.status(201).json({ purchase: { ...purchase, photo: undefined }, message: `Supplier bill saved (${status}).` });
+});
+
+router.get('/purchases', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.json({ purchases: [], owed: 0 });
+  const rows = await prisma.purchase.findMany({ where: { workspaceId: ws }, orderBy: { createdAt: 'desc' }, take: 40 });
+  const owed = rows.reduce((s, p) => s + Math.max(0, p.amount - p.amountPaid), 0);
+  // Don't ship the (large) photo in the list; a detail fetch can add it later.
+  res.json({ purchases: rows.map((p) => ({ ...p, photo: undefined, hasPhoto: Boolean(p.photo), outstanding: Math.max(0, Math.round(p.amount - p.amountPaid)) })), owed: Math.round(owed) });
+});
+
+// Pay down a supplier bill later (records the cash-out as an expense).
+router.post('/purchases/:id/pay', async (req: AuthenticatedRequest, res) => {
+  const ws = await resolveWorkspaceId(req);
+  if (!ws) return res.status(400).json({ error: 'No business' });
+  const existing = await prisma.purchase.findFirst({ where: { id: req.params.id, workspaceId: ws } });
+  if (!existing) return res.status(404).json({ error: 'Bill not found' });
+  const outstanding = Math.max(0, existing.amount - existing.amountPaid);
+  let pay = num(req.body?.amount);
+  if (!(pay > 0)) pay = outstanding; // default: settle it
+  pay = Math.min(pay, outstanding);
+  if (!(pay > 0)) return res.status(400).json({ error: 'Nothing left to pay' });
+  const amountPaid = existing.amountPaid + pay;
+  const status = amountPaid >= existing.amount ? 'paid' : 'partial';
+  await prisma.purchase.update({ where: { id: existing.id }, data: { amountPaid, status } });
+  await prisma.expense.create({
+    data: { workspaceId: ws, category: 'Restock / buying stock', amount: pay, note: `Supplier: ${existing.supplier} (part payment)`, spentAt: new Date() },
+  });
+  res.json({ ok: true, message: `Paid GH₵ ${pay.toLocaleString()} to ${existing.supplier}.` });
 });
 
 // ── Expenses ─────────────────────────────────────────────────────────────────

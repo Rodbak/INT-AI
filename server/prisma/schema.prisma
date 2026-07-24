@@ -87,10 +87,12 @@ model Workspace {
   name      String
   slug      String    @unique
   plan      String    @default("FREE")
+  aiCredits Float     @default(0) // AI credits wallet (topped up via Paystack)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   users       WorkspaceUser[]
+  creditTransactions CreditTransaction[]
   teams       Team[]
   automations Automation[]
   documents   Document[]
@@ -466,6 +468,40 @@ model CooAction {
   detail      String?
   status      String   @default("pending") // pending | approved | declined | done
   payload     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+// Every change to a shop's AI-credit wallet: top-ups (Paystack), AI usage,
+// and any bonuses/adjustments. `amount` is signed (+ topup, − usage).
+model CreditTransaction {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  type         String   // topup | usage | bonus | adjustment
+  amount       Float    // signed credits
+  balanceAfter Float
+  reference    String?  // Paystack reference for top-ups
+  note         String?
+  createdAt    DateTime @default(now())
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+// A supplier bill / purchase when restocking — paid, on credit, or part-paid.
+// The paid portion also creates an Expense so cash-on-hand stays right; the
+// unpaid remainder is what the shop owes its suppliers.
+model Purchase {
+  id          String   @id @default(uuid())
+  workspaceId String
+  supplier    String
+  amount      Float    @default(0)
+  amountPaid  Float    @default(0)
+  status      String   @default("paid") // paid | partial | credit
+  note        String?
+  photo       String?  // data URL of the invoice photo (downscaled)
   createdAt   DateTime @default(now())
 
   @@index([workspaceId])

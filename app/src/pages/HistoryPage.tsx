@@ -52,7 +52,7 @@ export default function HistoryPage() {
               key={conv.id}
               type="button"
               className="history__item"
-              onClick={() => navigate(`/conversations/${conv.id}`)}
+              onClick={() => navigate(`/current-task?conv=${conv.id}`)}
             >
               <div className="history__item-title">{conv.title}</div>
               <div className="history__item-preview">{conv.preview}</div>
